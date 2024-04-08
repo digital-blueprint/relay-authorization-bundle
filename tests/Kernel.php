@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Dbp\Relay\AuhorizationBundle\Tests;
+namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
-use Dbp\Relay\AuhorizationBundle\DbpRelayAuhorizationBundle;
+use Dbp\Relay\AuthorizationBundle\DbpRelayAuthorizationBundle;
 use Dbp\Relay\CoreBundle\DbpRelayCoreBundle;
 use Nelmio\CorsBundle\NelmioCorsBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -30,7 +30,7 @@ class Kernel extends BaseKernel
         yield new NelmioCorsBundle();
         yield new MonologBundle();
         yield new ApiPlatformBundle();
-        yield new DbpRelayAuhorizationBundle();
+        yield new DbpRelayAuthorizationBundle();
         yield new DbpRelayCoreBundle();
     }
 
@@ -47,7 +47,7 @@ class Kernel extends BaseKernel
             'secret' => '',
         ]);
 
-        $container->extension('dbp_relay_auhorization', []);
+        $container->extension('dbp_relay_authorization', []);
 
         $container->extension('api_platform', [
             'metadata_backward_compatibility_layer' => false,

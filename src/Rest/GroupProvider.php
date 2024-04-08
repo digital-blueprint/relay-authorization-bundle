@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Dbp\Relay\AuhorizationBundle\Rest;
+namespace Dbp\Relay\AuthorizationBundle\Rest;
 
-use Dbp\Relay\AuhorizationBundle\Entity\Group;
+use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 
 /**

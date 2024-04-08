@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Dbp\Relay\AuhorizationBundle\Entity;
+namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use Symfony\Component\Serializer\Annotation\Groups;
 
 class Group
 {
     /**
-     * @Groups({"AuhorizationGroup:output"})
+     * @Groups({"AuthorizationGroup:output"})
      */
     private ?string $identifier = null;
 
     /**
-     * @Groups({"AuhorizationGroup:output", "AuhorizationGroup:input"})
+     * @Groups({"AuthorizationGroup:output", "AuthorizationGroup:input"})
      */
     private ?string $name = null;
 

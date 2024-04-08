@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Dbp\Relay\AuhorizationBundle\Tests;
+namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 

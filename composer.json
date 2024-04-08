@@ -27,12 +27,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Dbp\\Relay\\AuhorizationBundle\\": "src/"
+            "Dbp\\Relay\\AuthorizationBundle\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Dbp\\Relay\\AuhorizationBundle\\Tests\\": "tests/"
+            "Dbp\\Relay\\AuthorizationBundle\\Tests\\": "tests/"
         }
     },
     "config": {

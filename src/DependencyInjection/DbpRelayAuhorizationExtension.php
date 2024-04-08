@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Dbp\Relay\AuhorizationBundle\DependencyInjection;
+namespace Dbp\Relay\AuthorizationBundle\DependencyInjection;
 
 use Dbp\Relay\CoreBundle\Extension\ExtensionTrait;
 use Symfony\Component\Config\FileLocator;
@@ -10,7 +10,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\HttpKernel\DependencyInjection\ConfigurableExtension;
 
-class DbpRelayAuhorizationExtension extends ConfigurableExtension
+class DbpRelayAuthorizationExtension extends ConfigurableExtension
 {
     use ExtensionTrait;
 

@@ -1,30 +1,30 @@
 resources:
-  Dbp\Relay\AuhorizationBundle\Entity\Group:
+  Dbp\Relay\AuthorizationBundle\Entity\Group:
     types: ['https://schema.org/Group']
-    shortName: "AuhorizationGroup"
+    shortName: "AuthorizationGroup"
     normalizationContext:
-      groups: ["AuhorizationGroup:output"]
+      groups: ["AuthorizationGroup:output"]
     denormalizationContext:
-      groups: ["AuhorizationGroup:input"]
+      groups: ["AuthorizationGroup:input"]
     operations:
       ApiPlatform\Metadata\Get:
-        provider: Dbp\Relay\AuhorizationBundle\Rest\GroupProvider
-        uriTemplate: "/auhorization/groups/{identifier}"
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GroupProvider
+        uriTemplate: "/authorization/groups/{identifier}"
         openapiContext:
           tags: ["Authorization"]
       ApiPlatform\Metadata\GetCollection:
-        provider: Dbp\Relay\AuhorizationBundle\Rest\GroupProvider
-        uriTemplate: "/auhorization/groups"
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GroupProvider
+        uriTemplate: "/authorization/groups"
         openapiContext:
           tags: ["Authorization"]
       ApiPlatform\Metadata\Post:
-        processor: Dbp\Relay\AuhorizationBundle\Rest\GroupProcessor
-        uriTemplate: "/auhorization/groups"
+        processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
+        uriTemplate: "/authorization/groups"
         openapiContext:
           tags: ["Authorization"]
       ApiPlatform\Metadata\Delete:
-        processor: Dbp\Relay\AuhorizationBundle\Rest\GroupProcessor
-        uriTemplate: "/auhorization/groups/{identifier}"
+        processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
+        uriTemplate: "/authorization/groups/{identifier}"
         openapiContext:
           tags: ["Authorization"]
     properties:
