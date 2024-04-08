@@ -10,7 +10,7 @@ Relay-API Bundle README Template
 
 The authorization bundle provides an API for managing group and user authorization attributes.
 
-## Bundle installation
+## Bundle Installation
 
 You can install the bundle directly from [packagist.org](https://packagist.org/packages/dbp/relay-authorization-bundle).
 

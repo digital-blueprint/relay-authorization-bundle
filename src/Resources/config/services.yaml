@@ -1,1 +1,5 @@
 services:
+  Dbp\Relay\AuthorizationBundle\Rest\:
+    resource: '../../Rest'
+    autowire: true
+    autoconfigure: true
