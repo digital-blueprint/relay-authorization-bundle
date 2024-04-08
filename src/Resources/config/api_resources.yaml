@@ -1,0 +1,34 @@
+resources:
+  Dbp\Relay\AuhorizationBundle\Entity\Group:
+    types: ['https://schema.org/Group']
+    shortName: "AuhorizationGroup"
+    normalizationContext:
+      groups: ["AuhorizationGroup:output"]
+    denormalizationContext:
+      groups: ["AuhorizationGroup:input"]
+    operations:
+      ApiPlatform\Metadata\Get:
+        provider: Dbp\Relay\AuhorizationBundle\Rest\GroupProvider
+        uriTemplate: "/auhorization/groups/{identifier}"
+        openapiContext:
+          tags: ["Authorization"]
+      ApiPlatform\Metadata\GetCollection:
+        provider: Dbp\Relay\AuhorizationBundle\Rest\GroupProvider
+        uriTemplate: "/auhorization/groups"
+        openapiContext:
+          tags: ["Authorization"]
+      ApiPlatform\Metadata\Post:
+        processor: Dbp\Relay\AuhorizationBundle\Rest\GroupProcessor
+        uriTemplate: "/auhorization/groups"
+        openapiContext:
+          tags: ["Authorization"]
+      ApiPlatform\Metadata\Delete:
+        processor: Dbp\Relay\AuhorizationBundle\Rest\GroupProcessor
+        uriTemplate: "/auhorization/groups/{identifier}"
+        openapiContext:
+          tags: ["Authorization"]
+    properties:
+      identifier:
+        identifier: truec
+      name:
+        iri: 'https://schema.org/name'
