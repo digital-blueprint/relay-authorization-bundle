@@ -9,11 +9,6 @@ services:
     autowire: true
     autoconfigure: true
 
-  Dbp\Relay\AuthorizationBundle\Migrations\:
-    resource: '../../Migrations'
-    autowire: true
-    autoconfigure: true
-
   Dbp\Relay\AuthorizationBundle\Service\GroupService:
     autowire: true
     autoconfigure: true

@@ -7,9 +7,10 @@ namespace Dbp\Relay\AuthorizationBundle\Migrations;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 use Doctrine\ORM\EntityManager;
+use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-abstract class EntityManagerMigration extends AbstractMigration
+abstract class EntityManagerMigration extends AbstractMigration implements ContainerAwareInterface
 {
     private const EM_NAME = 'dbp_relay_authorization_bundle';
 
@@ -18,7 +19,7 @@ abstract class EntityManagerMigration extends AbstractMigration
     /**
      * @required
      */
-    public function setContainer(ContainerInterface $container): void
+    public function setContainer(?ContainerInterface $container = null)
     {
         $this->container = $container;
     }
