@@ -13,6 +13,16 @@ class Configuration implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder('dbp_relay_authorization');
 
+        $treeBuilder->getRootNode()
+            ->children()
+               ->scalarNode('database_url')
+                  ->isRequired()
+                  ->info('The database DSN')
+                  ->cannotBeEmpty()
+               ->end()
+            ->end()
+            ->end();
+
         return $treeBuilder;
     }
 }

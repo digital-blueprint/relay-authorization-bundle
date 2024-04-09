@@ -3,3 +3,19 @@ services:
     resource: '../../Rest'
     autowire: true
     autoconfigure: true
+
+  Dbp\Relay\AuthorizationBundle\Service\:
+    resource: '../../Service'
+    autowire: true
+    autoconfigure: true
+
+  Dbp\Relay\AuthorizationBundle\Migrations\:
+    resource: '../../Migrations'
+    autowire: true
+    autoconfigure: true
+
+  Dbp\Relay\AuthorizationBundle\Service\GroupService:
+    autowire: true
+    autoconfigure: true
+    arguments:
+      $entityManager: '@doctrine.orm.dbp_relay_authorization_bundle_entity_manager'

@@ -7,6 +7,8 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Dbp\Relay\AuthorizationBundle\DbpRelayAuthorizationBundle;
 use Dbp\Relay\CoreBundle\DbpRelayCoreBundle;
+use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
+use Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle;
 use Nelmio\CorsBundle\NelmioCorsBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -29,6 +31,8 @@ class Kernel extends BaseKernel
         yield new TwigBundle();
         yield new NelmioCorsBundle();
         yield new MonologBundle();
+        yield new DoctrineBundle();
+        yield new DoctrineMigrationsBundle();
         yield new ApiPlatformBundle();
         yield new DbpRelayAuthorizationBundle();
         yield new DbpRelayCoreBundle();
@@ -47,7 +51,9 @@ class Kernel extends BaseKernel
             'secret' => '',
         ]);
 
-        $container->extension('dbp_relay_authorization', []);
+        $container->extension('dbp_relay_authorization', [
+            'database_url' => 'mysql://dummy:dummy@dummy',
+        ]);
 
         $container->extension('api_platform', [
             'metadata_backward_compatibility_layer' => false,

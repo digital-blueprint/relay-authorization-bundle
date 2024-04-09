@@ -4,30 +4,30 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
-use Dbp\Relay\AuthorizationBundle\Service\GroupService;
+use Dbp\Relay\AuthorizationBundle\Entity\ResouceAction;
+use Dbp\Relay\AuthorizationBundle\Service\ResourceActionService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 
 /**
- * @extends AbstractDataProvider<Group>
+ * @extends AbstractDataProvider<ResouceAction>
  */
-class GroupProvider extends AbstractDataProvider
+class ResourceActionProvider extends AbstractDataProvider
 {
-    private GroupService $groupService;
+    private ResourceActionService $resourceActionService;
 
-    public function __construct(GroupService $groupService)
+    public function __construct(ResourceActionService $resourceActionService)
     {
-        $this->groupService = $groupService;
+        $this->resourceActionService = $resourceActionService;
     }
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->groupService->getGroup($id, $options);
+        return $this->resourceActionService->getResourceAction($id, $options);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        return $this->groupService->getGroups($currentPageNumber, $maxNumItemsPerPage, $options);
+        return $this->resourceActionService->getResourceActions($currentPageNumber, $maxNumItemsPerPage, $options);
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool
