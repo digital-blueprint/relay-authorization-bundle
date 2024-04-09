@@ -29,6 +29,6 @@ resources:
           tags: ["Authorization"]
     properties:
       identifier:
-        identifier: truec
+        identifier: true
       name:
         iri: 'https://schema.org/name'
