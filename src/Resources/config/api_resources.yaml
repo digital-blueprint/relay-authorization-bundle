@@ -23,6 +23,7 @@ resources:
         openapiContext:
           tags: ["Authorization"]
       ApiPlatform\Metadata\Delete:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GroupProvider
         processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
         uriTemplate: "/authorization/groups/{identifier}"
         openapiContext:
