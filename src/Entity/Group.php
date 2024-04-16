@@ -17,7 +17,7 @@ class Group
     /**
      * @ORM\Id
      *
-     * @ORM\Column(type="string", length=50)
+     * @ORM\Column(type="relay_authorization_uuid_binary", unique=true)
      *
      * @Groups({"AuthorizationGroup:output"})
      */

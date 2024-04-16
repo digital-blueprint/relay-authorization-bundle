@@ -1,6 +1,5 @@
 resources:
   Dbp\Relay\AuthorizationBundle\Entity\Group:
-    types: ['https://schema.org/Group']
     shortName: "AuthorizationGroup"
     normalizationContext:
       groups: ["AuthorizationGroup:output"]
@@ -22,6 +21,19 @@ resources:
         uriTemplate: "/authorization/groups"
         openapiContext:
           tags: ["Authorization"]
+          requestBody:
+            content:
+              application/ld+json:
+                schema:
+                  type: "object"
+                  properties:
+                    name:
+                      type: "string"
+                  required:
+                    - name
+                example:
+                  name: "Example Group Name"
+
       ApiPlatform\Metadata\Delete:
         provider: Dbp\Relay\AuthorizationBundle\Rest\GroupProvider
         processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
@@ -33,3 +45,70 @@ resources:
         identifier: true
       name:
         iri: 'https://schema.org/name'
+
+  Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant:
+    shortName: "AuthorizationResourceActionGrant"
+    normalizationContext:
+      groups: [ "AuthorizationResourceActionGrant:output" ]
+    denormalizationContext:
+      groups: [ "AuthorizationResourceActionGrant:input" ]
+    operations:
+      ApiPlatform\Metadata\Get:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider
+        uriTemplate: "/authorization/resource-action-grants/{identifier}"
+        openapiContext:
+          tags: [ "Authorization" ]
+      ApiPlatform\Metadata\GetCollection:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider
+        uriTemplate: "/authorization/resource-action-grants"
+        openapiContext:
+          tags: [ "Authorization" ]
+      ApiPlatform\Metadata\Post:
+        processor: Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor
+        uriTemplate: "/authorization/resource-action-grants"
+        openapiContext:
+          tags: [ "Authorization" ]
+          requestBody:
+            content:
+              application/ld+json:
+                schema:
+                  type: "object"
+                  properties:
+                    namespace:
+                      type: "string"
+                    resourceIdentifier:
+                      type: "string"
+                    action:
+                      type: "string"
+                    userIdentifier:
+                      type: "string"
+                    groupIdentifier:
+                      type: "string"
+                  required:
+                    - namespace
+                    - action
+                example:
+                  namespace: "DbpRelayFormalize"
+                  resourceIdentifier: "test_resource_0"
+                  action: "write"
+                  userIdentifier: "811EC3ACC0ADCA70" # woody007
+
+      ApiPlatform\Metadata\Delete:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider
+        processor: Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor
+        uriTemplate: "/authorization/resource-action-grants/{identifier}"
+        openapiContext:
+          tags: [ "Authorization" ]
+    properties:
+      identifier:
+        identifier: true
+      namespace:
+        iri: 'https://schema.org/additionalProperty'
+      resourceIdentifier:
+        iri: 'https://schema.org/identifier'
+      action:
+        iri: 'https://schema.org/Action'
+      userIdentifier:
+        iri: 'https://schema.org/identifier'
+      groupIdentifier:
+        iri: 'https://schema.org/identifier'

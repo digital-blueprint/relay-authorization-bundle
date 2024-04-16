@@ -12,35 +12,35 @@ use Symfony\Component\Serializer\Annotation\Groups;
  *
  * @ORM\Table(name="authorization_resource_actions")
  */
-class ResouceAction
+class ResourceAction
 {
     /**
      * @ORM\Id
      *
      * @ORM\Column(type="string", length=50)
      *
-     * @Groups({"AuthorizationResoueceAction:output"})
+     * @Groups({"AuthorizationResourceAction:output"})
      */
     private ?string $identifier = null;
 
     /**
      * @ORM\Column(name="namespace", type="string", length=64)
      *
-     * @Groups({"AuthorizationResoueceAction:input", "AuthorizationResoueceAction:output"})
+     * @Groups({"AuthorizationResourceAction:input", "AuthorizationResourceAction:output"})
      */
     private ?string $namespace = null;
 
     /**
      * @ORM\Column(name="resource_identifier", type="string", length=64)
      *
-     * @Groups({"AuthorizationResoueceAction:input", "AuthorizationResoueceAction:output"})
+     * @Groups({"AuthorizationResourceAction:input", "AuthorizationResourceAction:output"})
      */
     private ?string $resourceIdentifier = null;
 
     /**
      * @ORM\Column(name="action", type="string", length=64)
      *
-     * @Groups({"AuthorizationResoueceAction:input", "AuthorizationResoueceAction:output"})
+     * @Groups({"AuthorizationResourceAction:input", "AuthorizationResourceAction:output"})
      */
     private ?string $action = null;
 

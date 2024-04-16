@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
-use Dbp\Relay\AuthorizationBundle\Entity\ResouceAction;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceAction;
 use Dbp\Relay\AuthorizationBundle\Service\ResourceActionService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 
 /**
- * @extends AbstractDataProvider<ResouceAction>
+ * @extends AbstractDataProvider<ResourceAction>
  */
 class ResourceActionProvider extends AbstractDataProvider
 {

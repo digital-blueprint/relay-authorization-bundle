@@ -4,12 +4,28 @@ services:
     autowire: true
     autoconfigure: true
 
-  Dbp\Relay\AuthorizationBundle\Service\:
-    resource: '../../Service'
+  Dbp\Relay\AuthorizationBundle\Command\:
+    resource: '../../Command'
+    autowire: true
+    autoconfigure: true
+
+  Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService:
     autowire: true
     autoconfigure: true
 
   Dbp\Relay\AuthorizationBundle\Service\GroupService:
+    autowire: true
+    autoconfigure: true
+    arguments:
+      $entityManager: '@doctrine.orm.dbp_relay_authorization_bundle_entity_manager'
+
+  Dbp\Relay\AuthorizationBundle\Service\ResourceActionService:
+    autowire: true
+    autoconfigure: true
+    arguments:
+      $entityManager: '@doctrine.orm.dbp_relay_authorization_bundle_entity_manager'
+
+  Dbp\Relay\AuthorizationBundle\Service\ResourceActionGrantService:
     autowire: true
     autoconfigure: true
     arguments:
