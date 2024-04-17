@@ -11,6 +11,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
 
+/**
+ * @internal
+ */
 class GroupService
 {
     private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-group-failed';

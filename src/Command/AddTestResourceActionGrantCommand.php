@@ -6,18 +6,21 @@ namespace Dbp\Relay\AuthorizationBundle\Command;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Service\ResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * @internal
+ */
 class AddTestResourceActionGrantCommand extends Command
 {
-    private ResourceActionGrantService $resourceActionGrantService;
+    private InternalResourceActionGrantService $resourceActionGrantService;
     private AuthorizationService $authorizationService;
 
-    public function __construct(ResourceActionGrantService $resourceActionGrantService, AuthorizationService $authorizationService)
+    public function __construct(InternalResourceActionGrantService $resourceActionGrantService, AuthorizationService $authorizationService)
     {
         parent::__construct();
 
@@ -32,7 +35,7 @@ class AddTestResourceActionGrantCommand extends Command
             ->setDescription('Add a resource action grant for testing')
             ->addArgument('namespace', InputArgument::REQUIRED, 'namespace')
             ->addArgument('userIdentifier', InputArgument::REQUIRED, 'userIdentifier')
-            ->addArgument('action', InputArgument::OPTIONAL, 'action: default: "manage"', ResourceActionGrantService::MANAGE_ACTION)
+            ->addArgument('action', InputArgument::OPTIONAL, 'action: default: "manage"', InternalResourceActionGrantService::MANAGE_ACTION)
             ->addArgument('resourceIdentifier', InputArgument::OPTIONAL, 'identifier: default null', null)
         ;
     }

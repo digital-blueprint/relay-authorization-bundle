@@ -11,6 +11,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
 
+/**
+ * @internal
+ */
 class ResourceActionService
 {
     private const ADDING_RESOURCE_ACTION_FAILED_ERROR_ID = 'authorization:adding-resource-action-failed';

@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Service\ResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 
+/**
+ * @internal
+ */
 class AuthorizationService extends AbstractAuthorizationService
 {
-    private ResourceActionGrantService $resourceActionGrantService;
+    private InternalResourceActionGrantService $resourceActionGrantService;
 
-    public function __construct(ResourceActionGrantService $resourceActionGrantService)
+    public function __construct(InternalResourceActionGrantService $resourceActionGrantService)
     {
         $this->resourceActionGrantService = $resourceActionGrantService;
     }

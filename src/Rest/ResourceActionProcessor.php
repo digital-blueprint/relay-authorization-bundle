@@ -8,6 +8,9 @@ use Dbp\Relay\AuthorizationBundle\Entity\ResourceAction;
 use Dbp\Relay\AuthorizationBundle\Service\ResourceActionService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
 
+/**
+ * @internal
+ */
 class ResourceActionProcessor extends AbstractDataProcessor
 {
     private ResourceActionService $resourceActionService;

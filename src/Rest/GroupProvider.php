@@ -10,6 +10,8 @@ use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 
 /**
  * @extends AbstractDataProvider<Group>
+ *
+ * @internal
  */
 class GroupProvider extends AbstractDataProvider
 {

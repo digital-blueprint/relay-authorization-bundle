@@ -10,6 +10,8 @@ use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 
 /**
  * @extends AbstractDataProvider<ResourceAction>
+ *
+ * @internal
  */
 class ResourceActionProvider extends AbstractDataProvider
 {

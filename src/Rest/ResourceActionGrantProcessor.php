@@ -6,15 +6,18 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Service\ResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
 
+/**
+ * @internal
+ */
 class ResourceActionGrantProcessor extends AbstractDataProcessor
 {
-    private ResourceActionGrantService $resourceActionGrantService;
+    private InternalResourceActionGrantService $resourceActionGrantService;
     private AuthorizationService $authorizationService;
 
-    public function __construct(ResourceActionGrantService $resourceActionService, AuthorizationService $authorizationService)
+    public function __construct(InternalResourceActionGrantService $resourceActionService, AuthorizationService $authorizationService)
     {
         $this->resourceActionGrantService = $resourceActionService;
         $this->authorizationService = $authorizationService;

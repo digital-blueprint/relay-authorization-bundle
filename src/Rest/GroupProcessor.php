@@ -8,6 +8,9 @@ use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
 
+/**
+ * @internal
+ */
 class GroupProcessor extends AbstractDataProcessor
 {
     private GroupService $groupService;
