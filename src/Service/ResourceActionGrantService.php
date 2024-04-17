@@ -167,6 +167,18 @@ class ResourceActionGrantService
         }
     }
 
+    /**
+     * @return ResourceActionGrant[]
+     */
+    public function getResourceActionGrants(?string $namespace = null, ?string $resourceIdentifier = null,
+        ?string $action = null, ?string $userIdentifier = null): array
+    {
+        return $this->getResourceActionGrantsInternal($namespace, $resourceIdentifier, $action, $userIdentifier);
+    }
+
+    /**
+     * @return ResourceActionGrant[]
+     */
     private function getResourceActionGrantsInternal(
         ?string $namespace = null, ?string $resourceIdentifier = null,
         ?string $action = null, ?string $userIdentifier = null,
