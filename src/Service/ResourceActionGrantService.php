@@ -10,6 +10,10 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 
 class ResourceActionGrantService
 {
+    public const MANAGE_ACTION = InternalResourceActionGrantService::MANAGE_ACTION;
+    public const IS_NULL = InternalResourceActionGrantService::IS_NULL;
+    public const IS_NOT_NULL = InternalResourceActionGrantService::IS_NOT_NULL;
+
     private InternalResourceActionGrantService $resourceActionGrantService;
     private AuthorizationService $authorizationService;
 
