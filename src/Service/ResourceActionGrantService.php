@@ -15,6 +15,9 @@ class ResourceActionGrantService
 {
     public const MANAGE_ACTION = 'manage';
 
+    public const IS_NULL = 'is_null';
+    public const IS_NOT_NULL = 'is_not_null';
+
     private const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
     private const RESOURCE_ACTION_INVALID_ERROR_ID = 'authorization:resource-action-grant-invalid';
@@ -197,8 +200,17 @@ class ResourceActionGrantService
                     ->setParameter(':namespace', $namespace);
             }
             if ($resourceIdentifier !== null) {
-                $queryBuilder->andWhere($queryBuilder->expr()->eq($ENTITY_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
-                    ->setParameter(':resourceIdentifier', $resourceIdentifier);
+                switch ($resourceIdentifier) {
+                    case self::IS_NULL:
+                        $queryBuilder->andWhere($queryBuilder->expr()->isNull($ENTITY_ALIAS.'.resourceIdentifier'));
+                        break;
+                    case self::IS_NOT_NULL:
+                        $queryBuilder->andWhere($queryBuilder->expr()->isNotNull($ENTITY_ALIAS.'.resourceIdentifier'));
+                        break;
+                    default:
+                        $queryBuilder->andWhere($queryBuilder->expr()->eq($ENTITY_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
+                            ->setParameter(':resourceIdentifier', $resourceIdentifier);
+                }
             }
             if ($actions !== null) {
                 if (count($actions) === 1) {
