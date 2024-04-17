@@ -141,7 +141,7 @@ class ResourceActionGrantService
     public function isUserResourceManagerOf(string $userIdentifier, string $namespace, string $resourceIdentifier): bool
     {
         $resourceActionGrants = $this->getResourceActionGrantsInternal($namespace, $resourceIdentifier,
-            self::MANAGE_ACTION, $userIdentifier);
+            [self::MANAGE_ACTION], $userIdentifier);
 
         return count($resourceActionGrants) > 0;
     }
@@ -171,9 +171,10 @@ class ResourceActionGrantService
      * @return ResourceActionGrant[]
      */
     public function getResourceActionGrants(?string $namespace = null, ?string $resourceIdentifier = null,
-        ?string $action = null, ?string $userIdentifier = null): array
+        ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        return $this->getResourceActionGrantsInternal($namespace, $resourceIdentifier, $action, $userIdentifier);
+        return $this->getResourceActionGrantsInternal(
+            $namespace, $resourceIdentifier, $actions, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     /**
@@ -181,7 +182,7 @@ class ResourceActionGrantService
      */
     private function getResourceActionGrantsInternal(
         ?string $namespace = null, ?string $resourceIdentifier = null,
-        ?string $action = null, ?string $userIdentifier = null,
+        ?array $actions = null, ?string $userIdentifier = null,
         int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         // TODO: groups
@@ -199,9 +200,14 @@ class ResourceActionGrantService
                 $queryBuilder->andWhere($queryBuilder->expr()->eq($ENTITY_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
                     ->setParameter(':resourceIdentifier', $resourceIdentifier);
             }
-            if ($action !== null) {
-                $queryBuilder->andWhere($queryBuilder->expr()->eq($ENTITY_ALIAS.'.action', ':action'))
-                    ->setParameter(':action', $action);
+            if ($actions !== null) {
+                if (count($actions) === 1) {
+                    $queryBuilder->andWhere($queryBuilder->expr()->eq($ENTITY_ALIAS.'.action', ':action'))
+                        ->setParameter(':action', $actions[0]);
+                } else {
+                    $queryBuilder->andWhere($queryBuilder->expr()->in($ENTITY_ALIAS.'.action', ':action'))
+                        ->setParameter(':action', $actions);
+                }
             }
             if ($userIdentifier !== null) {
                 $queryBuilder->andWhere($queryBuilder->expr()->eq($ENTITY_ALIAS.'.userIdentifier', ':userIdentifier'))

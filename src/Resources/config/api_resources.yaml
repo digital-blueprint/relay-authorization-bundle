@@ -88,7 +88,7 @@ resources:
                     - namespace
                     - action
                 example:
-                  namespace: "DbpRelayFormalize"
+                  namespace: "DbpRelayFormalizeForm"
                   resourceIdentifier: "test_resource_0"
                   action: "write"
                   userIdentifier: "811EC3ACC0ADCA70" # woody007
