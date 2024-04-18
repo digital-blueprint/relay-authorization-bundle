@@ -105,7 +105,6 @@ class InternalResourceActionGrantService
         $this->validateResourceActionGrant($resourceAction);
 
         $resourceAction->setIdentifier(Uuid::uuid7()->toString());
-        dump($resourceAction);
         try {
             $this->entityManager->persist($resourceAction);
             $this->entityManager->flush();
