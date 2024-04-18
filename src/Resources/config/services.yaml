@@ -19,12 +19,6 @@ services:
     arguments:
       $entityManager: '@doctrine.orm.dbp_relay_authorization_bundle_entity_manager'
 
-  Dbp\Relay\AuthorizationBundle\Service\ResourceActionService:
-    autowire: true
-    autoconfigure: true
-    arguments:
-      $entityManager: '@doctrine.orm.dbp_relay_authorization_bundle_entity_manager'
-
   Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService:
     autowire: true
     autoconfigure: true

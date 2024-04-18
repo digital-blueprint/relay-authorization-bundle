@@ -23,25 +23,33 @@ class AuthorizationService extends AbstractAuthorizationService
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         return $this->isCurrentUserResourceManagerOf(
-            $resourceActionGrant->getNamespace(), $resourceActionGrant->getResourceIdentifier());
+            $resourceActionGrant->getAuthorizationResourceIdentifier());
     }
 
     public function isCurrentUserAuthorizedToRemoveGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         return $this->isCurrentUserResourceManagerOf(
-            $resourceActionGrant->getNamespace(), $resourceActionGrant->getResourceIdentifier());
+            $resourceActionGrant->getAuthorizationResourceIdentifier());
     }
 
     public function isCurrentUserAuthorizedToReadGrant(ResourceActionGrant $resourceActionGrant): bool
     {
-        return $resourceActionGrant->getUserIdentifier() === $this->getUserIdentifier()
+        $currentUserIdentifier = $this->getUserIdentifier();
+
+        return
+            ($currentUserIdentifier !== null
+                && $resourceActionGrant->getUserIdentifier() === $currentUserIdentifier)
             || $this->isCurrentUserResourceManagerOf(
-                $resourceActionGrant->getNamespace(), $resourceActionGrant->getResourceIdentifier());
+                $resourceActionGrant->getAuthorizationResourceIdentifier());
     }
 
-    private function isCurrentUserResourceManagerOf(string $namespace, string $resourceIdentifier): bool
+    private function isCurrentUserResourceManagerOf(string $authorizationResourceIdentifier): bool
     {
-        return $this->resourceActionGrantService->isUserResourceManagerOf($this->getUserIdentifier(),
-            $namespace, $resourceIdentifier);
+        $currentUserIdentifier = $this->getUserIdentifier();
+
+        return
+            $currentUserIdentifier !== null
+            && $this->resourceActionGrantService->isUserResourceManagerOf($currentUserIdentifier,
+                $authorizationResourceIdentifier);
     }
 }

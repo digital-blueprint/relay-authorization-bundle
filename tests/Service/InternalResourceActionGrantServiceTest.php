@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
-use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Doctrine\ORM\EntityManager;
@@ -13,7 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 class InternalResourceActionGrantServiceTest extends WebTestCase
 {
     private InternalResourceActionGrantService $internalResourceActionGrantService;
-    private TestEntityManager $entityManager;
+    private TestEntityManager $testEntityManager;
 
     public static function createInternalResourceActionGrantService(EntityManager $entityManager): InternalResourceActionGrantService
     {
@@ -22,27 +21,46 @@ class InternalResourceActionGrantServiceTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->entityManager = TestEntityManager::create();
+        $this->testEntityManager = TestEntityManager::create();
         $this->internalResourceActionGrantService = self::createInternalResourceActionGrantService(
-            $this->entityManager->getEntityManager());
+            $this->testEntityManager->getEntityManager());
     }
 
-    public function testAddResourceActionGrant(): void
+    public function testAddResourceAndManageResourceGrantForUser(): void
     {
-        $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setNamespace('namespace');
-        $resourceActionGrant->setResourceIdentifier('resourceIdentifier');
-        $resourceActionGrant->setAction('action');
-        $resourceActionGrant->setUserIdentifier('userIdentifier');
-        $resourceActionGrant = $this->internalResourceActionGrantService->addResourceActionGrant($resourceActionGrant);
+        $resourceActionGrant = $this->internalResourceActionGrantService->addResourceAndManageResourceGrantForUser(
+            'resourceClass', 'resourceIdentifier', 'userIdentifier');
 
-        $resourceActionGrantPersistence = $this->entityManager->getResourceActionGrant($resourceActionGrant->getIdentifier());
+        $resourcePersistence = $this->testEntityManager->getResource($resourceActionGrant->getAuthorizationResourceIdentifier());
+        $this->assertEquals($resourcePersistence->getIdentifier(), $resourceActionGrant->getAuthorizationResourceIdentifier());
+        $this->assertEquals('resourceIdentifier', $resourcePersistence->getResourceIdentifier());
+        $this->assertEquals('resourceClass', $resourcePersistence->getResourceClass());
 
+        $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrant($resourceActionGrant->getIdentifier());
         $this->assertSame($resourceActionGrant->getIdentifier(), $resourceActionGrantPersistence->getIdentifier());
-        $this->assertSame($resourceActionGrant->getNamespace(), $resourceActionGrantPersistence->getNamespace());
-        $this->assertSame($resourceActionGrant->getResourceIdentifier(), $resourceActionGrantPersistence->getResourceIdentifier());
+        $this->assertSame($resourceActionGrant->getAuthorizationResourceIdentifier(), $resourceActionGrantPersistence->getAuthorizationResourceIdentifier());
         $this->assertSame($resourceActionGrant->getAction(), $resourceActionGrantPersistence->getAction());
         $this->assertSame($resourceActionGrant->getUserIdentifier(), $resourceActionGrantPersistence->getUserIdentifier());
         $this->assertSame($resourceActionGrant->getGroupIdentifier(), $resourceActionGrantPersistence->getGroupIdentifier());
+    }
+
+    public function testRemoveResource(): void
+    {
+        $resource = $this->testEntityManager->addResource('resourceClass', 'resourceIdentifier');
+        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant(
+            $resource->getIdentifier(), 'manage', 'userIdentifier', null);
+
+        $this->assertEquals($resource->getIdentifier(),
+            $this->testEntityManager->getResource($resource->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrant($resourceActionGrant->getIdentifier())->getIdentifier());
+
+        $this->internalResourceActionGrantService->removeResource('resourceClass', 'resourceIdentifier');
+
+        //        $this->testEntityManager->deleteResource($resource->getIdentifier());
+        //        $this->testEntityManager->deleteResourceActionGrant($resourceActionGrant->getIdentifier());
+
+        $this->assertNull($this->testEntityManager->getResource($resource->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrant($resourceActionGrant->getIdentifier()));
     }
 }

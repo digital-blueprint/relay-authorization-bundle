@@ -24,18 +24,11 @@ class ResourceActionGrant
     private ?string $identifier = null;
 
     /**
-     * @ORM\Column(name="namespace", type="string", length=40)
+     * @ORM\Column(name="authorization_resource_identifier", type="relay_authorization_uuid_binary")
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
-    private ?string $namespace = null;
-
-    /**
-     * @ORM\Column(name="resource_identifier", type="string", length=40)
-     *
-     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
-     */
-    private ?string $resourceIdentifier = null;
+    private ?string $authorizationResourceIdentifier = null;
 
     /**
      * @ORM\Column(name="action", type="string", length=40)
@@ -52,7 +45,7 @@ class ResourceActionGrant
     private ?string $userIdentifier = null;
 
     /**
-     * @ORM\Column(type="relay_authorization_uuid_binary")
+     * @ORM\Column(name="group_identifier", type="relay_authorization_uuid_binary")
      *
      * ## @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
@@ -68,24 +61,14 @@ class ResourceActionGrant
         $this->identifier = $identifier;
     }
 
-    public function getNamespace(): ?string
+    public function getAuthorizationResourceIdentifier(): ?string
     {
-        return $this->namespace;
+        return $this->authorizationResourceIdentifier;
     }
 
-    public function setNamespace(?string $namespace): void
+    public function setAuthorizationResourceIdentifier(?string $authorizationResourceIdentifier): void
     {
-        $this->namespace = $namespace;
-    }
-
-    public function getResourceIdentifier(): ?string
-    {
-        return $this->resourceIdentifier;
-    }
-
-    public function setResourceIdentifier(?string $resourceIdentifier): void
-    {
-        $this->resourceIdentifier = $resourceIdentifier;
+        $this->authorizationResourceIdentifier = $authorizationResourceIdentifier;
     }
 
     public function getAction(): ?string

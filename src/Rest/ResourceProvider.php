@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\Resource;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 
 /**
- * @extends AbstractDataProvider<ResourceActionGrant>
+ * @extends AbstractDataProvider<Resource>
  *
  * @internal
  */
-class ResourceActionGrantProvider extends AbstractDataProvider
+class ResourceProvider extends AbstractDataProvider
 {
     private InternalResourceActionGrantService $resourceActionGrantService;
     private AuthorizationService $authorizationService;
@@ -27,7 +27,7 @@ class ResourceActionGrantProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->resourceActionGrantService->getResourceActionGrant($id, $options);
+        return $this->resourceActionGrantService->getResource($id, $options);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
@@ -35,7 +35,7 @@ class ResourceActionGrantProvider extends AbstractDataProvider
         $currentUserIdentifier = $this->getUserIdentifier();
 
         return $currentUserIdentifier !== null ?
-            $this->resourceActionGrantService->getResourceActionGrantsUserIsAuthorizedToRead(
+            $this->resourceActionGrantService->getResourcesUserIsAuthorizedToRead(
                 $currentPageNumber, $maxNumItemsPerPage, $currentUserIdentifier) : [];
     }
 
@@ -46,7 +46,7 @@ class ResourceActionGrantProvider extends AbstractDataProvider
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
     {
-        assert($item instanceof ResourceActionGrant);
+        assert($item instanceof Resource);
 
         return $this->authorizationService->isCurrentUserAuthorizedToReadGrant($item);
     }

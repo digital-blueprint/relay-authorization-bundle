@@ -46,6 +46,29 @@ resources:
       name:
         iri: 'https://schema.org/name'
 
+  Dbp\Relay\AuthorizationBundle\Entity\Resource:
+    shortName: "AuthorizationResource"
+    normalizationContext:
+      groups: [ "AuthorizationResource:output" ]
+    operations:
+      ApiPlatform\Metadata\Get:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\ResourceProvider
+        uriTemplate: "/authorization/resources/{identifier}"
+        openapiContext:
+          tags: [ "Authorization" ]
+      ApiPlatform\Metadata\GetCollection:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\ResourceProvider
+        uriTemplate: "/authorization/resources"
+        openapiContext:
+          tags: [ "Authorization" ]
+    properties:
+      identifier:
+        identifier: true
+      resourceClass:
+        iri: 'https://schema.org/additionalProperty'
+      resourceIdentifier:
+        iri: 'https://schema.org/identifier'
+
   Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant:
     shortName: "AuthorizationResourceActionGrant"
     normalizationContext:
@@ -88,8 +111,7 @@ resources:
                     - namespace
                     - action
                 example:
-                  namespace: "DbpRelayFormalizeForm"
-                  resourceIdentifier: "test_resource_0"
+                  authorizationResourceIdentifier: "<identifier of AuthorizationResource item>"
                   action: "write"
                   userIdentifier: "811EC3ACC0ADCA70" # woody007
 
@@ -102,9 +124,7 @@ resources:
     properties:
       identifier:
         identifier: true
-      namespace:
-        iri: 'https://schema.org/additionalProperty'
-      resourceIdentifier:
+      authorizationResourceIdentifier:
         iri: 'https://schema.org/identifier'
       action:
         iri: 'https://schema.org/Action'
