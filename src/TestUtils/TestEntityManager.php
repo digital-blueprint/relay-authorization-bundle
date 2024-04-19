@@ -6,46 +6,42 @@ namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
 use Dbp\Relay\AuthorizationBundle\Entity\Resource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
-use Doctrine\DBAL\DriverManager;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\Mapping\UnderscoreNamingStrategy;
-use Doctrine\ORM\ORMSetup;
 use Ramsey\Uuid\Uuid;
 
 class TestEntityManager
 {
     private EntityManager $entityManager;
-    private static bool $haveCustomTypesBeenAdded = false;
 
-    public static function create(): TestEntityManager
-    {
-        try {
-            if (!self::$haveCustomTypesBeenAdded) {
-                Type::addType('relay_authorization_uuid_binary', AuthorizationUuidBinaryType::class);
-                self::$haveCustomTypesBeenAdded = true;
-            }
-            $config = ORMSetup::createAnnotationMetadataConfiguration([__DIR__.'/../../src/Entity'], true);
-            $config->setNamingStrategy(new UnderscoreNamingStrategy(CASE_LOWER, true));
-            $connection = DriverManager::getConnection( // EntityManager::create(
-                [
-                    'driver' => 'pdo_sqlite',
-                    'memory' => true,
-                ], $config
-            );
-            $connection->executeQuery('CREATE TABLE authorization_resources (identifier binary(16) NOT NULL,
-               resource_class varchar(40) NOT NULL, resource_identifier varchar(40) DEFAULT NULL, PRIMARY KEY(identifier))');
-            $connection->executeQuery('CREATE TABLE authorization_resource_action_grants (identifier binary(16) NOT NULL,
-               authorization_resource_identifier binary(16) NOT NULL, action varchar(40) NOT NULL,
-               user_identifier varchar(40) DEFAULT NULL, group_identifier binary(16) DEFAULT NULL, PRIMARY KEY(identifier),
-               CONSTRAINT foreign_key_authorization_resource_identifier FOREIGN KEY (authorization_resource_identifier) REFERENCES authorization_resources(identifier))');
-
-            return new TestEntityManager(new EntityManager($connection, $config));
-        } catch (\Exception $exception) {
-            throw new \RuntimeException($exception->getMessage());
-        }
-    }
+//    private static bool $haveCustomTypesBeenAdded = false;
+//
+//    public static function create(): TestEntityManager
+//    {
+//        try {
+//            if (!self::$haveCustomTypesBeenAdded) {
+//                Type::addType('relay_authorization_uuid_binary', AuthorizationUuidBinaryType::class);
+//                self::$haveCustomTypesBeenAdded = true;
+//            }
+//            $config = ORMSetup::createAnnotationMetadataConfiguration([__DIR__.'/../../src/Entity'], true);
+//            $config->setNamingStrategy(new UnderscoreNamingStrategy(CASE_LOWER, true));
+//            $connection = DriverManager::getConnection( // EntityManager::create(
+//                [
+//                    'driver' => 'pdo_sqlite',
+//                    'memory' => true,
+//                ], $config
+//            );
+//            $connection->executeQuery('CREATE TABLE authorization_resources (identifier binary(16) NOT NULL,
+//               resource_class varchar(40) NOT NULL, resource_identifier varchar(40) DEFAULT NULL, PRIMARY KEY(identifier))');
+//            $connection->executeQuery('CREATE TABLE authorization_resource_action_grants (identifier binary(16) NOT NULL,
+//               authorization_resource_identifier binary(16) NOT NULL, action varchar(40) NOT NULL,
+//               user_identifier varchar(40) DEFAULT NULL, group_identifier binary(16) DEFAULT NULL, PRIMARY KEY(identifier),
+//               CONSTRAINT foreign_key_authorization_resource_identifier FOREIGN KEY (authorization_resource_identifier) REFERENCES authorization_resources(identifier))');
+//
+//            return new TestEntityManager(new EntityManager($connection, $config));
+//        } catch (\Exception $exception) {
+//            throw new \RuntimeException($exception->getMessage());
+//        }
+//    }
 
     public function __construct(EntityManager $entityManager)
     {
@@ -100,7 +96,7 @@ class TestEntityManager
             $queryBuilder
                 ->delete(ResourceActionGrant::class, 'r')
                 ->where($queryBuilder->expr()->eq('r.identifier', ':identifier'))
-                ->setParameter(':identifier', $identifier)
+                ->setParameter(':identifier', $identifier, 'relay_authorization_uuid_binary')
                 ->getQuery()
                 ->execute();
         } catch (\Exception $exception) {
@@ -115,7 +111,7 @@ class TestEntityManager
             $queryBuilder
                 ->delete(Resource::class, 'r')
                 ->where($queryBuilder->expr()->eq('r.identifier', ':identifier'))
-                ->setParameter('identifier', $identifier)
+                ->setParameter(':identifier', $identifier, 'relay_authorization_uuid_binary')
                 ->getQuery()
                 ->execute();
         } catch (\Exception $exception) {

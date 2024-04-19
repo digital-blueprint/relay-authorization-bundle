@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query\Expr\Join;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -160,7 +161,6 @@ class InternalResourceActionGrantService
      */
     public function addResourceAndManageResourceGrantForUser(string $resourceClass, ?string $resourceIdentifier, string $userIdentifier): ResourceActionGrant
     {
-        $resourceActionGrant = new ResourceActionGrant();
         try {
             $resource = new Resource();
             $resource->setIdentifier(Uuid::uuid7()->toString());
@@ -168,9 +168,11 @@ class InternalResourceActionGrantService
             $resource->setResourceIdentifier($resourceIdentifier);
 
             $this->entityManager->getConnection()->beginTransaction();
+
             $this->entityManager->persist($resource);
             $this->entityManager->flush();
 
+            $resourceActionGrant = new ResourceActionGrant();
             $resourceActionGrant->setAuthorizationResourceIdentifier($resource->getIdentifier());
             $resourceActionGrant->setAction(self::MANAGE_ACTION);
             $resourceActionGrant->setUserIdentifier($userIdentifier);
@@ -179,8 +181,10 @@ class InternalResourceActionGrantService
             $this->entityManager->getConnection()->commit();
         } catch (\Exception $e) {
             $this->entityManager->getConnection()->rollback();
+
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
                 self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+            throw $apiError;
         }
 
         return $resourceActionGrant;
@@ -205,32 +209,50 @@ class InternalResourceActionGrantService
         try {
             $this->entityManager->getConnection()->beginTransaction();
 
-            $RESOURCE_ALIAS = 'r';
-            $subqueryBuilder = $this->entityManager->createQueryBuilder();
-            $subqueryBuilder
-                ->select($RESOURCE_ALIAS.'.identifier')
-                ->from(Resource::class, $RESOURCE_ALIAS)
-                ->where($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
-                ->andWhere($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
-                ->setParameter(':resourceClass', $resourceClass)
-                ->setParameter(':resourceIdentifier', $resourceIdentifier);
+            $resource = $this->entityManager->getRepository(Resource::class)->findOneBy([
+                'resourceClass' => $resourceClass,
+                'resourceIdentifier' => $resourceIdentifier,
+            ]);
 
             $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder
                 ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
                 ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResourceIdentifier', ':authorizationResourceIdentifier'))
-                ->setParameter(':authorizationResourceIdentifier', $subqueryBuilder->getDQL())
+                ->setParameter(':authorizationResourceIdentifier', $resource->getIdentifier(), 'relay_authorization_uuid_binary')
                 ->getQuery()
                 ->execute();
 
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            $queryBuilder
-                ->delete(Resource::class, 'r2')
-                ->where($queryBuilder->expr()->eq('r2.identifier', ':identifier'))
-                ->setParameter(':identifier', $subqueryBuilder->getDQL())
-                ->getQuery()
-                ->execute();
+            $this->entityManager->remove($resource);
+            $this->entityManager->flush();
+
+            // didn't seem to work:
+            //            $RESOURCE_ALIAS = 'r';
+            //            $subqueryBuilder = $this->entityManager->createQueryBuilder();
+            //            $subqueryBuilder
+            //                ->select($RESOURCE_ALIAS.'.identifier')
+            //                ->from(Resource::class, $RESOURCE_ALIAS)
+            //                ->where($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
+            //                ->andWhere($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
+            //                ->setParameter(':resourceClass', $resourceClass)
+            //                ->setParameter(':resourceIdentifier', $resourceIdentifier);
+
+            //            $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
+            //            $queryBuilder = $this->entityManager->createQueryBuilder();
+            //            $queryBuilder
+            //                ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
+            //                ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResourceIdentifier', ':authorizationResourceIdentifier'))
+            //                ->setParameter(':authorizationResourceIdentifier', $subqueryBuilder->getDQL())
+            //                ->getQuery()
+            //                ->execute();
+            //
+            //            $queryBuilder = $this->entityManager->createQueryBuilder();
+            //            $queryBuilder
+            //                ->delete(Resource::class, 'r2')
+            //                ->where($queryBuilder->expr()->eq('r2.identifier', ':identifier'))
+            //                ->setParameter(':identifier', $subqueryBuilder->getDQL())
+            //                ->getQuery()
+            //                ->execute();
 
             $this->entityManager->getConnection()->commit();
         } catch (\Exception $e) {
@@ -270,39 +292,46 @@ class InternalResourceActionGrantService
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
         ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
+        $RESOURCE_ALIAS = 'r';
+        $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
+
         try {
+            $queryBuilder = $this->entityManager->createQueryBuilder();
             if ($authorizationResourceIdentifier === null) {
-                $RESOURCE_ALIAS = 'r';
-                $subqueryBuilder = $this->entityManager->createQueryBuilder();
-                $subqueryBuilder
-                    ->select($RESOURCE_ALIAS.'.identifier')
-                    ->from(Resource::class, $RESOURCE_ALIAS)
-                    ->where($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
-                    ->setParameter(':resourceClass', $resourceClass);
+                $queryBuilder
+                    ->select($RESOURCE_ACTION_GRANT_ALIAS)
+                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
+                    ->innerJoin(Resource::class, $RESOURCE_ALIAS, Join::WITH,
+                        $RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResourceIdentifier = '.$RESOURCE_ALIAS.'.identifier');
+                if ($resourceClass !== null) {
+                    $queryBuilder
+                        ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
+                        ->setParameter(':resourceClass', $resourceClass);
+                }
                 if ($resourceIdentifier !== null) {
                     switch ($resourceIdentifier) {
                         case self::IS_NULL:
-                            $subqueryBuilder
-                                ->andWhere($subqueryBuilder->expr()->isNull($RESOURCE_ALIAS.'.resourceIdentifier'));
+                            $queryBuilder
+                                ->andWhere($queryBuilder->expr()->isNull($RESOURCE_ALIAS.'.resourceIdentifier'));
                             break;
                         case self::IS_NOT_NULL:
-                            $subqueryBuilder
-                                ->andWhere($subqueryBuilder->expr()->isNotNull($RESOURCE_ALIAS.'.resourceIdentifier'));
+                            $queryBuilder
+                                ->andWhere($queryBuilder->expr()->isNotNull($RESOURCE_ALIAS.'.resourceIdentifier'));
                             break;
                         default:
-                            $subqueryBuilder
-                                ->andWhere($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
+                            $queryBuilder
+                                ->andWhere($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
                                 ->setParameter(':resourceIdentifier', $resourceIdentifier);
                     }
                 }
+            } else {
+                $queryBuilder
+                    ->select($RESOURCE_ACTION_GRANT_ALIAS)
+                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
+                    ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResourceIdentifier', ':authorizationResourceIdentifier'))
+                    ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, 'relay_authorization_uuid_binary');
             }
 
-            $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            $queryBuilder->select(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResourceIdentifier', ':authorizationResourceIdentifier'))
-                ->setParameter(':authorizationResourceIdentifier',
-                    $authorizationResourceIdentifier === null ? $subqueryBuilder->getDQL() : $authorizationResourceIdentifier);
             if ($actions !== null) {
                 if (count($actions) === 1) {
                     $queryBuilder
@@ -325,7 +354,7 @@ class InternalResourceActionGrantService
                 ->setFirstResult(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage))
                 ->setMaxResults($maxNumItemsPerPage)
                 ->getResult();
-        } catch (\Exception $e) {
+        } catch (ApiError $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get resource action grant collection!',
                 self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);

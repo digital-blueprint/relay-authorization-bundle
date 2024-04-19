@@ -24,7 +24,7 @@ class ResourceActionGrant
     private ?string $identifier = null;
 
     /**
-     * @ORM\Column(name="authorization_resource_identifier", type="relay_authorization_uuid_binary")
+     * @ORM\Column(name="authorization_resource_identifier", type="relay_authorization_uuid_binary", length=16)
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
@@ -38,16 +38,16 @@ class ResourceActionGrant
     private ?string $action = null;
 
     /**
-     * @ORM\Column(name="user_identifier", type="string", length=40)
+     * @ORM\Column(name="user_identifier", type="string", length=40, nullable=true)
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
     private ?string $userIdentifier = null;
 
     /**
-     * @ORM\Column(name="group_identifier", type="relay_authorization_uuid_binary")
+     * @ORM\Column(name="group_identifier", type="relay_authorization_uuid_binary", nullable=true, length=16)
      *
-     * ## @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
+     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
     private ?string $groupIdentifier = null;
 

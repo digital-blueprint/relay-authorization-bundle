@@ -52,7 +52,7 @@ class Kernel extends BaseKernel
         ]);
 
         $container->extension('dbp_relay_authorization', [
-            'database_url' => 'mysql://dummy:dummy@dummy',
+            'database_url' => 'sqlite:///:memory:',
         ]);
     }
 }

@@ -17,7 +17,7 @@ class Resource
     /**
      * @ORM\Id
      *
-     * @ORM\Column(type="relay_authorization_uuid_binary", unique=true)
+     * @ORM\Column(type="relay_authorization_uuid_binary", unique=true, length=16)
      *
      * @Groups({"AuthorizationResource:output"})
      */
@@ -31,7 +31,7 @@ class Resource
     private ?string $resourceClass = null;
 
     /**
-     * @ORM\Column(name="resource_identifier", type="string", length=40)
+     * @ORM\Column(name="resource_identifier", type="string", length=40, nullable=true)
      *
      * @Groups({"AuthorizationResource:input", "AuthorizationResource:output"})
      */
