@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
+use Dbp\Relay\AuthorizationBundle\Entity\Resource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
@@ -41,6 +42,32 @@ class AuthorizationService extends AbstractAuthorizationService
                 && $resourceActionGrant->getUserIdentifier() === $currentUserIdentifier)
             || $this->isCurrentUserResourceManagerOf(
                 $resourceActionGrant->getAuthorizationResourceIdentifier());
+    }
+
+    public function isCurrentUserAuthorizedToReadResource(Resource $item): bool
+    {
+        return count($this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
+            $item->getIdentifier(), null, $this->getUserIdentifier())) > 0;
+    }
+
+    public function getResourcesCurrentUserIsAuthorizedToRead(int $currentPageNumber, int $maxNumItemsPerPage): array
+    {
+        $currentUserIdentifier = $this->getUserIdentifier();
+
+        return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResources(
+            null, null, null, $currentUserIdentifier,
+            $currentPageNumber, $maxNumItemsPerPage) : [];
+    }
+
+    /**
+     * @return ResourceActionGrant[]
+     */
+    public function getResourceActionGrantsUserIsAuthorizedToRead(int $currentPageNumber, int $maxNumItemsPerPage): array
+    {
+        $currentUserIdentifier = $this->getUserIdentifier();
+
+        return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResourceActionGrantsUserIsAuthorizedToRead(
+            $currentPageNumber, $maxNumItemsPerPage, $currentUserIdentifier) : [];
     }
 
     private function isCurrentUserResourceManagerOf(string $authorizationResourceIdentifier): bool

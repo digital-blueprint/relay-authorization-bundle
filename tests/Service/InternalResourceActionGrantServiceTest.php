@@ -6,46 +6,17 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
-use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\Tools\SchemaTool;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpKernel\KernelInterface;
 
 class InternalResourceActionGrantServiceTest extends WebTestCase
 {
     private InternalResourceActionGrantService $internalResourceActionGrantService;
     private TestEntityManager $testEntityManager;
 
-    public static function createInternalResourceActionGrantService(EntityManager $entityManager): InternalResourceActionGrantService
-    {
-        return new InternalResourceActionGrantService($entityManager);
-    }
-
     protected function setUp(): void
     {
-        $kernel = self::bootKernel();
-
-        if ('test' !== $kernel->getEnvironment()) {
-            throw new \RuntimeException('Execution only in Test environment possible!');
-        }
-
-        $this->initDatabase($kernel);
-
-        $entityManager = $kernel->getContainer()
-            ->get('doctrine')
-            ->getManager();
-
-        $this->testEntityManager = new TestEntityManager($entityManager);
-        $this->internalResourceActionGrantService = self::createInternalResourceActionGrantService(
-            $this->testEntityManager->getEntityManager());
-    }
-
-    private function initDatabase(KernelInterface $kernel): void
-    {
-        $entityManager = $kernel->getContainer()->get('doctrine.orm.entity_manager');
-        $metaData = $entityManager->getMetadataFactory()->getAllMetadata();
-        $schemaTool = new SchemaTool($entityManager);
-        $schemaTool->updateSchema($metaData);
+        $this->testEntityManager = new TestEntityManager(self::bootKernel());
+        $this->internalResourceActionGrantService = new InternalResourceActionGrantService($this->testEntityManager->getEntityManager());
     }
 
     public function testAddResourceAndManageResourceGrantForUser(): void

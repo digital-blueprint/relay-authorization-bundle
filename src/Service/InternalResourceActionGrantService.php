@@ -27,7 +27,7 @@ class InternalResourceActionGrantService
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
     private const RESOURCE_ACTION_INVALID_ERROR_ID = 'authorization:resource-action-grant-invalid';
     private const GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-collection-failed';
-    private const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
+    public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
     private const GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-collection-failed';
@@ -41,6 +41,11 @@ class InternalResourceActionGrantService
         $this->entityManager = $entityManager;
     }
 
+    public function getEntityManager(): EntityManagerInterface
+    {
+        return $this->entityManager;
+    }
+
     public function getResource(string $identifier, array $options)
     {
         try {
@@ -52,10 +57,6 @@ class InternalResourceActionGrantService
                 self::GETTING_RESOURCE_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
             throw $apiError;
         }
-    }
-
-    public function getResourcesUserIsAuthorizedToRead(int $currentPageNumber, int $maxNumItemsPerPage, string $userIdentifier)
-    {
     }
 
     /**
@@ -87,8 +88,9 @@ class InternalResourceActionGrantService
         // * for all resources that the user manages
 
         // SELECT * FROM `authorization_resource_action_grants` WHERE
-        // (user_identifier = '4E2E6724637AAE47' AND action != 'manage')
-        // OR resource_identifier IN (SELECT resource_identifier FROM `authorization_resource_action_grants` WHERE user_identifier = '4E2E6724637AAE47' AND action = 'manage')
+        // (user_identifier = '<user identifier>' AND action != 'manage')
+        // OR resource_identifier IN (SELECT resource_identifier FROM
+        // `authorization_resource_action_grants` WHERE user_identifier = '<user identifier>' AND action = 'manage')
 
         try {
             $SUBQUERY_RESOURCE_ALIAS = 'r_sub';
@@ -281,6 +283,72 @@ class InternalResourceActionGrantService
     {
         return $this->getResourceActionGrantsInternal(
             $resourceClass, $resourceIdentifier, null, $actions, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+    }
+
+    public function getResources(
+        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+        ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+    {
+        $RESOURCE_ALIAS = 'r';
+        $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
+
+        try {
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->select($RESOURCE_ALIAS)
+                ->from(Resource::class, $RESOURCE_ALIAS)
+                ->groupBy($RESOURCE_ALIAS.'.identifier')
+                ->innerJoin(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS, Join::WITH,
+                    $RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResourceIdentifier = '.$RESOURCE_ALIAS.'.identifier');
+            if ($resourceClass !== null) {
+                $queryBuilder
+                    ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
+                    ->setParameter(':resourceClass', $resourceClass);
+            }
+            if ($resourceIdentifier !== null) {
+                switch ($resourceIdentifier) {
+                    case self::IS_NULL:
+                        $queryBuilder
+                            ->andWhere($queryBuilder->expr()->isNull($RESOURCE_ALIAS.'.resourceIdentifier'));
+                        break;
+                    case self::IS_NOT_NULL:
+                        $queryBuilder
+                            ->andWhere($queryBuilder->expr()->isNotNull($RESOURCE_ALIAS.'.resourceIdentifier'));
+                        break;
+                    default:
+                        $queryBuilder
+                            ->andWhere($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
+                            ->setParameter(':resourceIdentifier', $resourceIdentifier);
+                }
+            }
+            if ($actions !== null) {
+                if (count($actions) === 1) {
+                    $queryBuilder
+                        ->andWhere($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.action', ':action'))
+                        ->setParameter(':action', $actions[0]);
+                } else {
+                    $queryBuilder
+                        ->andWhere($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.action', ':action'))
+                        ->setParameter(':action', $actions);
+                }
+            }
+            if ($userIdentifier !== null) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.userIdentifier', ':userIdentifier'))
+                    ->setParameter(':userIdentifier', $userIdentifier);
+            }
+
+            return $queryBuilder
+                ->getQuery()
+                ->setFirstResult(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage))
+                ->setMaxResults($maxNumItemsPerPage)
+                ->getResult();
+        } catch (ApiError $e) {
+            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Failed to get resource action grant collection!',
+                self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+            throw $apiError;
+        }
     }
 
     /**

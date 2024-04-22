@@ -35,8 +35,8 @@ class ResourceProvider extends AbstractDataProvider
         $currentUserIdentifier = $this->getUserIdentifier();
 
         return $currentUserIdentifier !== null ?
-            $this->resourceActionGrantService->getResourcesUserIsAuthorizedToRead(
-                $currentPageNumber, $maxNumItemsPerPage, $currentUserIdentifier) : [];
+            $this->authorizationService->getResourcesCurrentUserIsAuthorizedToRead(
+                $currentPageNumber, $maxNumItemsPerPage) : [];
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool
@@ -48,7 +48,7 @@ class ResourceProvider extends AbstractDataProvider
     {
         assert($item instanceof Resource);
 
-        return $this->authorizationService->isCurrentUserAuthorizedToReadGrant($item);
+        return $this->authorizationService->isCurrentUserAuthorizedToReadResource($item);
     }
 
     protected function isCurrentUserAuthorizedToGetCollection(array $filters): bool

@@ -32,11 +32,8 @@ class ResourceActionGrantProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $currentUserIdentifier = $this->getUserIdentifier();
-
-        return $currentUserIdentifier !== null ?
-            $this->resourceActionGrantService->getResourceActionGrantsUserIsAuthorizedToRead(
-                $currentPageNumber, $maxNumItemsPerPage, $currentUserIdentifier) : [];
+        return $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            $currentPageNumber, $maxNumItemsPerPage);
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool
