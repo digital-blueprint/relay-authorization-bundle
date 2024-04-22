@@ -28,7 +28,7 @@ class ResourceProviderTest extends AbstractControllerTest
     public function testGetResourceItemAsManager(): void
     {
         $resource = $this->addResource();
-        $this->addManageGrant($resource->getIdentifier());
+        $this->addManageGrant($resource);
 
         $resourceItem = $this->resourceProviderTester->getItem(
             $resource->getIdentifier());
@@ -42,8 +42,8 @@ class ResourceProviderTest extends AbstractControllerTest
     {
         // we are not manager, just resource reader -> get resource is ok
         $resource = $this->addResource();
-        $this->addManageGrant($resource->getIdentifier(), self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->addGrant($resource->getIdentifier(), 'read');
+        $this->addManageGrant($resource, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->addGrant($resource, 'read');
 
         $resourceItem = $this->resourceProviderTester->getItem(
             $resource->getIdentifier());
@@ -64,7 +64,7 @@ class ResourceProviderTest extends AbstractControllerTest
             self::CURRENT_USER_IDENTIFIER.'_2');
 
         try {
-            $this->resourceProviderTester->getItem($manageGrant->getAuthorizationResourceIdentifier());
+            $this->resourceProviderTester->getItem($manageGrant->getResource()->getIdentifier());
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
@@ -76,7 +76,7 @@ class ResourceProviderTest extends AbstractControllerTest
         // expecting:
         // * all resources that the current user ('userIdentifier') has a grant for
         $resource = $this->addResource();
-        $this->addManageGrant($resource->getIdentifier());
+        $this->addManageGrant($resource);
 
         $resourceCollection = $this->resourceProviderTester->getCollection();
 
@@ -91,7 +91,7 @@ class ResourceProviderTest extends AbstractControllerTest
         // expecting:
         // * all resources that the current user ('userIdentifier') has a grant for
         $resource = $this->addResource();
-        $this->addManageGrant($resource->getIdentifier());
+        $this->addManageGrant($resource);
         $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier_2', 'userIdentifier_2');
 
         $resourceCollection = $this->resourceProviderTester->getCollection();
@@ -107,10 +107,10 @@ class ResourceProviderTest extends AbstractControllerTest
         // expecting:
         // * all resources that the current user ('userIdentifier') has a grant for
         $resource1 = $this->addResource();
-        $this->addManageGrant($resource1->getIdentifier());
+        $this->addManageGrant($resource1);
         $resource2 = $this->addResource('resourceClass', 'resourceIdentifier_2');
-        $this->addManageGrant($resource2->getIdentifier(), 'userIdentifier_2');
-        $this->addGrant($resource2->getIdentifier(), 'write');
+        $this->addManageGrant($resource2, 'userIdentifier_2');
+        $this->addGrant($resource2, 'write');
 
         $resourceCollection = $this->resourceProviderTester->getCollection();
 

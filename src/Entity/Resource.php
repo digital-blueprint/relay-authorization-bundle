@@ -37,11 +37,6 @@ class Resource
      */
     private ?string $resourceIdentifier = null;
 
-    /**
-     * @Groups({"AuthorizationResource:output"})
-     */
-    private ?string $resourceName = null;
-
     public function getIdentifier(): ?string
     {
         return $this->identifier;
@@ -70,15 +65,5 @@ class Resource
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
-    }
-
-    public function getResourceName(): ?string
-    {
-        return $this->resourceName;
-    }
-
-    public function setResourceName(?string $resourceName): void
-    {
-        $this->resourceName = $resourceName;
     }
 }

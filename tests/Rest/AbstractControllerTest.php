@@ -54,22 +54,20 @@ abstract class AbstractControllerTest extends WebTestCase
     {
         $resource = $this->addResource($resourceClass, $resourceIdentifier);
 
-        return $this->testEntityManager->addResourceActionGrant(
-            $resource->getIdentifier(), $action, $userIdentifier);
+        return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
     }
 
-    protected function addGrant(string $authorizationIdentifier,
+    protected function addGrant(Resource $resource,
         string $action = 'action',
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
-        return $this->testEntityManager->addResourceActionGrant(
-            $authorizationIdentifier, $action, $userIdentifier);
+        return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
     }
 
-    protected function addManageGrant(string $authorizationIdentifier,
+    protected function addManageGrant(Resource $resource,
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addGrant(
-            $authorizationIdentifier, InternalResourceActionGrantService::MANAGE_ACTION, $userIdentifier);
+            $resource, InternalResourceActionGrantService::MANAGE_ACTION, $userIdentifier);
     }
 }

@@ -24,24 +24,23 @@ class InternalResourceActionGrantServiceTest extends WebTestCase
         $resourceActionGrant = $this->internalResourceActionGrantService->addResourceAndManageResourceGrantForUser(
             'resourceClass', 'resourceIdentifier', 'userIdentifier');
 
-        $resourcePersistence = $this->testEntityManager->getResource($resourceActionGrant->getAuthorizationResourceIdentifier());
-        $this->assertEquals($resourcePersistence->getIdentifier(), $resourceActionGrant->getAuthorizationResourceIdentifier());
+        $resourcePersistence = $this->testEntityManager->getResource($resourceActionGrant->getResource()->getIdentifier());
+        $this->assertEquals($resourcePersistence->getIdentifier(), $resourceActionGrant->getResource()->getIdentifier());
         $this->assertEquals('resourceIdentifier', $resourcePersistence->getResourceIdentifier());
         $this->assertEquals('resourceClass', $resourcePersistence->getResourceClass());
 
         $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrant($resourceActionGrant->getIdentifier());
         $this->assertSame($resourceActionGrant->getIdentifier(), $resourceActionGrantPersistence->getIdentifier());
-        $this->assertSame($resourceActionGrant->getAuthorizationResourceIdentifier(), $resourceActionGrantPersistence->getAuthorizationResourceIdentifier());
+        $this->assertSame($resourceActionGrant->getResource()->getIdentifier(), $resourceActionGrantPersistence->getResource()->getIdentifier());
         $this->assertSame($resourceActionGrant->getAction(), $resourceActionGrantPersistence->getAction());
         $this->assertSame($resourceActionGrant->getUserIdentifier(), $resourceActionGrantPersistence->getUserIdentifier());
-        $this->assertSame($resourceActionGrant->getGroupIdentifier(), $resourceActionGrantPersistence->getGroupIdentifier());
     }
 
     public function testRemoveResource(): void
     {
         $resource = $this->testEntityManager->addResource('resourceClass', 'resourceIdentifier');
         $resourceActionGrant = $this->testEntityManager->addResourceActionGrant(
-            $resource->getIdentifier(), InternalResourceActionGrantService::MANAGE_ACTION, 'userIdentifier', null);
+            $resource, InternalResourceActionGrantService::MANAGE_ACTION, 'userIdentifier', null);
 
         $this->assertEquals($resource->getIdentifier(),
             $this->testEntityManager->getResource($resource->getIdentifier())->getIdentifier());
@@ -60,7 +59,7 @@ class InternalResourceActionGrantServiceTest extends WebTestCase
         $this->assertFalse($this->internalResourceActionGrantService->isUserResourceManagerOf(
             'userIdentifier', $resource->getIdentifier()));
 
-        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource->getIdentifier(),
+        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource,
             InternalResourceActionGrantService::MANAGE_ACTION, 'userIdentifier');
 
         $this->assertNotNull($this->testEntityManager->getResourceActionGrant($resourceActionGrant->getIdentifier()));
@@ -77,7 +76,7 @@ class InternalResourceActionGrantServiceTest extends WebTestCase
 
         $this->assertCount(0, $resourceActionGrants);
 
-        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource->getIdentifier(),
+        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource,
             InternalResourceActionGrantService::MANAGE_ACTION, 'userIdentifier');
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
@@ -85,7 +84,7 @@ class InternalResourceActionGrantServiceTest extends WebTestCase
 
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
-        $this->assertEquals($resource->getIdentifier(), $resourceActionGrants[0]->getAuthorizationResourceIdentifier());
+        $this->assertEquals($resource->getIdentifier(), $resourceActionGrants[0]->getResource()->getIdentifier());
         $this->assertEquals(InternalResourceActionGrantService::MANAGE_ACTION, $resourceActionGrants[0]->getAction());
         $this->assertEquals('userIdentifier', $resourceActionGrants[0]->getUserIdentifier());
 

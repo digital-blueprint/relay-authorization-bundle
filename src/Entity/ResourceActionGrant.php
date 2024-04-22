@@ -24,11 +24,13 @@ class ResourceActionGrant
     private ?string $identifier = null;
 
     /**
-     * @ORM\Column(name="authorization_resource_identifier", type="relay_authorization_uuid_binary", length=16)
+     * @ORM\ManyToOne(targetEntity="Resource")
+     *
+     * @ORM\JoinColumn(name="authorization_resource_identifier", referencedColumnName="identifier")
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
-    private ?string $authorizationResourceIdentifier = null;
+    private ?Resource $resource = null;
 
     /**
      * @ORM\Column(name="action", type="string", length=40)
@@ -38,6 +40,8 @@ class ResourceActionGrant
     private ?string $action = null;
 
     /**
+     * User type grant holder.
+     *
      * @ORM\Column(name="user_identifier", type="string", length=40, nullable=true)
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
@@ -45,11 +49,24 @@ class ResourceActionGrant
     private ?string $userIdentifier = null;
 
     /**
-     * @ORM\Column(name="group_identifier", type="relay_authorization_uuid_binary", nullable=true, length=16)
+     * Group type grant holder.
+     *
+     * @ORM\OneToOne(targetEntity="Group")
+     *
+     * @ORM\JoinColumn(name="group_identifier", referencedColumnName="identifier", nullable=true)
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
-    private ?string $groupIdentifier = null;
+    private ?Group $group = null;
+
+    /**
+     * Pre-defined group type grant holder.
+     *
+     * @ORM\Column(name="predefined_group_identifier", type="string", length=40, nullable=true)
+     *
+     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
+     */
+    private ?string $predefinedGroupIdentifier = null;
 
     public function getIdentifier(): ?string
     {
@@ -61,14 +78,14 @@ class ResourceActionGrant
         $this->identifier = $identifier;
     }
 
-    public function getAuthorizationResourceIdentifier(): ?string
+    public function getResource(): ?Resource
     {
-        return $this->authorizationResourceIdentifier;
+        return $this->resource;
     }
 
-    public function setAuthorizationResourceIdentifier(?string $authorizationResourceIdentifier): void
+    public function setResource(?Resource $resource): void
     {
-        $this->authorizationResourceIdentifier = $authorizationResourceIdentifier;
+        $this->resource = $resource;
     }
 
     public function getAction(): ?string
@@ -91,13 +108,23 @@ class ResourceActionGrant
         $this->userIdentifier = $userIdentifier;
     }
 
-    public function getGroupIdentifier(): ?string
+    public function getGroup(): ?Group
     {
-        return $this->groupIdentifier;
+        return $this->group;
     }
 
-    public function setGroupIdentifier(?string $groupIdentifier): void
+    public function setGroup(?Group $group): void
     {
-        $this->groupIdentifier = $groupIdentifier;
+        $this->group = $group;
+    }
+
+    public function getPredefinedGroupIdentifier(): ?string
+    {
+        return $this->predefinedGroupIdentifier;
+    }
+
+    public function setPredefinedGroupIdentifier(?string $predefinedGroupIdentifier): void
+    {
+        $this->predefinedGroupIdentifier = $predefinedGroupIdentifier;
     }
 }

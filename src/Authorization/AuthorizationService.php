@@ -24,13 +24,13 @@ class AuthorizationService extends AbstractAuthorizationService
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         return $this->isCurrentUserResourceManagerOf(
-            $resourceActionGrant->getAuthorizationResourceIdentifier());
+            $resourceActionGrant->getResource()->getIdentifier());
     }
 
     public function isCurrentUserAuthorizedToRemoveGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         return $this->isCurrentUserResourceManagerOf(
-            $resourceActionGrant->getAuthorizationResourceIdentifier());
+            $resourceActionGrant->getResource()->getIdentifier());
     }
 
     public function isCurrentUserAuthorizedToReadGrant(ResourceActionGrant $resourceActionGrant): bool
@@ -41,7 +41,7 @@ class AuthorizationService extends AbstractAuthorizationService
             ($currentUserIdentifier !== null
                 && $resourceActionGrant->getUserIdentifier() === $currentUserIdentifier)
             || $this->isCurrentUserResourceManagerOf(
-                $resourceActionGrant->getAuthorizationResourceIdentifier());
+                $resourceActionGrant->getResource()->getIdentifier());
     }
 
     public function isCurrentUserAuthorizedToReadResource(Resource $item): bool

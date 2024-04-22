@@ -30,6 +30,13 @@ class Group
      */
     private ?string $name = null;
 
+    /**
+     * @ORM\OneToMany(targetEntity="GroupMember", mappedBy="parentGroup")
+     *
+     * @Groups({"AuthorizationGroup:output"})
+     */
+    private ?array $members = null;
+
     public function getIdentifier(): ?string
     {
         return $this->identifier;
