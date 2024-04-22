@@ -28,9 +28,10 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function addResource(string $namespace, string $resourceIdentifier): void
+    public function addResource(string $resourceClass, string $resourceIdentifier): void
     {
-        $this->resourceActionGrantService->addResourceManager($this->authorizationService->getUserIdentifier(), $namespace, $resourceIdentifier);
+        $this->resourceActionGrantService->addResourceAndManageResourceGrantForUser(
+            $resourceClass, $resourceIdentifier, $this->authorizationService->getUserIdentifier());
     }
 
     /**
@@ -38,9 +39,9 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function removeResource(string $namespace, string $resourceIdentifier): void
+    public function removeResource(string $resourceClass, string $resourceIdentifier): void
     {
-        $this->resourceActionGrantService->removeResource($namespace, $resourceIdentifier);
+        $this->resourceActionGrantService->removeResource($resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -48,10 +49,10 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function getResourceActionGrants(string $namespace, ?string $resourceIdentifier = null,
+    public function getResourceActionGrants(string $resourceClass, ?string $resourceIdentifier = null,
         ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        return $this->resourceActionGrantService->getResourceActionGrants(
-            $namespace, $resourceIdentifier, $actions, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+        return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $resourceClass, $resourceIdentifier, $actions, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
     }
 }
