@@ -143,13 +143,33 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
     }
 
-    public function testCreateResourceActionGrantItemForbidden(): void
+    public function testCreateResourceActionGrantItemForbidden1(): void
     {
+        // you need to be a resource manager to be authorized to create grants for it
         $manageResourceGrant = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier',
             self::CURRENT_USER_IDENTIFIER.'_2');
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResource($manageResourceGrant->getResource());
         $resourceActionGrant->setAction('action');
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        try {
+            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
+        }
+    }
+
+    public function testCreateResourceActionGrantItemForbidden2(): void
+    {
+        // a read grant is not enough to create new grants for the resource
+        $manageResourceGrant = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier',
+            self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->addGrant($manageResourceGrant->getResource(), 'read', self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResource($manageResourceGrant->getResource());
+        $resourceActionGrant->setAction('write');
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
         try {

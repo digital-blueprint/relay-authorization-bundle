@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
+use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
 
 /**
  * @internal
  */
-class GroupProcessor extends AbstractDataProcessor
+class GroupMemberProcessor extends AbstractDataProcessor
 {
     private GroupService $groupService;
     private AuthorizationService $authorizationService;
@@ -30,29 +30,29 @@ class GroupProcessor extends AbstractDataProcessor
 
     protected function isCurrentUserAuthorizedToAddItem($item, array $filters): bool
     {
-        assert($item instanceof Group);
+        assert($item instanceof GroupMember);
 
-        return $this->authorizationService->isCurrentUserAuthorizedToAddGroup($item);
+        return $this->authorizationService->isCurrentUserAuthorizedToAddGroupMember($item);
     }
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
     {
-        assert($item instanceof Group);
+        assert($item instanceof GroupMember);
 
-        return $this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($item);
+        return $this->authorizationService->isCurrentUserAuthorizedToRemoveGroupMember($item);
     }
 
     protected function addItem($data, array $filters)
     {
-        assert($data instanceof Group);
+        assert($data instanceof GroupMember);
 
-        return $this->groupService->addGroup($data);
+        return $this->groupService->addGroupMember($data);
     }
 
     protected function removeItem($identifier, $data, array $filters): void
     {
-        assert($data instanceof Group);
+        assert($data instanceof GroupMember);
 
-        $this->groupService->removeGroup($data);
+        $this->groupService->removeGroupMember($data);
     }
 }

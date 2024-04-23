@@ -30,14 +30,14 @@ class GroupMember
      *
      * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output"})
      */
-    private ?Group $parentGroup = null;
+    private ?Group $group = null;
 
     /**
      * User type member.
      *
      * @ORM\Column(name="user_identifier", type="string", length=40, nullable=true)
      *
-     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output"})
+     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output", "AuthorizationGroup:output"})
      */
     private ?string $userIdentifier = null;
 
@@ -48,7 +48,7 @@ class GroupMember
      *
      * @ORM\JoinColumn(name="child_group_identifier", referencedColumnName="identifier")
      *
-     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output"})
+     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output", "AuthorizationGroup:output"})
      */
     private ?Group $childGroup = null;
 
@@ -57,7 +57,7 @@ class GroupMember
      *
      * @ORM\Column(name="predefined_group_identifier", type="string", length=40, nullable=true)
      *
-     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output"})
+     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output", "AuthorizationGroup:output"})
      */
     private ?string $predefinedGroupIdentifier = null;
 
@@ -71,14 +71,14 @@ class GroupMember
         $this->identifier = $identifier;
     }
 
-    public function getParentGroup(): ?Group
+    public function getGroup(): ?Group
     {
-        return $this->parentGroup;
+        return $this->group;
     }
 
-    public function setParentGroup(?Group $parentGroup): void
+    public function setGroup(?Group $group): void
     {
-        $this->parentGroup = $parentGroup;
+        $this->group = $group;
     }
 
     public function getUserIdentifier(): ?string

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\ORM\PersistentCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
@@ -31,11 +32,11 @@ class Group
     private ?string $name = null;
 
     /**
-     * @ORM\OneToMany(targetEntity="GroupMember", mappedBy="parentGroup")
+     * @ORM\OneToMany(targetEntity="GroupMember", mappedBy="group")
      *
      * @Groups({"AuthorizationGroup:output"})
      */
-    private ?array $members = null;
+    private ?PersistentCollection $members = null;
 
     public function getIdentifier(): ?string
     {
@@ -55,5 +56,15 @@ class Group
     public function setName(?string $name): void
     {
         $this->name = $name;
+    }
+
+    public function getMembers(): PersistentCollection|array
+    {
+        return $this->members ?? [];
+    }
+
+    public function setMembers(?PersistentCollection $members): void
+    {
+        $this->members = $members;
     }
 }

@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
+use Dbp\Relay\AuthorizationBundle\Entity\Group;
+use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\Resource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
+use Dbp\Relay\CoreBundle\Exception\ApiError;
 
 /**
  * @internal
  */
 class AuthorizationService extends AbstractAuthorizationService
 {
+    private const GROUP_RESOURCE_CLASS = 'DbpRelayAuthorizationGroup';
     private InternalResourceActionGrantService $resourceActionGrantService;
 
     public function __construct(InternalResourceActionGrantService $resourceActionGrantService)
@@ -21,15 +25,55 @@ class AuthorizationService extends AbstractAuthorizationService
         $this->resourceActionGrantService = $resourceActionGrantService;
     }
 
+    /**
+     * @throws ApiError
+     */
+    public function addGroup(string $groupIdentifier): void
+    {
+        $this->resourceActionGrantService->addResourceAndManageResourceGrantForUser(
+            self::GROUP_RESOURCE_CLASS, $groupIdentifier, $this->getUserIdentifier());
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function removeGroup(string $groupIdentifier): void
+    {
+        $this->resourceActionGrantService->removeResource(self::GROUP_RESOURCE_CLASS, $groupIdentifier);
+    }
+
+    public function isCurrentUserAuthorizedToAddGroup(Group $group): bool
+    {
+        return $this->getUserAttribute('ROLE_DEVELOPER'); // TODO: authorization (policy maybe?)
+    }
+
+    public function isCurrentUserAuthorizedToRemoveGroup(Group $group): bool
+    {
+        return $this->doesCurrentUserHaveAManageGrantForResourceByResourceClassAndIdentifier(
+            self::GROUP_RESOURCE_CLASS, $group->getIdentifier());
+    }
+
+    public function isCurrentUserAuthorizedToAddGroupMember(GroupMember $groupMember): bool
+    {
+        return $this->doesCurrentUserHaveAManageGrantForResourceByResourceClassAndIdentifier(
+            self::GROUP_RESOURCE_CLASS, $groupMember->getGroup()->getIdentifier());
+    }
+
+    public function isCurrentUserAuthorizedToRemoveGroupMember(GroupMember $groupMember): bool
+    {
+        return $this->doesCurrentUserHaveAManageGrantForResourceByResourceClassAndIdentifier(
+            self::GROUP_RESOURCE_CLASS, $groupMember->getGroup()->getIdentifier());
+    }
+
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool
     {
-        return $this->isCurrentUserResourceManagerOf(
+        return $this->doesCurrentUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
             $resourceActionGrant->getResource()->getIdentifier());
     }
 
     public function isCurrentUserAuthorizedToRemoveGrant(ResourceActionGrant $resourceActionGrant): bool
     {
-        return $this->isCurrentUserResourceManagerOf(
+        return $this->doesCurrentUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
             $resourceActionGrant->getResource()->getIdentifier());
     }
 
@@ -40,7 +84,7 @@ class AuthorizationService extends AbstractAuthorizationService
         return
             ($currentUserIdentifier !== null
                 && $resourceActionGrant->getUserIdentifier() === $currentUserIdentifier)
-            || $this->isCurrentUserResourceManagerOf(
+            || $this->doesCurrentUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
                 $resourceActionGrant->getResource()->getIdentifier());
     }
 
@@ -70,13 +114,25 @@ class AuthorizationService extends AbstractAuthorizationService
             $currentPageNumber, $maxNumItemsPerPage, $currentUserIdentifier) : [];
     }
 
-    private function isCurrentUserResourceManagerOf(string $authorizationResourceIdentifier): bool
+    private function doesCurrentUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
+        string $authorizationResourceIdentifier): bool
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
         return
             $currentUserIdentifier !== null
-            && $this->resourceActionGrantService->isUserResourceManagerOf($currentUserIdentifier,
-                $authorizationResourceIdentifier);
+            && $this->resourceActionGrantService->doesUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
+                $currentUserIdentifier, $authorizationResourceIdentifier);
+    }
+
+    private function doesCurrentUserHaveAManageGrantForResourceByResourceClassAndIdentifier(
+        string $resourceClass, string $resourceIdentifier): bool
+    {
+        $currentUserIdentifier = $this->getUserIdentifier();
+
+        return
+            $currentUserIdentifier !== null
+            && $this->resourceActionGrantService->doesUserHaveAManageGrantForResourceByResourceClassAndIdentifier(
+                $currentUserIdentifier, $resourceClass, $resourceIdentifier);
     }
 }

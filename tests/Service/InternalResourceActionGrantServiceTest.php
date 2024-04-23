@@ -56,7 +56,7 @@ class InternalResourceActionGrantServiceTest extends WebTestCase
     public function testIsUserResourceManagerOf(): void
     {
         $resource = $this->testEntityManager->addResource('resourceClass', 'resourceIdentifier');
-        $this->assertFalse($this->internalResourceActionGrantService->isUserResourceManagerOf(
+        $this->assertFalse($this->internalResourceActionGrantService->doesUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
             'userIdentifier', $resource->getIdentifier()));
 
         $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource,
@@ -64,7 +64,7 @@ class InternalResourceActionGrantServiceTest extends WebTestCase
 
         $this->assertNotNull($this->testEntityManager->getResourceActionGrant($resourceActionGrant->getIdentifier()));
 
-        $this->assertTrue($this->internalResourceActionGrantService->isUserResourceManagerOf(
+        $this->assertTrue($this->internalResourceActionGrantService->doesUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
             'userIdentifier', $resource->getIdentifier()));
     }
 

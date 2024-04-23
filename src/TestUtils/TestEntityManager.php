@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
 use Dbp\Relay\AuthorizationBundle\Entity\Resource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Tools\SchemaTool;
 use Ramsey\Uuid\Uuid;
@@ -115,7 +116,7 @@ class TestEntityManager
             $queryBuilder
                 ->delete(ResourceActionGrant::class, 'r')
                 ->where($queryBuilder->expr()->eq('r.identifier', ':identifier'))
-                ->setParameter(':identifier', $identifier, 'relay_authorization_uuid_binary')
+                ->setParameter(':identifier', $identifier, AuthorizationUuidBinaryType::NAME)
                 ->getQuery()
                 ->execute();
         } catch (\Exception $exception) {
@@ -130,7 +131,7 @@ class TestEntityManager
             $queryBuilder
                 ->delete(Resource::class, 'r')
                 ->where($queryBuilder->expr()->eq('r.identifier', ':identifier'))
-                ->setParameter(':identifier', $identifier, 'relay_authorization_uuid_binary')
+                ->setParameter(':identifier', $identifier, AuthorizationUuidBinaryType::NAME)
                 ->getQuery()
                 ->execute();
         } catch (\Exception $exception) {

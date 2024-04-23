@@ -46,6 +46,63 @@ resources:
       name:
         iri: 'https://schema.org/name'
 
+  Dbp\Relay\AuthorizationBundle\Entity\GroupMember:
+    shortName: "AuthorizationGroupMember"
+    normalizationContext:
+      groups: ["AuthorizationGroupMember:output"]
+    denormalizationContext:
+      groups: ["AuthorizationGroupMember:input"]
+    operations:
+      ApiPlatform\Metadata\Get:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider
+        uriTemplate: "/authorization/group-members/{identifier}"
+        openapiContext:
+          tags: ["Authorization"]
+
+      ApiPlatform\Metadata\GetCollection:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider
+        uriTemplate: "/authorization/group-members"
+        openapiContext:
+          tags: ["Authorization"]
+          parameters:
+            - name: groupIdentifier
+              in: query
+              description: 'The identifier of the AuthorizationGroup resource to get group members for'
+              type: string
+              required: true
+
+      ApiPlatform\Metadata\Post:
+        processor: Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProcessor
+        uriTemplate: "/authorization/group-members"
+        openapiContext:
+          tags: ["Authorization"]
+          requestBody:
+            content:
+              application/ld+json:
+                schema:
+                  type: "object"
+                  properties:
+                    group:
+                      type: "string"
+                    userIdentifier:
+                      type: "string"
+                    childGroup:
+                      type: "string"
+                    predefinedGroupIdentifier:
+                      type: "string"
+                  required:
+                    - group
+                example:
+                  group: "/authorization/groups/{identifier}"
+                  userIdentifier: "811EC3ACC0ADCA70" # woody007
+
+      ApiPlatform\Metadata\Delete:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider
+        processor: Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProcessor
+        uriTemplate: "/authorization/group-members/{identifier}"
+        openapiContext:
+          tags: [ "Authorization" ]
+
   Dbp\Relay\AuthorizationBundle\Entity\Resource:
     shortName: "AuthorizationResource"
     normalizationContext:
@@ -97,9 +154,7 @@ resources:
                 schema:
                   type: "object"
                   properties:
-                    namespace:
-                      type: "string"
-                    resourceIdentifier:
+                    resource:
                       type: "string"
                     action:
                       type: "string"
@@ -108,10 +163,9 @@ resources:
                     groupIdentifier:
                       type: "string"
                   required:
-                    - namespace
                     - action
                 example:
-                  authorizationResourceIdentifier: "<identifier of AuthorizationResource item>"
+                  resource: "/authorization/resources/{identifier}"
                   action: "write"
                   userIdentifier: "811EC3ACC0ADCA70" # woody007
 
@@ -121,14 +175,17 @@ resources:
         uriTemplate: "/authorization/resource-action-grants/{identifier}"
         openapiContext:
           tags: [ "Authorization" ]
+
     properties:
       identifier:
         identifier: true
-      authorizationResourceIdentifier:
+      resource:
         iri: 'https://schema.org/identifier'
       action:
         iri: 'https://schema.org/Action'
       userIdentifier:
         iri: 'https://schema.org/identifier'
       groupIdentifier:
+        iri: 'https://schema.org/identifier'
+      predefinedGroupIdentifier:
         iri: 'https://schema.org/identifier'

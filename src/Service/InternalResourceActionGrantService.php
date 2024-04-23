@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 
 use Dbp\Relay\AuthorizationBundle\Entity\Resource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Doctrine\ORM\EntityManagerInterface;
@@ -195,10 +196,23 @@ class InternalResourceActionGrantService
     /**
      * @throws ApiError
      */
-    public function isUserResourceManagerOf(string $userIdentifier, string $authorizationResourceIdentifier): bool
+    public function doesUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
+        string $userIdentifier, string $authorizationResourceIdentifier): bool
     {
         $resourceActionGrants = $this->getResourceActionGrantsForAuthorizationResourceIdentifier(
             $authorizationResourceIdentifier, [self::MANAGE_ACTION], $userIdentifier);
+
+        return count($resourceActionGrants) > 0;
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function doesUserHaveAManageGrantForResourceByResourceClassAndIdentifier(
+        string $userIdentifier, string $resourceClass, string $resourceIdentifier): bool
+    {
+        $resourceActionGrants = $this->getResourceActionGrantsForResourceClassAndIdentifier(
+            $resourceClass, $resourceIdentifier, [self::MANAGE_ACTION], $userIdentifier);
 
         return count($resourceActionGrants) > 0;
     }
@@ -221,7 +235,7 @@ class InternalResourceActionGrantService
             $queryBuilder
                 ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
                 ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.resource', ':authorizationResourceIdentifier'))
-                ->setParameter(':authorizationResourceIdentifier', $resource->getIdentifier(), 'relay_authorization_uuid_binary')
+                ->setParameter(':authorizationResourceIdentifier', $resource->getIdentifier(), AuthorizationUuidBinaryType::NAME)
                 ->getQuery()
                 ->execute();
 
@@ -397,7 +411,7 @@ class InternalResourceActionGrantService
                     ->select($RESOURCE_ACTION_GRANT_ALIAS)
                     ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
                     ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.resource', ':authorizationResourceIdentifier'))
-                    ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, 'relay_authorization_uuid_binary');
+                    ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
             }
 
             if ($actions !== null) {

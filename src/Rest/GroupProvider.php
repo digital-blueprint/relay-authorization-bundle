@@ -29,7 +29,7 @@ class GroupProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        return $this->groupService->getGroups($currentPageNumber, $maxNumItemsPerPage, $filters, $options);
+        return $this->groupService->getGroups($currentPageNumber, $maxNumItemsPerPage);
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool
@@ -39,11 +39,11 @@ class GroupProvider extends AbstractDataProvider
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
     {
-        return true;
+        return true; // TODO
     }
 
     protected function isCurrentUserAuthorizedToGetCollection(array $filters): bool
     {
-        return true;
+        return true; // TODO
     }
 }

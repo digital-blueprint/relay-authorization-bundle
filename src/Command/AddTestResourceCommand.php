@@ -37,7 +37,7 @@ class AddTestResourceCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $resourceClass = $input->getArgument('namespace');
+        $resourceClass = $input->getArgument('resourceClass');
         $resourceIdentifier = $input->getArgument('resourceIdentifier');
         $userIdentifier = $input->getArgument('userIdentifier');
 
