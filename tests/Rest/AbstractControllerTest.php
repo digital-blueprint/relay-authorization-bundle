@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\Resource;
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
@@ -30,13 +30,13 @@ abstract class AbstractControllerTest extends WebTestCase
 
     protected function getResourceActionGrant(string $identifier): ?ResourceActionGrant
     {
-        return $this->testEntityManager->getResourceActionGrant($identifier);
+        return $this->testEntityManager->getResourceActionGrantByIdentifier($identifier);
     }
 
     protected function addResource(string $resourceClass = 'resourceClass',
-        string $resourceIdentifier = 'resourceIdentifier'): Resource
+        string $resourceIdentifier = 'resourceIdentifier'): AuthorizationResource
     {
-        return $this->testEntityManager->addResource($resourceClass, $resourceIdentifier);
+        return $this->testEntityManager->addAuthorizationResource($resourceClass, $resourceIdentifier);
     }
 
     protected function addResourceAndManageGrant(string $resourceClass = 'resourceClass',
@@ -57,14 +57,14 @@ abstract class AbstractControllerTest extends WebTestCase
         return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
     }
 
-    protected function addGrant(Resource $resource,
+    protected function addGrant(AuthorizationResource $resource,
         string $action = 'action',
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
     }
 
-    protected function addManageGrant(Resource $resource,
+    protected function addManageGrant(AuthorizationResource $resource,
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addGrant(

@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\Resource;
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 
 /**
- * @extends AbstractDataProvider<Resource>
+ * @extends AbstractDataProvider<AuthorizationResource>
  *
  * @internal
  */
-class ResourceProvider extends AbstractDataProvider
+class AuthorizationResourceProvider extends AbstractDataProvider
 {
     private InternalResourceActionGrantService $resourceActionGrantService;
     private AuthorizationService $authorizationService;
@@ -46,7 +46,7 @@ class ResourceProvider extends AbstractDataProvider
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
     {
-        assert($item instanceof Resource);
+        assert($item instanceof AuthorizationResource);
 
         return $this->authorizationService->isCurrentUserAuthorizedToReadResource($item);
     }

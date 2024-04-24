@@ -11,8 +11,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * @ORM\Entity
  *
  * @ORM\Table(name="authorization_resources")
+ *
+ * @internal
  */
-class Resource
+class AuthorizationResource
 {
     /**
      * @ORM\Id

@@ -103,18 +103,18 @@ resources:
         openapiContext:
           tags: [ "Authorization" ]
 
-  Dbp\Relay\AuthorizationBundle\Entity\Resource:
+  Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource:
     shortName: "AuthorizationResource"
     normalizationContext:
       groups: [ "AuthorizationResource:output" ]
     operations:
       ApiPlatform\Metadata\Get:
-        provider: Dbp\Relay\AuthorizationBundle\Rest\ResourceProvider
+        provider: Dbp\Relay\AuthorizationBundle\Rest\AuthorizationResourceProvider
         uriTemplate: "/authorization/resources/{identifier}"
         openapiContext:
           tags: [ "Authorization" ]
       ApiPlatform\Metadata\GetCollection:
-        provider: Dbp\Relay\AuthorizationBundle\Rest\ResourceProvider
+        provider: Dbp\Relay\AuthorizationBundle\Rest\AuthorizationResourceProvider
         uriTemplate: "/authorization/resources"
         openapiContext:
           tags: [ "Authorization" ]
@@ -154,7 +154,7 @@ resources:
                 schema:
                   type: "object"
                   properties:
-                    resource:
+                    authorizationResource:
                       type: "string"
                     action:
                       type: "string"
@@ -165,7 +165,7 @@ resources:
                   required:
                     - action
                 example:
-                  resource: "/authorization/resources/{identifier}"
+                  authorizationResource: "/authorization/resources/{identifier}"
                   action: "write"
                   userIdentifier: "811EC3ACC0ADCA70" # woody007
 
@@ -179,7 +179,7 @@ resources:
     properties:
       identifier:
         identifier: true
-      resource:
+      authorizationResource:
         iri: 'https://schema.org/identifier'
       action:
         iri: 'https://schema.org/Action'

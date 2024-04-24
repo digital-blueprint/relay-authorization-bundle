@@ -11,6 +11,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * @ORM\Entity
  *
  * @ORM\Table(name="authorization_resource_action_grants")
+ *
+ * @internal
  */
 class ResourceActionGrant
 {
@@ -24,13 +26,13 @@ class ResourceActionGrant
     private ?string $identifier = null;
 
     /**
-     * @ORM\ManyToOne(targetEntity="Resource")
+     * @ORM\ManyToOne(targetEntity="AuthorizationResource")
      *
      * @ORM\JoinColumn(name="authorization_resource_identifier", referencedColumnName="identifier")
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
-    private ?Resource $resource = null;
+    private ?AuthorizationResource $authorizationResource = null;
 
     /**
      * @ORM\Column(name="action", type="string", length=40)
@@ -78,14 +80,14 @@ class ResourceActionGrant
         $this->identifier = $identifier;
     }
 
-    public function getResource(): ?Resource
+    public function getAuthorizationResource(): ?AuthorizationResource
     {
-        return $this->resource;
+        return $this->authorizationResource;
     }
 
-    public function setResource(?Resource $resource): void
+    public function setAuthorizationResource(?AuthorizationResource $authorizationResource): void
     {
-        $this->resource = $resource;
+        $this->authorizationResource = $authorizationResource;
     }
 
     public function getAction(): ?string

@@ -11,6 +11,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
  * @ORM\Entity
  *
  * @ORM\Table(name="authorization_group_members")
+ *
+ * @internal
  */
 class GroupMember
 {

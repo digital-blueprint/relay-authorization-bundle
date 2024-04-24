@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
-use Dbp\Relay\AuthorizationBundle\Entity\Resource;
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\Group;
+use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Doctrine\ORM\EntityManager;
@@ -74,11 +76,11 @@ class TestEntityManager
         return $this->entityManager;
     }
 
-    public function addResourceActionGrant(Resource $resource, string $action, string $userIdentifier, ?string $groupIdentifer = null): ResourceActionGrant
+    public function addResourceActionGrant(AuthorizationResource $resource, string $action, string $userIdentifier, ?string $groupIdentifer = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
-        $resourceActionGrant->setResource($resource);
+        $resourceActionGrant->setAuthorizationResource($resource);
         $resourceActionGrant->setAction($action);
         $resourceActionGrant->setUserIdentifier($userIdentifier);
 
@@ -92,9 +94,9 @@ class TestEntityManager
         return $resourceActionGrant;
     }
 
-    public function addResource(string $resourceClass, ?string $resourceIdentifier): Resource
+    public function addAuthorizationResource(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
     {
-        $resource = new Resource();
+        $resource = new AuthorizationResource();
         $resource->setIdentifier(Uuid::uuid7()->toString());
         $resource->setResourceClass($resourceClass);
         $resource->setResourceIdentifier($resourceIdentifier);
@@ -124,12 +126,12 @@ class TestEntityManager
         }
     }
 
-    public function deleteResource(string $identifier): void
+    public function deleteAuthorizationResource(string $identifier): void
     {
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder
-                ->delete(Resource::class, 'r')
+                ->delete(AuthorizationResource::class, 'r')
                 ->where($queryBuilder->expr()->eq('r.identifier', ':identifier'))
                 ->setParameter(':identifier', $identifier, AuthorizationUuidBinaryType::NAME)
                 ->getQuery()
@@ -139,7 +141,7 @@ class TestEntityManager
         }
     }
 
-    public function getResourceActionGrant(string $identifier): ?ResourceActionGrant
+    public function getResourceActionGrantByIdentifier(string $identifier): ?ResourceActionGrant
     {
         try {
             return $this->entityManager->getRepository(ResourceActionGrant::class)
@@ -149,10 +151,123 @@ class TestEntityManager
         }
     }
 
-    public function getResource(string $identifier): ?Resource
+    public function getResourceActionGrant(string $authorizationResourceIdentifier, string $action, string $userIdentifier): ?ResourceActionGrant
     {
         try {
-            return $this->entityManager->getRepository(Resource::class)
+            return $this->entityManager->getRepository(ResourceActionGrant::class)
+                ->findOneBy([
+                    'authorizationResource' => $authorizationResourceIdentifier,
+                    'action' => $action,
+                    'userIdentifier' => $userIdentifier,
+                ]);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
+    public function getAuthorizationResourceByIdentifier(string $identifier): ?AuthorizationResource
+    {
+        try {
+            return $this->entityManager->getRepository(AuthorizationResource::class)
+                ->findOneBy(['identifier' => $identifier]);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
+    public function getAuthorizationResourceByClassAndIdentifier(string $resourceClass, string $resourceIdntifier): ?AuthorizationResource
+    {
+        try {
+            return $this->entityManager->getRepository(AuthorizationResource::class)
+                ->findOneBy([
+                    'resourceClass' => $resourceClass,
+                    'resourceIdentifier' => $resourceIdntifier,
+                ]);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
+    public function addGroup(string $name): Group
+    {
+        $group = new Group();
+        $group->setIdentifier(Uuid::uuid7()->toString());
+        $group->setName($name);
+
+        try {
+            $this->entityManager->persist($group);
+            $this->entityManager->flush();
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+
+        return $group;
+    }
+
+    public function deleteGroup(string $identifier): void
+    {
+        try {
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->delete(Group::class, 'g')
+                ->where($queryBuilder->expr()->eq('g.identifier', ':identifier'))
+                ->setParameter(':identifier', $identifier, AuthorizationUuidBinaryType::NAME)
+                ->getQuery()
+                ->execute();
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
+    public function getGroup(string $identifier)
+    {
+        try {
+            return $this->entityManager->getRepository(Group::class)
+                ->findOneBy(['identifier' => $identifier]);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
+    public function addGroupMember(Group $group, ?string $userIdentifier, ?Group $childGroup = null,
+        ?string $predefinedGroupIdentifier = null): GroupMember
+    {
+        $groupMember = new GroupMember();
+        $groupMember->setIdentifier(Uuid::uuid7()->toString());
+        $groupMember->setGroup($group);
+        $groupMember->setUserIdentifier($userIdentifier);
+        $groupMember->setChildGroup($childGroup);
+        $groupMember->setPredefinedGroupIdentifier($predefinedGroupIdentifier);
+
+        try {
+            $this->entityManager->persist($groupMember);
+            $this->entityManager->flush();
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+
+        return $groupMember;
+    }
+
+    public function deleteGroupMember(string $identifier): void
+    {
+        try {
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->delete(GroupMember::class, 'gm')
+                ->where($queryBuilder->expr()->eq('gm.identifier', ':identifier'))
+                ->setParameter(':identifier', $identifier, AuthorizationUuidBinaryType::NAME)
+                ->getQuery()
+                ->execute();
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
+    public function getGroupMember(string $identifier): ?GroupMember
+    {
+        try {
+            return $this->entityManager->getRepository(GroupMember::class)
                 ->findOneBy(['identifier' => $identifier]);
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());

@@ -24,7 +24,7 @@ class GroupProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->groupService->getGroup($id, $options);
+        return $this->groupService->getGroup($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array

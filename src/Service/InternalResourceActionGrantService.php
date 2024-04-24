@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
-use Dbp\Relay\AuthorizationBundle\Entity\Resource;
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -51,7 +51,7 @@ class InternalResourceActionGrantService
     {
         try {
             return $this->entityManager
-                ->getRepository(Resource::class)
+                ->getRepository(AuthorizationResource::class)
                 ->find($identifier);
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get resource item!',
@@ -96,7 +96,7 @@ class InternalResourceActionGrantService
         try {
             $SUBQUERY_RESOURCE_ALIAS = 'r_sub';
             $subqueryBuilder = $this->entityManager->createQueryBuilder();
-            $subqueryBuilder->select('IDENTITY('.$SUBQUERY_RESOURCE_ALIAS.'.resource)')
+            $subqueryBuilder->select('IDENTITY('.$SUBQUERY_RESOURCE_ALIAS.'.authorizationResource)')
                 ->from(ResourceActionGrant::class, $SUBQUERY_RESOURCE_ALIAS)
                 ->where($subqueryBuilder->expr()->eq($SUBQUERY_RESOURCE_ALIAS.'.userIdentifier', ':userIdentifier'))
                 ->andWhere($subqueryBuilder->expr()->eq($SUBQUERY_RESOURCE_ALIAS.'.action', ':action'));
@@ -107,7 +107,7 @@ class InternalResourceActionGrantService
                 ->from(ResourceActionGrant::class, $RESOURCE_ALIAS)
                 ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.userIdentifier', ':userIdentifier'))
                 ->andWhere($queryBuilder->expr()->neq($RESOURCE_ALIAS.'.action', ':action'))
-                ->orWhere($queryBuilder->expr()->in($RESOURCE_ALIAS.'.resource', $subqueryBuilder->getDQL()))
+                ->orWhere($queryBuilder->expr()->in($RESOURCE_ALIAS.'.authorizationResource', $subqueryBuilder->getDQL()))
                 ->setParameter(':action', self::MANAGE_ACTION)
                 ->setParameter(':userIdentifier', $userIdentifier);
 
@@ -165,7 +165,7 @@ class InternalResourceActionGrantService
     public function addResourceAndManageResourceGrantForUser(string $resourceClass, ?string $resourceIdentifier, string $userIdentifier): ResourceActionGrant
     {
         try {
-            $resource = new Resource();
+            $resource = new AuthorizationResource();
             $resource->setIdentifier(Uuid::uuid7()->toString());
             $resource->setResourceClass($resourceClass);
             $resource->setResourceIdentifier($resourceIdentifier);
@@ -176,7 +176,7 @@ class InternalResourceActionGrantService
             $this->entityManager->flush();
 
             $resourceActionGrant = new ResourceActionGrant();
-            $resourceActionGrant->setResource($resource);
+            $resourceActionGrant->setAuthorizationResource($resource);
             $resourceActionGrant->setAction(self::MANAGE_ACTION);
             $resourceActionGrant->setUserIdentifier($userIdentifier);
             $this->addResourceActionGrant($resourceActionGrant);
@@ -225,50 +225,27 @@ class InternalResourceActionGrantService
         try {
             $this->entityManager->getConnection()->beginTransaction();
 
-            $resource = $this->entityManager->getRepository(Resource::class)->findOneBy([
+            $resource = $this->entityManager->getRepository(AuthorizationResource::class)->findOneBy([
                 'resourceClass' => $resourceClass,
                 'resourceIdentifier' => $resourceIdentifier,
             ]);
 
-            $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            $queryBuilder
-                ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.resource', ':authorizationResourceIdentifier'))
-                ->setParameter(':authorizationResourceIdentifier', $resource->getIdentifier(), AuthorizationUuidBinaryType::NAME)
-                ->getQuery()
-                ->execute();
+            // don't fail if the resource is not found for whatever reason
+            // consider using cascade remove (requires adding a '$resourceActionGrants' property to AuthorizationResource which inverses
+            // '$authorizationResource' under ResourceActionGrant
+            if ($resource !== null) {
+                $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
+                $queryBuilder = $this->entityManager->createQueryBuilder();
+                $queryBuilder
+                    ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
+                    ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource', ':authorizationResourceIdentifier'))
+                    ->setParameter(':authorizationResourceIdentifier', $resource->getIdentifier(), AuthorizationUuidBinaryType::NAME)
+                    ->getQuery()
+                    ->execute();
 
-            $this->entityManager->remove($resource);
-            $this->entityManager->flush();
-
-            // didn't seem to work:
-            //            $RESOURCE_ALIAS = 'r';
-            //            $subqueryBuilder = $this->entityManager->createQueryBuilder();
-            //            $subqueryBuilder
-            //                ->select($RESOURCE_ALIAS.'.identifier')
-            //                ->from(Resource::class, $RESOURCE_ALIAS)
-            //                ->where($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
-            //                ->andWhere($subqueryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
-            //                ->setParameter(':resourceClass', $resourceClass)
-            //                ->setParameter(':resourceIdentifier', $resourceIdentifier);
-
-            //            $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
-            //            $queryBuilder = $this->entityManager->createQueryBuilder();
-            //            $queryBuilder
-            //                ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-            //                ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.resource', ':authorizationResourceIdentifier'))
-            //                ->setParameter(':authorizationResourceIdentifier', $subqueryBuilder->getDQL())
-            //                ->getQuery()
-            //                ->execute();
-            //
-            //            $queryBuilder = $this->entityManager->createQueryBuilder();
-            //            $queryBuilder
-            //                ->delete(Resource::class, 'r2')
-            //                ->where($queryBuilder->expr()->eq('r2.identifier', ':identifier'))
-            //                ->setParameter(':identifier', $subqueryBuilder->getDQL())
-            //                ->getQuery()
-            //                ->execute();
+                $this->entityManager->remove($resource);
+                $this->entityManager->flush();
+            }
 
             $this->entityManager->getConnection()->commit();
         } catch (\Exception $e) {
@@ -310,10 +287,10 @@ class InternalResourceActionGrantService
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder
                 ->select($RESOURCE_ALIAS)
-                ->from(Resource::class, $RESOURCE_ALIAS)
+                ->from(AuthorizationResource::class, $RESOURCE_ALIAS)
                 ->groupBy($RESOURCE_ALIAS.'.identifier')
                 ->innerJoin(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS, Join::WITH,
-                    $RESOURCE_ACTION_GRANT_ALIAS.'.resource = '.$RESOURCE_ALIAS.'.identifier');
+                    $RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource = '.$RESOURCE_ALIAS.'.identifier');
             if ($resourceClass !== null) {
                 $queryBuilder
                     ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
@@ -383,8 +360,8 @@ class InternalResourceActionGrantService
                 $queryBuilder
                     ->select($RESOURCE_ACTION_GRANT_ALIAS)
                     ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                    ->innerJoin(Resource::class, $RESOURCE_ALIAS, Join::WITH,
-                        $RESOURCE_ACTION_GRANT_ALIAS.'.resource = '.$RESOURCE_ALIAS.'.identifier');
+                    ->innerJoin(AuthorizationResource::class, $RESOURCE_ALIAS, Join::WITH,
+                        $RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource = '.$RESOURCE_ALIAS.'.identifier');
                 if ($resourceClass !== null) {
                     $queryBuilder
                         ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
@@ -410,7 +387,7 @@ class InternalResourceActionGrantService
                 $queryBuilder
                     ->select($RESOURCE_ACTION_GRANT_ALIAS)
                     ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                    ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.resource', ':authorizationResourceIdentifier'))
+                    ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource', ':authorizationResourceIdentifier'))
                     ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
             }
 
@@ -458,7 +435,7 @@ class InternalResourceActionGrantService
     /**
      * @throws ApiError
      */
-    private function validateResource(Resource $resource): void
+    private function validateResource(AuthorizationResource $resource): void
     {
         if ($resource->getResourceClass() === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,

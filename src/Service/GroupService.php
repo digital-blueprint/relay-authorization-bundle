@@ -76,12 +76,13 @@ class GroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function getGroup(string $identifier, array $options): ?Group
+    public function getGroup(string $identifier): ?Group
     {
         try {
-            return $this->entityManager
-                ->getRepository(Group::class)
-                ->find($identifier);
+            return Uuid::isValid($identifier) ?
+                $this->entityManager
+                    ->getRepository(Group::class)
+                    ->find($identifier) : null;
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group item!',
                 self::GETTING_GROUP_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
@@ -200,9 +201,9 @@ class GroupService implements LoggerAwareInterface
     public function getGroupMember(string $identifier)
     {
         try {
-            return $this->entityManager
+            return Uuid::isValid($identifier) ? $this->entityManager
                 ->getRepository(GroupMember::class)
-                ->find($identifier);
+                ->find($identifier) : null;
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member item!',
                 self::GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
@@ -213,9 +214,10 @@ class GroupService implements LoggerAwareInterface
     public function getGroupMembers(int $currentPageNumber, int $maxNumItemsPerPage, string $groupIdentifier): array
     {
         try {
-            return $this->entityManager->getRepository(GroupMember::class)
+            return Uuid::isValid($groupIdentifier) ? $this->entityManager
+                ->getRepository(GroupMember::class)
                 ->findBy(['group' => $groupIdentifier], null, $maxNumItemsPerPage,
-                    Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage));
+                    Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage)) : [];
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection!',
                 self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);

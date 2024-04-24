@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
-use Dbp\Relay\AuthorizationBundle\Entity\Resource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
@@ -68,13 +68,13 @@ class AuthorizationService extends AbstractAuthorizationService
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         return $this->doesCurrentUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
-            $resourceActionGrant->getResource()->getIdentifier());
+            $resourceActionGrant->getAuthorizationResource()->getIdentifier());
     }
 
     public function isCurrentUserAuthorizedToRemoveGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         return $this->doesCurrentUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
-            $resourceActionGrant->getResource()->getIdentifier());
+            $resourceActionGrant->getAuthorizationResource()->getIdentifier());
     }
 
     public function isCurrentUserAuthorizedToReadGrant(ResourceActionGrant $resourceActionGrant): bool
@@ -85,10 +85,10 @@ class AuthorizationService extends AbstractAuthorizationService
             ($currentUserIdentifier !== null
                 && $resourceActionGrant->getUserIdentifier() === $currentUserIdentifier)
             || $this->doesCurrentUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
-                $resourceActionGrant->getResource()->getIdentifier());
+                $resourceActionGrant->getAuthorizationResource()->getIdentifier());
     }
 
-    public function isCurrentUserAuthorizedToReadResource(Resource $item): bool
+    public function isCurrentUserAuthorizedToReadResource(AuthorizationResource $item): bool
     {
         return count($this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
             $item->getIdentifier(), null, $this->getUserIdentifier())) > 0;

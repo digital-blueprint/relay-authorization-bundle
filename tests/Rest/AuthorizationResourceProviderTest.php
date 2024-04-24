@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
-use Dbp\Relay\AuthorizationBundle\Entity\Resource;
-use Dbp\Relay\AuthorizationBundle\Rest\ResourceProvider;
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Rest\AuthorizationResourceProvider;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
-class ResourceProviderTest extends AbstractControllerTest
+class AuthorizationResourceProviderTest extends AbstractControllerTest
 {
     private DataProviderTester $resourceProviderTester;
 
@@ -19,9 +19,9 @@ class ResourceProviderTest extends AbstractControllerTest
     {
         parent::setUp();
 
-        $resourceProvider = new ResourceProvider(
+        $resourceProvider = new AuthorizationResourceProvider(
             $this->internalResourceActionGrantService, $this->authorizationService);
-        $this->resourceProviderTester = new DataProviderTester($resourceProvider, Resource::class);
+        $this->resourceProviderTester = new DataProviderTester($resourceProvider, AuthorizationResource::class);
         DataProviderTester::setUp($resourceProvider);
     }
 
@@ -64,7 +64,7 @@ class ResourceProviderTest extends AbstractControllerTest
             self::CURRENT_USER_IDENTIFIER.'_2');
 
         try {
-            $this->resourceProviderTester->getItem($manageGrant->getResource()->getIdentifier());
+            $this->resourceProviderTester->getItem($manageGrant->getAuthorizationResource()->getIdentifier());
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());

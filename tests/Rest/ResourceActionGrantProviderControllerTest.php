@@ -40,7 +40,7 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
             $resourceActionGrant->getIdentifier());
 
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
-        $this->assertEquals($resourceActionGrant->getResource()->getIdentifier(), $resourceActionGrantItem->getResource()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
     }
@@ -71,7 +71,7 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         $this->assertCount(1, $resourceActionGrantCollection);
         $resourceActionGrantItem = $resourceActionGrantCollection[0];
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
-        $this->assertEquals($resourceActionGrant->getResource()->getIdentifier(), $resourceActionGrantItem->getResource()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
     }
@@ -95,7 +95,7 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         $resourceActionGrant = $this->addResourceAndManageGrant();
         $resourceActionGrant2 = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier_2',
             'userIdentifier_2');
-        $resourceActionGrant3 = $this->addGrant($resourceActionGrant2->getResource(),
+        $resourceActionGrant3 = $this->addGrant($resourceActionGrant2->getAuthorizationResource(),
             'read', 'userIdentifier');
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
@@ -111,11 +111,11 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         // * all grants of resources that the current user ('userIdentifier') is manager of and the
         // * grants of the user ('userIdentifier') of other resources
         $resourceActionGrant = $this->addResourceAndManageGrant();
-        $resourceActionGrant2 = $this->addGrant($resourceActionGrant->getResource(),
+        $resourceActionGrant2 = $this->addGrant($resourceActionGrant->getAuthorizationResource(),
             'read', 'userIdentifier_2');
         $resourceActionGrant3 = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier_2',
             'userIdentifier_2');
-        $resourceActionGrant4 = $this->addGrant($resourceActionGrant2->getResource(),
+        $resourceActionGrant4 = $this->addGrant($resourceActionGrant2->getAuthorizationResource(),
             'read', 'userIdentifier');
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
@@ -130,7 +130,7 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
     {
         $manageResourceGrant = $this->addResourceAndManageGrant();
         $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setResource($manageResourceGrant->getResource());
+        $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
         $resourceActionGrant->setAction('action');
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
@@ -138,7 +138,7 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         $resourceActionGrantItem = $this->getResourceActionGrant($resourceActionGrant->getIdentifier());
 
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
-        $this->assertEquals($resourceActionGrant->getResource()->getIdentifier(), $resourceActionGrantItem->getResource()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
     }
@@ -149,7 +149,7 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         $manageResourceGrant = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier',
             self::CURRENT_USER_IDENTIFIER.'_2');
         $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setResource($manageResourceGrant->getResource());
+        $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
         $resourceActionGrant->setAction('action');
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
@@ -166,9 +166,9 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         // a read grant is not enough to create new grants for the resource
         $manageResourceGrant = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier',
             self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->addGrant($manageResourceGrant->getResource(), 'read', self::CURRENT_USER_IDENTIFIER);
+        $this->addGrant($manageResourceGrant->getAuthorizationResource(), 'read', self::CURRENT_USER_IDENTIFIER);
         $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setResource($manageResourceGrant->getResource());
+        $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
         $resourceActionGrant->setAction('write');
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
@@ -194,7 +194,7 @@ class ResourceActionGrantProviderControllerTest extends AbstractControllerTest
         // only the resource manager is authorized to delete grants for a resource
         $manageResourceGrant = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier',
             self::CURRENT_USER_IDENTIFIER.'_2');
-        $resourceActionGrant = $this->addGrant($manageResourceGrant->getResource(),
+        $resourceActionGrant = $this->addGrant($manageResourceGrant->getAuthorizationResource(),
             'read', self::CURRENT_USER_IDENTIFIER);
 
         try {
