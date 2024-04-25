@@ -7,7 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 
-abstract class AbstractGroupControllerTest extends AbstractControllerTest
+abstract class AbstractGroupControllerTest extends AbstractTest
 {
     protected const TEST_GROUP_NAME = 'test_group';
     protected GroupService $groupService;

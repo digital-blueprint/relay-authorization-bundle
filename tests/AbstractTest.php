@@ -10,7 +10,7 @@ use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-abstract class AbstractControllerTest extends WebTestCase
+abstract class AbstractTest extends WebTestCase
 {
     protected const CURRENT_USER_IDENTIFIER = 'userIdentifier';
     protected TestEntityManager $testEntityManager;
@@ -22,11 +22,28 @@ abstract class AbstractControllerTest extends WebTestCase
         $this->testEntityManager = new TestEntityManager(self::bootKernel());
         $this->internalResourceActionGrantService = new InternalResourceActionGrantService($this->testEntityManager->getEntityManager());
         $this->authorizationService = new AuthorizationService($this->internalResourceActionGrantService);
-        TestAuthorizationService::setUp($this->authorizationService, self::CURRENT_USER_IDENTIFIER);
+        TestAuthorizationService::setUp($this->authorizationService,
+            self::CURRENT_USER_IDENTIFIER, $this->getDefaultUserAttributes());
+        $this->authorizationService->setConfig($this->getTestConfig());
     }
 
-    protected function login(string $userIdentifier): void
+    protected function login(string $userIdentifier, ?array $userAttributes = null): void
     {
-        TestAuthorizationService::setUp($this->authorizationService, $userIdentifier);
+        TestAuthorizationService::setUp($this->authorizationService, $userIdentifier,
+            $userAttributes ?? $this->getDefaultUserAttributes());
+    }
+
+    protected function getTestConfig(): array
+    {
+        return [
+            'create_groups_policy' => 'user.get("MAY_CREATE_GROUPS")',
+        ];
+    }
+
+    protected function getDefaultUserAttributes(): array
+    {
+        return [
+            'MAY_CREATE_GROUPS' => false,
+        ];
     }
 }

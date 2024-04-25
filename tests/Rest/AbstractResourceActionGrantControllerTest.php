@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 
-abstract class AbstractResourceActionGrantControllerTest extends AbstractControllerTest
+abstract class AbstractResourceActionGrantControllerTest extends AbstractTest
 {
     protected function getResourceActionGrant(string $identifier): ?ResourceActionGrant
     {
@@ -26,7 +26,7 @@ abstract class AbstractResourceActionGrantControllerTest extends AbstractControl
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addResourceAndGrant($resourceClass, $resourceIdentifier,
-            InternalResourceActionGrantService::MANAGE_ACTION, $userIdentifier);
+            AuthorizationService::MANAGE_ACTION, $userIdentifier);
     }
 
     protected function addResourceAndGrant(string $resourceClass = 'resourceClass',
@@ -50,6 +50,6 @@ abstract class AbstractResourceActionGrantControllerTest extends AbstractControl
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addGrant(
-            $resource, InternalResourceActionGrantService::MANAGE_ACTION, $userIdentifier);
+            $resource, AuthorizationService::MANAGE_ACTION, $userIdentifier);
     }
 }

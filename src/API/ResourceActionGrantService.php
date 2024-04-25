@@ -5,22 +5,16 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\API;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Symfony\Component\HttpFoundation\Response;
 
 class ResourceActionGrantService
 {
-    public const MANAGE_ACTION = InternalResourceActionGrantService::MANAGE_ACTION;
-    public const IS_NULL = InternalResourceActionGrantService::IS_NULL;
-    public const IS_NOT_NULL = InternalResourceActionGrantService::IS_NOT_NULL;
+    public const MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
 
-    private InternalResourceActionGrantService $resourceActionGrantService;
     private AuthorizationService $authorizationService;
 
-    public function __construct(InternalResourceActionGrantService $resourceActionGrantService, AuthorizationService $authorizationService)
+    public function __construct(AuthorizationService $authorizationService)
     {
-        $this->resourceActionGrantService = $resourceActionGrantService;
         $this->authorizationService = $authorizationService;
     }
 
@@ -31,8 +25,7 @@ class ResourceActionGrantService
      */
     public function addResource(string $resourceClass, string $resourceIdentifier): void
     {
-        $this->resourceActionGrantService->addResourceAndManageResourceGrantForUser(
-            $resourceClass, $resourceIdentifier, $this->getCurrentUserIdentifier(true));
+        $this->authorizationService->addResource($resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -42,23 +35,21 @@ class ResourceActionGrantService
      */
     public function removeResource(string $resourceClass, string $resourceIdentifier): void
     {
-        $this->resourceActionGrantService->removeResource($resourceClass, $resourceIdentifier);
+        $this->authorizationService->removeResource($resourceClass, $resourceIdentifier);
     }
 
     /**
+     * @parram string|null $resourceIdentifier null matches any resource identifier
+     *
      * @return ResourceAction[]
      *
      * @throws ApiError
      */
-    public function getGrantedResourceActions(string $resourceClass, ?string $resourceIdentifier = null,
+    public function getGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null,
         ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        $currentUserIdentifier = $this->getCurrentUserIdentifier(false);
-
-        $internalResourceActionGrants = $currentUserIdentifier !== null ?
-            $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-                $resourceClass, $resourceIdentifier, $actions, $currentUserIdentifier, $currentPageNumber, $maxNumItemsPerPage) :
-            [];
+        $internalResourceActionGrants = $this->authorizationService->getResourceItemActionGrants($resourceClass,
+            $resourceIdentifier, $actions, $currentPageNumber, $maxNumItemsPerPage);
 
         $resourceActionGrants = [];
         foreach ($internalResourceActionGrants as $internalResourceActionGrant) {
@@ -71,14 +62,27 @@ class ResourceActionGrantService
         return $resourceActionGrants;
     }
 
-    private function getCurrentUserIdentifier(bool $throwIfNull): ?string
+    /**
+     * @param array|null $actions null will match any action
+     *
+     * @return ResourceAction[]
+     *
+     * @throws ApiError
+     */
+    public function getGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null,
+        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        $currentUserIdentifier = $this->authorizationService->getUserIdentifier();
-        if ($currentUserIdentifier === null && $throwIfNull) {
-            throw ApiError::withDetails(Response::HTTP_FORBIDDEN,
-                'a user identifier is required for authorization');
+        $internalResourceActionGrants = $this->authorizationService->getResourceCollectionActionGrants(
+            $resourceClass, $actions, $currentPageNumber, $maxNumItemsPerPage);
+
+        $resourceActionGrants = [];
+        foreach ($internalResourceActionGrants as $internalResourceActionGrant) {
+            $resourceActionGrants[] = new ResourceAction(
+                null,
+                $internalResourceActionGrant->getAction()
+            );
         }
 
-        return $currentUserIdentifier;
+        return $resourceActionGrants;
     }
 }

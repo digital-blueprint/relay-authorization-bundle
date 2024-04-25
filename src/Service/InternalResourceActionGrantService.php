@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
@@ -19,10 +20,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class InternalResourceActionGrantService
 {
-    public const MANAGE_ACTION = 'manage';
-
-    public const IS_NULL = 'is_null';
-    public const IS_NOT_NULL = 'is_not_null';
+    public const IS_NULL = '@@@ __is_null__ @@@';
+    public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
 
     private const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
@@ -108,7 +107,7 @@ class InternalResourceActionGrantService
                 ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.userIdentifier', ':userIdentifier'))
                 ->andWhere($queryBuilder->expr()->neq($RESOURCE_ALIAS.'.action', ':action'))
                 ->orWhere($queryBuilder->expr()->in($RESOURCE_ALIAS.'.authorizationResource', $subqueryBuilder->getDQL()))
-                ->setParameter(':action', self::MANAGE_ACTION)
+                ->setParameter(':action', AuthorizationService::MANAGE_ACTION)
                 ->setParameter(':userIdentifier', $userIdentifier);
 
             return $queryBuilder
@@ -179,7 +178,7 @@ class InternalResourceActionGrantService
 
             $resourceActionGrant = new ResourceActionGrant();
             $resourceActionGrant->setAuthorizationResource($resource);
-            $resourceActionGrant->setAction(self::MANAGE_ACTION);
+            $resourceActionGrant->setAction(AuthorizationService::MANAGE_ACTION);
             $resourceActionGrant->setUserIdentifier($userIdentifier);
             $this->addResourceActionGrant($resourceActionGrant);
 
@@ -193,32 +192,6 @@ class InternalResourceActionGrantService
         }
 
         return $resourceActionGrant;
-    }
-
-    /**
-     * @throws ApiError
-     */
-    public function doesUserHaveAManageGrantForAuthorizationResource(
-        string $userIdentifier, string $authorizationResourceIdentifier): bool
-    {
-        $resourceActionGrants = $this->getResourceActionGrantsForAuthorizationResourceIdentifier(
-            $authorizationResourceIdentifier, [self::MANAGE_ACTION], $userIdentifier);
-
-        return count($resourceActionGrants) > 0;
-    }
-
-    /**
-     * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
-     *
-     * @throws ApiError
-     */
-    public function doesUserHaveAManageGrantForResource(
-        string $userIdentifier, string $resourceClass, ?string $resourceIdentifier): bool
-    {
-        $resourceActionGrants = $this->getResourceActionGrantsForResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier, [self::MANAGE_ACTION], $userIdentifier);
-
-        return count($resourceActionGrants) > 0;
     }
 
     /**

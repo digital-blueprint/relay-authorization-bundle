@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\DependencyInjection;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Extension\ExtensionTrait;
 use Symfony\Component\Config\FileLocator;
@@ -27,6 +28,9 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
         $typeDefinition = $container->getParameter('doctrine.dbal.connection_factory.types');
         $typeDefinition['relay_authorization_uuid_binary'] = ['class' => AuthorizationUuidBinaryType::class];
         $container->setParameter('doctrine.dbal.connection_factory.types', $typeDefinition);
+
+        $definition = $container->getDefinition(AuthorizationService::class);
+        $definition->addMethodCall('setConfig', [$mergedConfig]);
     }
 
     public function prepend(ContainerBuilder $container): void
@@ -44,7 +48,7 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
             'dbal' => [
                 'connections' => [
                     'dbp_relay_authorization_bundle' => [
-                        'url' => $config['database_url'] ?? '',
+                        'url' => $config[Configuration::DATABASE_URL] ?? '',
                     ],
                 ],
             ],

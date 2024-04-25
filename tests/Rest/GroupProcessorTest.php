@@ -25,11 +25,26 @@ class GroupProcessorTest extends AbstractGroupControllerTest
         DataProcessorTester::setUp($groupProcessor);
     }
 
-    public function testCreateGroupItem(): void
+    public function testCreateGroupItemWithManageGrant(): void
     {
-        // grant current user manage group resource collection permission
+        // add a manage group resource collection grant for the current user
         $this->internalResourceActionGrantService->addResourceAndManageResourceGrantForUser(
             AuthorizationService::GROUP_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
+
+        $group = new Group();
+        $group->setName(self::TEST_GROUP_NAME);
+
+        $group = $this->groupProcessorTester->addItem($group);
+        $groupPersistence = $this->testEntityManager->getGroup($group->getIdentifier());
+        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+        $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
+        $this->assertEmpty($group->getMembers());
+    }
+
+    public function testCreateGroupItemWithPolicy(): void
+    {
+        // give the current user the required user attribute for the 'create group' policy to evaluate to 'true'
+        $this->login(self::CURRENT_USER_IDENTIFIER, ['MAY_CREATE_GROUPS' => true]);
 
         $group = new Group();
         $group->setName(self::TEST_GROUP_NAME);

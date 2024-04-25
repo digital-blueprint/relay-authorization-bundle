@@ -15,6 +15,9 @@ class ResourceAction
         $this->action = $action;
     }
 
+    /**
+     * @return string|null if null the action represents a collection action
+     */
     public function getResourceIdentifier(): ?string
     {
         return $this->resourceIdentifier;
