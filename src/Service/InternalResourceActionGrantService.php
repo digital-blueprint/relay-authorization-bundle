@@ -160,6 +160,8 @@ class InternalResourceActionGrantService
     }
 
     /**
+     * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
+     *
      * @throws ApiError
      */
     public function addResourceAndManageResourceGrantForUser(string $resourceClass, ?string $resourceIdentifier, string $userIdentifier): ResourceActionGrant
@@ -196,7 +198,7 @@ class InternalResourceActionGrantService
     /**
      * @throws ApiError
      */
-    public function doesUserHaveAManageGrantForResourceByAuthorizationResourceIdentifier(
+    public function doesUserHaveAManageGrantForAuthorizationResource(
         string $userIdentifier, string $authorizationResourceIdentifier): bool
     {
         $resourceActionGrants = $this->getResourceActionGrantsForAuthorizationResourceIdentifier(
@@ -206,10 +208,12 @@ class InternalResourceActionGrantService
     }
 
     /**
+     * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
+     *
      * @throws ApiError
      */
-    public function doesUserHaveAManageGrantForResourceByResourceClassAndIdentifier(
-        string $userIdentifier, string $resourceClass, string $resourceIdentifier): bool
+    public function doesUserHaveAManageGrantForResource(
+        string $userIdentifier, string $resourceClass, ?string $resourceIdentifier): bool
     {
         $resourceActionGrants = $this->getResourceActionGrantsForResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, [self::MANAGE_ACTION], $userIdentifier);

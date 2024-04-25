@@ -44,6 +44,9 @@ class GroupService implements LoggerAwareInterface
         $this->authorizationService = $authorizationService;
     }
 
+    /**
+     * @throws ApiError
+     */
     public function isUserMemberOfGroup(string $userIdentifier, string $groupIdentifier): bool
     {
         $resultSetMapping = new ResultSetMapping();
@@ -198,7 +201,10 @@ class GroupService implements LoggerAwareInterface
         }
     }
 
-    public function getGroupMember(string $identifier)
+    /**
+     * @throws ApiError
+     */
+    public function getGroupMember(string $identifier): ?GroupMember
     {
         try {
             return Uuid::isValid($identifier) ? $this->entityManager
@@ -211,6 +217,11 @@ class GroupService implements LoggerAwareInterface
         }
     }
 
+    /**
+     * @return GroupMember[]
+     *
+     * @throws ApiError
+     */
     public function getGroupMembers(int $currentPageNumber, int $maxNumItemsPerPage, string $groupIdentifier): array
     {
         try {

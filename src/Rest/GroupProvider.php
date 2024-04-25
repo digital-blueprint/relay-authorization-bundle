@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
@@ -16,10 +17,12 @@ use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 class GroupProvider extends AbstractDataProvider
 {
     private GroupService $groupService;
+    private AuthorizationService $authorizationService;
 
-    public function __construct(GroupService $groupService)
+    public function __construct(GroupService $groupService, AuthorizationService $authorizationService)
     {
         $this->groupService = $groupService;
+        $this->authorizationService = $authorizationService;
     }
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
@@ -39,11 +42,13 @@ class GroupProvider extends AbstractDataProvider
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
     {
-        return true; // TODO
+        assert($item instanceof Group);
+
+        return $this->authorizationService->isCurrentUserAuthorizedToReadGroup($item);
     }
 
     protected function isCurrentUserAuthorizedToGetCollection(array $filters): bool
     {
-        return true; // TODO
+        return true;
     }
 }
