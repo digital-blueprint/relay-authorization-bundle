@@ -38,13 +38,64 @@ class AuthorizationServiceTest extends AbstractTest
         $this->assertCount(1, $grants);
     }
 
+    public function testIsCurrentUserMemberOfDynamicGroup(): void
+    {
+        $this->assertFalse($this->authorizationService->isCurrentUserMemberOfDynamicGroup('students'));
+        $this->assertFalse($this->authorizationService->isCurrentUserMemberOfDynamicGroup('employees'));
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
+
+        $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('students'));
+        $this->assertFalse($this->authorizationService->isCurrentUserMemberOfDynamicGroup('employees'));
+
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
+
+        $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('students'));
+        $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('employees'));
+    }
+
+    public function testGetDynamicGroupsCurrentUserIsMemberOf(): void
+    {
+        $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
+        $this->assertCount(0, $currentUsersDynamicGroups);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
+
+        $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
+        $this->assertCount(1, $currentUsersDynamicGroups);
+        $this->assertEquals('students', $currentUsersDynamicGroups[0]);
+
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
+
+        $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
+        $this->assertCount(2, $currentUsersDynamicGroups);
+        $this->assertEquals('students', $currentUsersDynamicGroups[0]);
+        $this->assertEquals('employees', $currentUsersDynamicGroups[1]);
+    }
+
     protected function getTestConfig(): array
     {
         $config = parent::getTestConfig();
-        $config['resource_classes'] = [
+        $config[Configuration::RESOURCE_CLASSES] = [
             [
-                Configuration::RESOURCE_CLASS_IDENTIFIER => self::TEST_RESOURCE_CLASS,
+                Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS,
                 Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+            ],
+        ];
+        $config[Configuration::DYNAMIC_GROUPS] = [
+            [
+                Configuration::IDENTIFIER => 'students',
+                Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION => 'user.get("IS_STUDENT")',
+            ],
+            [
+                Configuration::IDENTIFIER => 'employees',
+                Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION => 'user.get("IS_EMPLOYEE")',
             ],
         ];
 
@@ -55,6 +106,8 @@ class AuthorizationServiceTest extends AbstractTest
     {
         $defaultUserAttributes = parent::getDefaultUserAttributes();
         $defaultUserAttributes['MAY_CREATE_TEST_RESOURCES'] = false;
+        $defaultUserAttributes['IS_STUDENT'] = false;
+        $defaultUserAttributes['IS_EMPLOYEE'] = false;
 
         return $defaultUserAttributes;
     }

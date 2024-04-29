@@ -13,13 +13,17 @@ use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @internal
  */
-class AuthorizationService extends AbstractAuthorizationService
+class AuthorizationService extends AbstractAuthorizationService implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     public const MANAGE_ACTION = 'manage';
 
     public const READ_GROUP_ACTION = 'read';
@@ -30,7 +34,24 @@ class AuthorizationService extends AbstractAuthorizationService
 
     public const GROUP_RESOURCE_CLASS = 'DbpRelayAuthorizationGroup';
 
+    public const DYNAMIC_GROUP_UNDEFINED_ERROR_ID = 'authorization:dynamic-group-undefined';
+
     private InternalResourceActionGrantService $resourceActionGrantService;
+
+    private static function getManageResourceCollectionPolicyName(string $resourceClass): string
+    {
+        return $resourceClass;
+    }
+
+    private static function getIsCurrentUserMemberOfDynamicGroupAttributeName(string $dynamicGroupIdentifier): string
+    {
+        return $dynamicGroupIdentifier;
+    }
+
+    private static function getDynamicGroupIdentifierFromAttributeName(string $attributeName): string
+    {
+        return $attributeName;
+    }
 
     public function __construct(InternalResourceActionGrantService $resourceActionGrantService)
     {
@@ -42,13 +63,54 @@ class AuthorizationService extends AbstractAuthorizationService
     public function setConfig(array $config)
     {
         $policies = [];
-        $policies[self::GROUP_RESOURCE_CLASS] = $config[Configuration::CREATE_GROUPS_POLICY];
+        $policies[self::getManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS)] = $config[Configuration::CREATE_GROUPS_POLICY];
         foreach ($config[Configuration::RESOURCE_CLASSES] ?? [] as $resourceClassConfig) {
-            $policies[$resourceClassConfig[Configuration::RESOURCE_CLASS_IDENTIFIER]] =
+            $policies[self::getManageResourceCollectionPolicyName($resourceClassConfig[Configuration::IDENTIFIER])] =
                 $resourceClassConfig[Configuration::MANAGE_RESOURCE_COLLECTION_POLICY];
         }
 
-        $this->configure($policies);
+        $attributes = [];
+        foreach ($config[Configuration::DYNAMIC_GROUPS] ?? [] as $dynamicGroup) {
+            $attributes[self::getIsCurrentUserMemberOfDynamicGroupAttributeName($dynamicGroup[Configuration::IDENTIFIER])] =
+                $dynamicGroup[Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION];
+        }
+
+        $this->configure($policies, $attributes);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function isCurrentUserMemberOfDynamicGroup(string $dynamicGroupIdentifier): bool
+    {
+        try {
+            return $this->getAttribute(self::getIsCurrentUserMemberOfDynamicGroupAttributeName($dynamicGroupIdentifier));
+        } catch (AuthorizationException $authorizationException) {
+            if ($authorizationException->getCode() === AuthorizationException::ATTRIBUTE_UNDEFINED) {
+                throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                    sprintf('dynamic group \'%s\' is undefined', $dynamicGroupIdentifier),
+                    self::DYNAMIC_GROUP_UNDEFINED_ERROR_ID);
+            } else {
+                throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                    sprintf('failed to determine if current user is member of dynamic group \'%s\': %s',
+                        $dynamicGroupIdentifier, $authorizationException->getMessage()));
+            }
+        }
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getDynamicGroupsCurrentUserIsMemberOf(): array
+    {
+        $currentUsersDynamicGroups = [];
+        foreach ($this->getAttributeNames() as $attributeName) {
+            if ($this->getAttribute($attributeName)) {
+                $currentUsersDynamicGroups[] = self::getDynamicGroupIdentifierFromAttributeName($attributeName);
+            }
+        }
+
+        return $currentUsersDynamicGroups;
     }
 
     /**
@@ -120,7 +182,7 @@ class AuthorizationService extends AbstractAuthorizationService
                 }
                 if (!$foundManageCollectionGrant) {
                     try {
-                        if ($this->isGranted($resourceClass)) {
+                        if ($this->isGranted(self::getManageResourceCollectionPolicyName($resourceClass))) {
                             $authorizationResource = new AuthorizationResource();
                             $authorizationResource->setResourceClass($resourceClass);
                             $resourceActionGrant = new ResourceActionGrant();
@@ -163,7 +225,7 @@ class AuthorizationService extends AbstractAuthorizationService
     {
         return $this->isCurrentUserAuthorizedToManageOr(self::CREATE_GROUPS_ACTION,
             self::GROUP_RESOURCE_CLASS, InternalResourceActionGrantService::IS_NULL)
-            || $this->isGranted(self::GROUP_RESOURCE_CLASS);
+            || $this->isGranted(self::getManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS));
     }
 
     public function isCurrentUserAuthorizedToRemoveGroup(Group $group): bool
