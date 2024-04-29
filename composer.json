@@ -8,6 +8,7 @@
         "ext-json": "*",
         "api-platform/core": "^2.7.11 || ^3.2",
         "dbp/relay-core-bundle": "dev-main as 0.1.159",
+        "doctrine/common": "^3.4.4",
         "doctrine/doctrine-migrations-bundle": "^3.3",
         "doctrine/migrations": "^3.7",
         "doctrine/orm": "^2.19",
@@ -29,6 +30,9 @@
         "symfony/monolog-bundle": "^3.10",
         "symfony/phpunit-bridge": "^7.0.4",
         "vimeo/psalm": "^5.22.2"
+    },
+    "conflict": {
+        "doctrine/common": "<3.4.4"
     },
     "autoload": {
         "psr-4": {
