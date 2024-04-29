@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,11 +23,6 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
             $this->internalResourceActionGrantService, $this->authorizationService);
         $this->resourceActionGrantProviderTester = new DataProviderTester($resourceActionGrantProvider, ResourceActionGrant::class);
         DataProviderTester::setUp($resourceActionGrantProvider);
-
-        $resourceActionGrantProcessor = new ResourceActionGrantProcessor(
-            $this->internalResourceActionGrantService, $this->authorizationService);
-        $this->resourceActionGrantProcessorTester = new DataProcessorTester($resourceActionGrantProcessor, ResourceActionGrant::class);
-        DataProcessorTester::setUp($resourceActionGrantProcessor);
     }
 
     public function testGetResourceActionGrantItem(): void

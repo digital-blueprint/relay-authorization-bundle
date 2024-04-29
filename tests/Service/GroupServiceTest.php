@@ -150,7 +150,7 @@ class GroupServiceTest extends WebTestCase
         $subgroupMember = $this->testEntityManager->addGroupMember($subGroup, self::CURRENT_USER_IDENTIFIER.'_2');
         $groupMember1 = $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
         $groupMember2 = $this->testEntityManager->addGroupMember($group, null, $subGroup);
-        $groupMember3 = $this->testEntityManager->addGroupMember($group, null, null, 'predefinedGroup');
+        $groupMember3 = $this->testEntityManager->addGroupMember($group, null, null, 'dynamicGroup');
 
         $groupMembers = $this->groupService->getGroupMembers(1, 10, $subGroup->getIdentifier());
         $this->assertCount(1, $groupMembers);
@@ -185,7 +185,7 @@ class GroupServiceTest extends WebTestCase
 
         $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group, null, $subGroup);
-        $this->testEntityManager->addGroupMember($group, null, null, 'predefinedGroup');
+        $this->testEntityManager->addGroupMember($group, null, null, 'dynamicGroup');
 
         $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $group->getIdentifier()));
         $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $group->getIdentifier()));

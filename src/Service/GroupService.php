@@ -258,9 +258,9 @@ class GroupService implements LoggerAwareInterface
         }
         if ($groupMember->getUserIdentifier() === null
             && $groupMember->getChildGroup() === null
-            && $groupMember->getPredefinedGroupIdentifier()) {
+            && $groupMember->getDynamicGroupIdentifier()) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'group member is invalid: \'userIdentifier\' or \'childGroup\' or \'predefinedGroupIdentifier\' is required',
+                'group member is invalid: \'userIdentifier\' or \'childGroup\' or \'dynamicGroupIdentifier\' is required',
                 self::GROUP_MEMBER_INVALID_ERROR_ID);
         }
     }

@@ -39,6 +39,12 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode(self::IDENTIFIER)
                                 ->cannotBeEmpty()
                                 ->isRequired()
+                                ->validate()
+                                    ->ifTrue(function ($value) {
+                                        return strlen($value) > 40;
+                                    })
+                                    ->thenInvalid('The max length of dynamic group identifiers is 40')
+                                ->end()
                                 ->info('The dynamic group identifier')
                             ->end()
                             ->scalarNode(self::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION)

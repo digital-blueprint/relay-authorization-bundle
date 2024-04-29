@@ -88,7 +88,7 @@ resources:
                       type: "string"
                     childGroup:
                       type: "string"
-                    predefinedGroupIdentifier:
+                    dynamicGroupIdentifier:
                       type: "string"
                   required:
                     - group
@@ -187,5 +187,5 @@ resources:
         iri: 'https://schema.org/identifier'
       groupIdentifier:
         iri: 'https://schema.org/identifier'
-      predefinedGroupIdentifier:
+      dynamicGroupIdentifier:
         iri: 'https://schema.org/identifier'

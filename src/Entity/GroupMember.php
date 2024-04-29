@@ -57,11 +57,11 @@ class GroupMember
     /**
      * Pre-defined group type member.
      *
-     * @ORM\Column(name="predefined_group_identifier", type="string", length=40, nullable=true)
+     * @ORM\Column(name="dynamic_group_identifier", type="string", length=40, nullable=true)
      *
      * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output", "AuthorizationGroup:output"})
      */
-    private ?string $predefinedGroupIdentifier = null;
+    private ?string $dynamicGroupIdentifier = null;
 
     public function getIdentifier(): ?string
     {
@@ -103,13 +103,13 @@ class GroupMember
         $this->childGroup = $childGroup;
     }
 
-    public function getPredefinedGroupIdentifier(): ?string
+    public function getDynamicGroupIdentifier(): ?string
     {
-        return $this->predefinedGroupIdentifier;
+        return $this->dynamicGroupIdentifier;
     }
 
-    public function setPredefinedGroupIdentifier(?string $predefinedGroupIdentifier): void
+    public function setDynamicGroupIdentifier(?string $dynamicGroupIdentifier): void
     {
-        $this->predefinedGroupIdentifier = $predefinedGroupIdentifier;
+        $this->dynamicGroupIdentifier = $dynamicGroupIdentifier;
     }
 }

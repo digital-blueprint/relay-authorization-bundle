@@ -64,11 +64,11 @@ class ResourceActionGrant
     /**
      * Pre-defined group type grant holder.
      *
-     * @ORM\Column(name="predefined_group_identifier", type="string", length=40, nullable=true)
+     * @ORM\Column(name="dynamic_group_identifier", type="string", length=40, nullable=true)
      *
      * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
-    private ?string $predefinedGroupIdentifier = null;
+    private ?string $dynamicGroupIdentifier = null;
 
     public function getIdentifier(): ?string
     {
@@ -120,13 +120,13 @@ class ResourceActionGrant
         $this->group = $group;
     }
 
-    public function getPredefinedGroupIdentifier(): ?string
+    public function getDynamicGroupIdentifier(): ?string
     {
-        return $this->predefinedGroupIdentifier;
+        return $this->dynamicGroupIdentifier;
     }
 
-    public function setPredefinedGroupIdentifier(?string $predefinedGroupIdentifier): void
+    public function setDynamicGroupIdentifier(?string $dynamicGroupIdentifier): void
     {
-        $this->predefinedGroupIdentifier = $predefinedGroupIdentifier;
+        $this->dynamicGroupIdentifier = $dynamicGroupIdentifier;
     }
 }
