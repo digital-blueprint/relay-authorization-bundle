@@ -22,11 +22,11 @@ class AuthorizationService extends AbstractAuthorizationService
 {
     public const MANAGE_ACTION = 'manage';
 
-    private const READ_GROUP_ACTION = 'read';
-    private const CREATE_GROUPS_ACTION = 'create';
-    private const DELETE_GROUP_ACTION = 'delete';
-    private const ADD_GROUP_MEMBERS_GROUP_ACTION = 'add_members';
-    private const DELETE_GROUP_MEMBERS_GROUP_ACTION = 'delete_members';
+    public const READ_GROUP_ACTION = 'read';
+    public const CREATE_GROUPS_ACTION = 'create';
+    public const DELETE_GROUP_ACTION = 'delete';
+    public const ADD_GROUP_MEMBERS_GROUP_ACTION = 'add_members';
+    public const DELETE_GROUP_MEMBERS_GROUP_ACTION = 'delete_members';
 
     public const GROUP_RESOURCE_CLASS = 'DbpRelayAuthorizationGroup';
 
@@ -145,9 +145,9 @@ class AuthorizationService extends AbstractAuthorizationService
     /**
      * @throws ApiError
      */
-    public function addGroup(string $groupIdentifier): void
+    public function addGroup(string $groupIdentifier): ResourceActionGrant
     {
-        $this->resourceActionGrantService->addResourceAndManageResourceGrantForUser(
+        return $this->resourceActionGrantService->addResourceAndManageResourceGrantForUser(
             self::GROUP_RESOURCE_CLASS, $groupIdentifier, $this->getUserIdentifier());
     }
 
@@ -188,6 +188,11 @@ class AuthorizationService extends AbstractAuthorizationService
     {
         return $this->isCurrentUserAuthorizedToManageOr(self::DELETE_GROUP_MEMBERS_GROUP_ACTION,
             self::GROUP_RESOURCE_CLASS, $groupMember->getGroup()->getIdentifier());
+    }
+
+    public function isCurrentUserAuthorizedToReadGroupMember(GroupMember $item)
+    {
+        return $this->isCurrentUserAuthorizedToReadGroup($item->getGroup());
     }
 
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool

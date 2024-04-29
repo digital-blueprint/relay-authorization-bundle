@@ -41,6 +41,25 @@ class GroupProcessorTest extends AbstractGroupControllerTest
         $this->assertEmpty($group->getMembers());
     }
 
+    public function testCreateGroupItemWithCreateGrant(): void
+    {
+        // add a manage group resource collection grant for the current user
+        $manageGrant = $this->internalResourceActionGrantService->addResourceAndManageResourceGrantForUser(
+            AuthorizationService::GROUP_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
+
+        $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(), AuthorizationService::CREATE_GROUPS_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+
+        $group = new Group();
+        $group->setName(self::TEST_GROUP_NAME);
+
+        $group = $this->groupProcessorTester->addItem($group);
+        $groupPersistence = $this->testEntityManager->getGroup($group->getIdentifier());
+        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+        $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
+        $this->assertEmpty($group->getMembers());
+    }
+
     public function testCreateGroupItemWithPolicy(): void
     {
         // give the current user the required user attribute for the 'create group' policy to evaluate to 'true'
@@ -69,14 +88,24 @@ class GroupProcessorTest extends AbstractGroupControllerTest
         }
     }
 
-    public function testDeleteGroupItem(): void
+    public function testDeleteGroupItemWithManageGrant(): void
     {
-        // grant current user manage group resource collection permission
-        $this->internalResourceActionGrantService->addResourceAndManageResourceGrantForUser(
-            AuthorizationService::GROUP_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
-
         $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
         $this->assertNotNull($this->testEntityManager->getGroup($group->getIdentifier()));
+        $this->groupProcessorTester->removeItem($group->getIdentifier(), $group);
+        $this->assertNull($this->testEntityManager->getGroup($group->getIdentifier()));
+    }
+
+    public function testDeleteGroupItemWithDeleteGrant(): void
+    {
+        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
+        $manageGrant = $this->authorizationService->addGroup($group->getIdentifier());
+        $this->assertNotNull($this->testEntityManager->getGroup($group->getIdentifier()));
+
+        $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
+            AuthorizationService::DELETE_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+
         $this->groupProcessorTester->removeItem($group->getIdentifier(), $group);
         $this->assertNull($this->testEntityManager->getGroup($group->getIdentifier()));
     }

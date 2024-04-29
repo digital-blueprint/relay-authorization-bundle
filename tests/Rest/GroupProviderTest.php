@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupProvider;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -32,6 +33,20 @@ class GroupProviderTest extends AbstractGroupControllerTest
         $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
     }
 
+    public function testGetGroupItemWithReadGrant(): void
+    {
+        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
+        $manageGrant = $this->authorizationService->addGroup($group->getIdentifier());
+        $this->assertNotNull($this->testEntityManager->getGroup($group->getIdentifier()));
+
+        $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
+            AuthorizationService::READ_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+
+        $groupPersistence = $this->groupProviderTester->getItem($group->getIdentifier());
+        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+    }
+
     public function testGetGroupItemNotFound(): void
     {
         $this->assertNull($this->groupProviderTester->getItem('no'));
@@ -41,7 +56,7 @@ class GroupProviderTest extends AbstractGroupControllerTest
     {
         $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
 
-        $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
         try {
             $this->groupProviderTester->getItem($group->getIdentifier());
             $this->fail('exception not thrown as expected');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -17,15 +18,17 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class GroupMemberProvider extends AbstractDataProvider
 {
-    private const GROUP_IDENTIFIER_QUERY_PARAMETER = 'groupIdentifier';
+    public const GROUP_IDENTIFIER_QUERY_PARAMETER = 'groupIdentifier';
 
-    private const REQUIRED_PARAMETER_MISSION_ERROR_ID = 'authorization:required-parameter-missing';
+    public const REQUIRED_PARAMETER_MISSION_ERROR_ID = 'authorization:required-parameter-missing';
 
     private GroupService $groupService;
+    private AuthorizationService $authorizationService;
 
-    public function __construct(GroupService $groupService)
+    public function __construct(GroupService $groupService, AuthorizationService $authorizationService)
     {
         $this->groupService = $groupService;
+        $this->authorizationService = $authorizationService;
     }
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
@@ -51,7 +54,9 @@ class GroupMemberProvider extends AbstractDataProvider
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
     {
-        return true;
+        assert($item instanceof GroupMember);
+
+        return $this->authorizationService->isCurrentUserAuthorizedToReadGroupMember($item);
     }
 
     protected function isCurrentUserAuthorizedToGetCollection(array $filters): bool
