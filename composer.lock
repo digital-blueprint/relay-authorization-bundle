@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6b642ce7902b1781b803c76b34494cbe",
+    "content-hash": "6741e1c3ba29b05f77c810e4ac627d87",
     "packages": [
         {
             "name": "api-platform/core",
@@ -235,7 +235,7 @@
         },
         {
             "name": "dbp/relay-core-bundle",
-            "version": "dev-main",
+            "version": "v0.1.160",
             "source": {
                 "type": "git",
                 "url": "https://github.com/digital-blueprint/relay-core-bundle.git",
@@ -316,7 +316,6 @@
                 "symfony/phpunit-bridge": "^7.0.6",
                 "vimeo/psalm": "^5.22.2"
             },
-            "default-branch": true,
             "type": "symfony-bundle",
             "autoload": {
                 "psr-4": {
@@ -330,7 +329,7 @@
             "description": "The core bundle of the Relay API gateway",
             "support": {
                 "issues": "https://github.com/digital-blueprint/relay-core-bundle/issues",
-                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/main"
+                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/v0.1.160"
             },
             "time": "2024-04-29T09:42:04+00:00"
         },
@@ -1484,16 +1483,16 @@
         },
         {
             "name": "doctrine/orm",
-            "version": "2.19.4",
+            "version": "2.19.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/doctrine/orm.git",
-                "reference": "b27489348658cd718d18005de37b94f7f8561467"
+                "reference": "94986af28452da42a46a4489d1c958a2e5d710e5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/doctrine/orm/zipball/b27489348658cd718d18005de37b94f7f8561467",
-                "reference": "b27489348658cd718d18005de37b94f7f8561467",
+                "url": "https://api.github.com/repos/doctrine/orm/zipball/94986af28452da42a46a4489d1c958a2e5d710e5",
+                "reference": "94986af28452da42a46a4489d1c958a2e5d710e5",
                 "shasum": ""
             },
             "require": {
@@ -1579,9 +1578,9 @@
             ],
             "support": {
                 "issues": "https://github.com/doctrine/orm/issues",
-                "source": "https://github.com/doctrine/orm/tree/2.19.4"
+                "source": "https://github.com/doctrine/orm/tree/2.19.5"
             },
-            "time": "2024-04-15T13:11:10+00:00"
+            "time": "2024-04-30T06:49:54+00:00"
         },
         {
             "name": "doctrine/persistence",
@@ -11342,18 +11341,9 @@
             "time": "2024-03-11T20:33:46+00:00"
         }
     ],
-    "aliases": [
-        {
-            "package": "dbp/relay-core-bundle",
-            "version": "dev-main",
-            "alias": "0.1.159",
-            "alias_normalized": "0.1.159.0"
-        }
-    ],
+    "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "dbp/relay-core-bundle": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

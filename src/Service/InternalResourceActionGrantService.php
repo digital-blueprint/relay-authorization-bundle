@@ -10,6 +10,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Ramsey\Uuid\Uuid;
@@ -234,11 +235,14 @@ class InternalResourceActionGrantService
         }
     }
 
-    public function getResourceActionGrantsForAuthorizationResourceIdentifier(?string $authorizationResourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+    public function getResourceActionGrantsForAuthorizationResourceIdentifier(
+        ?string $authorizationResourceIdentifier = null, ?array $actions = null,
+        ?string $userIdentifier = null, ?array $groupIdentifiers = null, ?array $dynamicGroupIdentifiers = null,
+        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         return $this->getResourceActionGrantsInternal(
-            null, null, $authorizationResourceIdentifier, $actions, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+            null, null, $authorizationResourceIdentifier, $actions,
+            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     /**
@@ -246,21 +250,14 @@ class InternalResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function getResourceActionGrantsForResourceClassAndIdentifier(?string $resourceClass = null, ?string $resourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
-    {
-        return $this->getResourceActionGrantsInternal(
-            $resourceClass, $resourceIdentifier, null, $actions, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
-    }
-
-    public function getResourceActionGrantsForResourceClassAndIdentifier_NEW(
+    public function getResourceActionGrantsForResourceClassAndIdentifier(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?array $actions = null,
-        ?string $userIdentifier = null, ?array $dynamicGroupIdentifiers = null, ?array $groupIdentifiers = null,
+        ?string $userIdentifier = null, ?array $groupIdentifiers = null, ?array $dynamicGroupIdentifiers = null,
         int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        return $this->getResourceActionGrantsInternal_NEW(
+        return $this->getResourceActionGrantsInternal(
             $resourceClass, $resourceIdentifier, null, $actions,
-            $userIdentifier, $dynamicGroupIdentifiers, $groupIdentifiers, $currentPageNumber, $maxNumItemsPerPage);
+            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     public function getResources(
@@ -334,9 +331,9 @@ class InternalResourceActionGrantService
      *
      * @throws ApiError
      */
-    private function getResourceActionGrantsInternal_NEW(
+    private function getResourceActionGrantsInternal(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, ?array $dynamicGroupIdentifiers = null, $groupIdentifiers = null,
+        ?array $actions = null, ?string $userIdentifier = null, ?array $groupIdentifiers = null, ?array $dynamicGroupIdentifiers = null,
         int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         $RESOURCE_ALIAS = 'r';
@@ -395,94 +392,18 @@ class InternalResourceActionGrantService
                     ->andWhere($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.userIdentifier', ':userIdentifier'))
                     ->setParameter(':userIdentifier', $userIdentifier);
             }
+            if ($groupIdentifiers !== null) {
+                // There seem to be issues with doctrine and arrays of binary parameters:
+                // https://github.com/ramsey/uuid-doctrine/issues/18
+                // https://github.com/ramsey/uuid-doctrine/issues/164
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->in('IDENTITY('.$RESOURCE_ACTION_GRANT_ALIAS.'.group)', ':groupIdentifiers'))
+                    ->setParameter(':groupIdentifiers', $groupIdentifiers, ArrayParameterType::BINARY);
+            }
             if ($dynamicGroupIdentifiers !== null) {
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier', ':dynamicGroupIdentifiers'))
                     ->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
-            }
-            if ($groupIdentifiers !== null) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.group', ':groupIdentifiers')) // IDENTITY(rag.group) ??
-                    ->setParameter(':groupIdentifiers', $groupIdentifiers);
-            }
-
-            return $queryBuilder
-                ->getQuery()
-                ->setFirstResult(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage))
-                ->setMaxResults($maxNumItemsPerPage)
-                ->getResult();
-        } catch (ApiError $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Failed to get resource action grant collection!',
-                self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
-        }
-    }
-
-    /**
-     * @return ResourceActionGrant[]
-     *
-     * @throws ApiError
-     */
-    private function getResourceActionGrantsInternal(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
-    {
-        $RESOURCE_ALIAS = 'r';
-        $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
-
-        try {
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            if ($authorizationResourceIdentifier === null) {
-                $queryBuilder
-                    ->select($RESOURCE_ACTION_GRANT_ALIAS)
-                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                    ->innerJoin(AuthorizationResource::class, $RESOURCE_ALIAS, Join::WITH,
-                        $RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource = '.$RESOURCE_ALIAS.'.identifier');
-                if ($resourceClass !== null) {
-                    $queryBuilder
-                        ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
-                        ->setParameter(':resourceClass', $resourceClass);
-                }
-                if ($resourceIdentifier !== null) {
-                    switch ($resourceIdentifier) {
-                        case self::IS_NULL:
-                            $queryBuilder
-                                ->andWhere($queryBuilder->expr()->isNull($RESOURCE_ALIAS.'.resourceIdentifier'));
-                            break;
-                        case self::IS_NOT_NULL:
-                            $queryBuilder
-                                ->andWhere($queryBuilder->expr()->isNotNull($RESOURCE_ALIAS.'.resourceIdentifier'));
-                            break;
-                        default:
-                            $queryBuilder
-                                ->andWhere($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
-                                ->setParameter(':resourceIdentifier', $resourceIdentifier);
-                    }
-                }
-            } else {
-                $queryBuilder
-                    ->select($RESOURCE_ACTION_GRANT_ALIAS)
-                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                    ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource', ':authorizationResourceIdentifier'))
-                    ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
-            }
-
-            if ($actions !== null) {
-                if (count($actions) === 1) {
-                    $queryBuilder
-                        ->andWhere($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.action', ':action'))
-                        ->setParameter(':action', $actions[0]);
-                } else {
-                    $queryBuilder
-                        ->andWhere($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.action', ':action'))
-                        ->setParameter(':action', $actions);
-                }
-            }
-            if ($userIdentifier !== null) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.userIdentifier', ':userIdentifier'))
-                    ->setParameter(':userIdentifier', $userIdentifier);
             }
 
             return $queryBuilder

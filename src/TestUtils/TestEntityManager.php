@@ -76,13 +76,16 @@ class TestEntityManager
         return $this->entityManager;
     }
 
-    public function addResourceActionGrant(AuthorizationResource $resource, string $action, string $userIdentifier, ?string $groupIdentifer = null): ResourceActionGrant
+    public function addResourceActionGrant(AuthorizationResource $resource, string $action,
+        ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
         $resourceActionGrant->setAuthorizationResource($resource);
         $resourceActionGrant->setAction($action);
         $resourceActionGrant->setUserIdentifier($userIdentifier);
+        $resourceActionGrant->setGroup($group);
+        $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
 
         try {
             $this->entityManager->persist($resourceActionGrant);
@@ -188,7 +191,7 @@ class TestEntityManager
         }
     }
 
-    public function addGroup(string $name): Group
+    public function addGroup(string $name = 'Testgroup'): Group
     {
         $group = new Group();
         $group->setIdentifier(Uuid::uuid7()->toString());

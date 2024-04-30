@@ -149,10 +149,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $this->assertResouceClassNotReserved($resourceClass);
         $currentUserIdentifier = $this->getCurrentUserIdentifier(false);
 
+        // TODO: consider groups and dynamic groups
         return $currentUserIdentifier !== null ?
             $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-                $resourceClass, $resourceIdentifier, $actions, $currentUserIdentifier, $currentPageNumber, $maxNumItemsPerPage) :
-            [];
+                $resourceClass, $resourceIdentifier, $actions,
+                $currentUserIdentifier, null, null,
+                $currentPageNumber, $maxNumItemsPerPage) : [];
     }
 
     public function getResourceCollectionActionGrants(string $resourceClass, ?array $actions, int $currentPageNumber, int $maxNumItemsPerPage)
@@ -164,7 +166,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         if ($currentUserIdentifier !== null) {
             $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
                 $resourceClass, InternalResourceActionGrantService::IS_NULL, $actions,
-                $currentUserIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+                $currentUserIdentifier, null, null,
+                $currentPageNumber, $maxNumItemsPerPage);
 
             // if
             // * the current page is not yet full
@@ -282,6 +285,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public function isCurrentUserAuthorizedToReadResource(AuthorizationResource $item): bool
     {
+        // TODO: consider groups and dynamic groups
         return count($this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
             $item->getIdentifier(), null, $this->getUserIdentifier())) > 0;
     }
@@ -311,6 +315,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
+        // TODO: consider groups and dynamic groups
         return
             $currentUserIdentifier !== null
             && count($this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
@@ -322,10 +327,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
+        // TODO: consider groups and dynamic groups
         return
             $currentUserIdentifier !== null
             && count($this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-                $resourceClass, $resourceIdentifier, [self::MANAGE_ACTION, $action], $currentUserIdentifier)) > 0;
+                $resourceClass, $resourceIdentifier, [self::MANAGE_ACTION, $action],
+                $currentUserIdentifier, null, null)) > 0;
     }
 
     /**
