@@ -155,7 +155,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         if ($resourceIdentifier !== null) {
             $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
                 $resourceClass, $resourceIdentifier, $actions,
-                $currentUserIdentifier, null, null,
+                $currentUserIdentifier, InternalResourceActionGrantService::IS_NOT_NULL,
+                InternalResourceActionGrantService::IS_NOT_NULL,
                 $currentPageNumber, $maxNumItemsPerPage);
             // TODO: filter grants by current user's group/dynamic group membership
 

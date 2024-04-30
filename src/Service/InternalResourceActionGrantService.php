@@ -235,9 +235,17 @@ class InternalResourceActionGrantService
         }
     }
 
+    /**
+     * @param string[]|string|null $groupIdentifiers
+     * @param string[]|string|null $dynamicGroupIdentifiers
+     *
+     * @return ResourceActionGrant[]
+     *
+     * @throws ApiError
+     */
     public function getResourceActionGrantsForAuthorizationResourceIdentifier(
         ?string $authorizationResourceIdentifier = null, ?array $actions = null,
-        ?string $userIdentifier = null, ?array $groupIdentifiers = null, ?array $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         return $this->getResourceActionGrantsInternal(
@@ -246,13 +254,16 @@ class InternalResourceActionGrantService
     }
 
     /**
+     * @param string[]|string|null $groupIdentifiers
+     * @param string[]|string|null $dynamicGroupIdentifiers
+     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?array $actions = null,
-        ?string $userIdentifier = null, ?array $groupIdentifiers = null, ?array $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         return $this->getResourceActionGrantsInternal(
@@ -330,13 +341,16 @@ class InternalResourceActionGrantService
      * Since exclusively userIdentifier, or group or dynamicGroupIdentifier are set in a ResourceAction grant,
      * we combine them with an OR conjunction.
      *
+     * @param string[]|string|null $groupIdentifiers
+     * @param string[]|string|null $dynamicGroupIdentifiers
+     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     private function getResourceActionGrantsInternal(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, ?array $groupIdentifiers = null, ?array $dynamicGroupIdentifiers = null,
+        ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         $RESOURCE_ALIAS = 'r';
@@ -398,17 +412,27 @@ class InternalResourceActionGrantService
                 $queryBuilder->setParameter(':userIdentifier', $userIdentifier);
             }
             if ($groupIdentifiers !== null) {
-                // There seem to be issues with doctrine and arrays of binary parameters:
-                // https://github.com/ramsey/uuid-doctrine/issues/18
-                // https://github.com/ramsey/uuid-doctrine/issues/164
-                $orClause
-                    ->add($queryBuilder->expr()->in('IDENTITY('.$RESOURCE_ACTION_GRANT_ALIAS.'.group)', ':groupIdentifiers'));
-                $queryBuilder->setParameter(':groupIdentifiers', self::toBinaryUuidArray($groupIdentifiers), ArrayParameterType::BINARY);
+                if ($groupIdentifiers === self::IS_NOT_NULL) {
+                    $orClause
+                        ->add($queryBuilder->expr()->isNotNull($RESOURCE_ACTION_GRANT_ALIAS.'.group'));
+                } else {
+                    // There seem to be issues with doctrine and arrays of binary parameters:
+                    // https://github.com/ramsey/uuid-doctrine/issues/18
+                    // https://github.com/ramsey/uuid-doctrine/issues/164
+                    $orClause
+                        ->add($queryBuilder->expr()->in('IDENTITY('.$RESOURCE_ACTION_GRANT_ALIAS.'.group)', ':groupIdentifiers'));
+                    $queryBuilder->setParameter(':groupIdentifiers', self::toBinaryUuidArray($groupIdentifiers), ArrayParameterType::BINARY);
+                }
             }
             if ($dynamicGroupIdentifiers !== null) {
-                $orClause
-                    ->add($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier', ':dynamicGroupIdentifiers'));
-                $queryBuilder->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
+                if ($dynamicGroupIdentifiers === self::IS_NOT_NULL) {
+                    $orClause
+                        ->add($queryBuilder->expr()->isNotNull($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier'));
+                } else {
+                    $orClause
+                        ->add($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier', ':dynamicGroupIdentifiers'));
+                    $queryBuilder->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
+                }
             }
             if ($orClause->count() > 0) {
                 $queryBuilder->andWhere($orClause);
