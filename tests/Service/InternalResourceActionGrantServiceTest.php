@@ -136,15 +136,30 @@ class InternalResourceActionGrantServiceTest extends AbstractTest
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($userResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
-        // currently does not work:
-        //        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-        //            'resourceClass', 'resourceIdentifier', null, null, [$group->getIdentifier()]);
-        //        $this->assertCount(1, $resourceActionGrants);
-        //        $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            'resourceClass', 'resourceIdentifier', null, null, [$group->getIdentifier()]);
+        $this->assertCount(1, $resourceActionGrants);
+        $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             'resourceClass', 'resourceIdentifier', null, null, null, ['dynamicGroup']);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($dynamicGroupRsourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
+
+        // user, group and dynamic group ID criteria is combined with OR conjunction
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            'resourceClass', 'resourceIdentifier', null,
+            self::CURRENT_USER_IDENTIFIER, [$group->getIdentifier()], ['dynamicGroup']);
+        $this->assertCount(3, $resourceActionGrants);
+        $this->assertEquals($userResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
+        $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrants[1]->getIdentifier());
+        $this->assertEquals($dynamicGroupRsourceActionGrant->getIdentifier(), $resourceActionGrants[2]->getIdentifier());
+
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            'resourceClass', 'resourceIdentifier', null,
+            null, [$group->getIdentifier()], ['dynamicGroup']);
+        $this->assertCount(2, $resourceActionGrants);
+        $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
+        $this->assertEquals($dynamicGroupRsourceActionGrant->getIdentifier(), $resourceActionGrants[1]->getIdentifier());
     }
 }

@@ -327,6 +327,9 @@ class InternalResourceActionGrantService
     }
 
     /**
+     * Since exclusively userIdentifier, or group or dynamicGroupIdentifier are set in a ResourceAction grant,
+     * we combine them with an OR conjunction.
+     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
@@ -387,23 +390,28 @@ class InternalResourceActionGrantService
                         ->setParameter(':action', $actions);
                 }
             }
+
+            $orClause = $queryBuilder->expr()->orX();
             if ($userIdentifier !== null) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.userIdentifier', ':userIdentifier'))
-                    ->setParameter(':userIdentifier', $userIdentifier);
+                $orClause
+                    ->add($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.userIdentifier', ':userIdentifier'));
+                $queryBuilder->setParameter(':userIdentifier', $userIdentifier);
             }
             if ($groupIdentifiers !== null) {
                 // There seem to be issues with doctrine and arrays of binary parameters:
                 // https://github.com/ramsey/uuid-doctrine/issues/18
                 // https://github.com/ramsey/uuid-doctrine/issues/164
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->in('IDENTITY('.$RESOURCE_ACTION_GRANT_ALIAS.'.group)', ':groupIdentifiers'))
-                    ->setParameter(':groupIdentifiers', $groupIdentifiers, ArrayParameterType::BINARY);
+                $orClause
+                    ->add($queryBuilder->expr()->in('IDENTITY('.$RESOURCE_ACTION_GRANT_ALIAS.'.group)', ':groupIdentifiers'));
+                $queryBuilder->setParameter(':groupIdentifiers', self::toBinaryUuidArray($groupIdentifiers), ArrayParameterType::BINARY);
             }
             if ($dynamicGroupIdentifiers !== null) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier', ':dynamicGroupIdentifiers'))
-                    ->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
+                $orClause
+                    ->add($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier', ':dynamicGroupIdentifiers'));
+                $queryBuilder->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
+            }
+            if ($orClause->count() > 0) {
+                $queryBuilder->andWhere($orClause);
             }
 
             return $queryBuilder
@@ -439,5 +447,12 @@ class InternalResourceActionGrantService
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'resource action invalid: \'resourceClass\' is required', self::RESOURCE_INVALID_ERROR_ID, ['resourceClass']);
         }
+    }
+
+    private static function toBinaryUuidArray(array $stringUuids): array
+    {
+        return array_map(function (string $value): string {
+            return Uuid::fromString($value)->getBytes();
+        }, $stringUuids);
     }
 }

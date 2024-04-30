@@ -148,16 +148,28 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $this->assertResouceClassNotReserved($resourceClass);
         $currentUserIdentifier = $this->getCurrentUserIdentifier(false);
+        if ($currentUserIdentifier === null) {
+            return [];
+        }
 
-        // TODO: consider groups and dynamic groups
-        return $currentUserIdentifier !== null ?
-            $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        if ($resourceIdentifier !== null) {
+            $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
                 $resourceClass, $resourceIdentifier, $actions,
                 $currentUserIdentifier, null, null,
-                $currentPageNumber, $maxNumItemsPerPage) : [];
+                $currentPageNumber, $maxNumItemsPerPage);
+            // TODO: filter grants by current user's group/dynamic group membership
+
+            return $grants;
+        } else {
+            return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+                $resourceClass, $resourceIdentifier, $actions,
+                $currentUserIdentifier, null /* TODO: group IDs user is member of */, $this->getDynamicGroupsCurrentUserIsMemberOf(),
+                $currentPageNumber, $maxNumItemsPerPage);
+        }
     }
 
-    public function getResourceCollectionActionGrants(string $resourceClass, ?array $actions, int $currentPageNumber, int $maxNumItemsPerPage)
+    public function getResourceCollectionActionGrants(string $resourceClass, ?array $actions,
+        int $currentPageNumber, int $maxNumItemsPerPage): array
     {
         $this->assertResouceClassNotReserved($resourceClass);
         $currentUserIdentifier = $this->getCurrentUserIdentifier(false);
