@@ -421,7 +421,8 @@ class InternalResourceActionGrantService
                     // https://github.com/ramsey/uuid-doctrine/issues/164
                     $orClause
                         ->add($queryBuilder->expr()->in('IDENTITY('.$RESOURCE_ACTION_GRANT_ALIAS.'.group)', ':groupIdentifiers'));
-                    $queryBuilder->setParameter(':groupIdentifiers', self::toBinaryUuidArray($groupIdentifiers), ArrayParameterType::BINARY);
+                    $queryBuilder->setParameter(':groupIdentifiers',
+                        AuthorizationUuidBinaryType::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY);
                 }
             }
             if ($dynamicGroupIdentifiers !== null) {
@@ -471,12 +472,5 @@ class InternalResourceActionGrantService
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'resource action invalid: \'resourceClass\' is required', self::RESOURCE_INVALID_ERROR_ID, ['resourceClass']);
         }
-    }
-
-    private static function toBinaryUuidArray(array $stringUuids): array
-    {
-        return array_map(function (string $value): string {
-            return Uuid::fromString($value)->getBytes();
-        }, $stringUuids);
     }
 }

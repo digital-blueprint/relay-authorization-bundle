@@ -4,26 +4,22 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
-use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\ResultSetMapping;
-use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerAwareTrait;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @internal
  */
-class GroupService implements LoggerAwareInterface
+class GroupService
 {
-    use LoggerAwareTrait;
-
     private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-group-failed';
     private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-group-failed';
     private const GROUP_INVALID_ERROR_ID = 'authorization:group-invalid';
@@ -36,12 +32,10 @@ class GroupService implements LoggerAwareInterface
     private const GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-group-member-collection-failed';
 
     private EntityManagerInterface $entityManager;
-    private AuthorizationService $authorizationService;
 
-    public function __construct(EntityManagerInterface $entityManager, AuthorizationService $authorizationService)
+    public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
-        $this->authorizationService = $authorizationService;
     }
 
     /**
@@ -49,31 +43,73 @@ class GroupService implements LoggerAwareInterface
      */
     public function isUserMemberOfGroup(string $userIdentifier, string $groupIdentifier): bool
     {
-        $resultSetMapping = new ResultSetMapping();
-        $resultSetMapping->addEntityResult(GroupMember::class, 'agm_1');
-        $resultSetMapping->addEntityResult(GroupMember::class, 'agm_2');
-        $resultSetMapping->addFieldResult('agm_1', 'parent_group_identifier', 'group');
-        $resultSetMapping->addFieldResult('agm_1', 'child_group_identifier', 'childGroup');
-        $resultSetMapping->addFieldResult('agm_1', 'user_identifier', 'userIdentifier');
-        $resultSetMapping->addFieldResult('agm_2', 'parent_group_identifier', 'group');
-        $resultSetMapping->addFieldResult('agm_2', 'child_group_identifier', 'childGroup');
-        $resultSetMapping->addFieldResult('agm_2', 'user_identifier', 'userIdentifier');
+        $sql = 'with recursive cte as (
+             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+              from       authorization_group_members agm_1
+              where      agm_1.parent_group_identifier = :parent_group_identifier
+              union all
+              select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+              from       authorization_group_members agm_2
+              inner join cte
+                      on agm_2.parent_group_identifier = cte.child_group_identifier)
+             select user_identifier from cte where user_identifier = :user_identifier;';
 
-        return count($this->entityManager->createNativeQuery('     
-         with recursive cte as (
-         select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
-          from       authorization_group_members agm_1
-          where      agm_1.parent_group_identifier = :parent_group_identifier
-          union all
-          select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
-          from       authorization_group_members agm_2
-          inner join cte
-                  on agm_2.parent_group_identifier = cte.child_group_identifier
-         )
-         select user_identifier from cte where user_identifier = :user_identifier;', $resultSetMapping)
-            ->setParameter(':parent_group_identifier', $groupIdentifier, AuthorizationUuidBinaryType::NAME)
-            ->setParameter(':user_identifier', $userIdentifier)
-            ->getResult()) > 0;
+        // didn't get hydration of results to work for native query:
+        //        $resultSetMapping = new ResultSetMapping();
+        //        $resultSetMapping->addEntityResult(GroupMember::class, 'agm_1');
+        //        $resultSetMapping->addEntityResult(GroupMember::class, 'agm_2');
+        //        $resultSetMapping->addFieldResult('agm_1', 'parent_group_identifier', 'group');
+        //        $resultSetMapping->addFieldResult('agm_1', 'child_group_identifier', 'childGroup');
+        //        $resultSetMapping->addFieldResult('agm_1', 'user_identifier', 'userIdentifier');
+        //        $resultSetMapping->addFieldResult('agm_2', 'parent_group_identifier', 'group');
+        //        $resultSetMapping->addFieldResult('agm_2', 'child_group_identifier', 'childGroup');
+        //        $resultSetMapping->addFieldResult('agm_2', 'user_identifier', 'userIdentifier');
+        //
+        //        return count($this->entityManager->createNativeQuery($sql, $resultSetMapping)
+        //            ->setParameter(':parent_group_identifier', $groupIdentifier, AuthorizationUuidBinaryType::NAME)
+        //            ->setParameter(':user_identifier', $userIdentifier)
+        //            ->getResult()) > 0);
+
+        try {
+            $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
+            $sqlStatement->bindValue(':parent_group_identifier',
+                AuthorizationUuidBinaryType::toBinaryUuid($groupIdentifier), ParameterType::BINARY);
+            $sqlStatement->bindValue(':user_identifier', $userIdentifier);
+            $userIdentifiers = $sqlStatement->executeQuery()->fetchFirstColumn();
+
+            return count($userIdentifiers) > 0;
+        } catch (\Exception $exception) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'getting groups for user failed: '.$exception->getMessage());
+        }
+    }
+
+    /**
+     * @return string[] The list of group identifiers
+     */
+    public function getGroupsUserIsMemberOf(string $userIdentifier): array
+    {
+        $sql = 'with recursive cte as (
+             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+                 from       authorization_group_members agm_1
+                 where      agm_1.user_identifier = :userIdentifier
+                 union all
+                 select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+                 from       authorization_group_members agm_2
+                 inner join cte
+                 on agm_2.child_group_identifier = cte.parent_group_identifier)
+             select parent_group_identifier from cte;';
+
+        try {
+            $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
+            $sqlStatement->bindValue(':userIdentifier', $userIdentifier);
+            $groupIdentifiersBinary = $sqlStatement->executeQuery()->fetchFirstColumn();
+
+            return AuthorizationUuidBinaryType::toStringUuids($groupIdentifiersBinary);
+        } catch (\Exception $exception) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'getting groups for user failed: '.$exception->getMessage());
+        }
     }
 
     /**
@@ -127,17 +163,10 @@ class GroupService implements LoggerAwareInterface
         $this->validateGroup($group);
 
         $group->setIdentifier(Uuid::uuid7()->toString());
-        $wasGroupAddedToAuthorization = false;
         try {
-            $this->authorizationService->addGroup($group->getIdentifier());
-            $wasGroupAddedToAuthorization = true;
-
             $this->entityManager->persist($group);
             $this->entityManager->flush();
         } catch (\Exception $e) {
-            if ($wasGroupAddedToAuthorization) {
-                $this->authorizationService->removeGroup($group->getIdentifier());
-            }
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action could not be added!',
                 self::ADDING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
@@ -153,12 +182,6 @@ class GroupService implements LoggerAwareInterface
         try {
             $this->entityManager->remove($group);
             $this->entityManager->flush();
-
-            try {
-                $this->authorizationService->removeGroup($group->getIdentifier());
-            } catch (\Exception $e) {
-                $this->logger->warning(sprintf('Failed to remove group resource \'%s\' from authorization: %s', $group->getIdentifier(), $e->getMessage()));
-            }
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be removed!',
                 self::REMOVING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
@@ -256,11 +279,10 @@ class GroupService implements LoggerAwareInterface
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'group member is invalid: \'group\' is required', self::GROUP_MEMBER_INVALID_ERROR_ID, ['group']);
         }
-        if ($groupMember->getUserIdentifier() === null
-            && $groupMember->getChildGroup() === null
-            && $groupMember->getDynamicGroupIdentifier()) {
+        if (($groupMember->getUserIdentifier() === null && $groupMember->getChildGroup() === null)
+            || ($groupMember->getUserIdentifier() !== null && $groupMember->getChildGroup() !== null)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'group member is invalid: \'userIdentifier\' or \'childGroup\' or \'dynamicGroupIdentifier\' is required',
+                'group member is invalid: exactly one of \'userIdentifier\' or \'childGroup\' must be given',
                 self::GROUP_MEMBER_INVALID_ERROR_ID);
         }
     }

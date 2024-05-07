@@ -232,15 +232,13 @@ class TestEntityManager
         }
     }
 
-    public function addGroupMember(Group $group, ?string $userIdentifier, ?Group $childGroup = null,
-        ?string $dynamicGroupIdentifier = null): GroupMember
+    public function addGroupMember(Group $group, ?string $userIdentifier, ?Group $childGroup = null): GroupMember
     {
         $groupMember = new GroupMember();
         $groupMember->setIdentifier(Uuid::uuid7()->toString());
         $groupMember->setGroup($group);
         $groupMember->setUserIdentifier($userIdentifier);
         $groupMember->setChildGroup($childGroup);
-        $groupMember->setDynamicGroupIdentifier($dynamicGroupIdentifier);
 
         try {
             $this->entityManager->persist($groupMember);

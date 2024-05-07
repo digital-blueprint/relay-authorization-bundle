@@ -38,7 +38,6 @@ class GroupMemberProcessorTest extends AbstractGroupControllerTest
         $this->assertEquals($groupMember->getIdentifier(), $groupMemberPersistence->getIdentifier());
         $this->assertEquals($groupMember->getChildGroup(), $groupMemberPersistence->getChildGroup());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $groupMemberPersistence->getUserIdentifier());
-        $this->assertEquals($groupMember->getDynamicGroupIdentifier(), $groupMemberPersistence->getDynamicGroupIdentifier());
     }
 
     public function testCreateGroupMemberItemWithAddGroupMembersGrant(): void
@@ -59,7 +58,6 @@ class GroupMemberProcessorTest extends AbstractGroupControllerTest
         $this->assertEquals($groupMember->getIdentifier(), $groupMemberPersistence->getIdentifier());
         $this->assertEquals($groupMember->getChildGroup(), $groupMemberPersistence->getChildGroup());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $groupMemberPersistence->getUserIdentifier());
-        $this->assertEquals($groupMember->getDynamicGroupIdentifier(), $groupMemberPersistence->getDynamicGroupIdentifier());
     }
 
     public function testCreateGroupMemberItemForbidden(): void

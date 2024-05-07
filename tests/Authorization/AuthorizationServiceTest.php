@@ -26,14 +26,14 @@ class AuthorizationServiceTest extends AbstractTest
 
     public function testManageResourceCollectionPolicy(): void
     {
-        $grants = $this->authorizationService->getResourceCollectionActionGrants(
+        $grants = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
             self::TEST_RESOURCE_CLASS, null, 1, 10);
         $this->assertCount(0, $grants);
 
         $attributes = $this->getDefaultUserAttributes();
         $attributes['MAY_CREATE_TEST_RESOURCES'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $attributes);
-        $grants = $this->authorizationService->getResourceCollectionActionGrants(
+        $grants = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
             self::TEST_RESOURCE_CLASS, null, 1, 10);
         $this->assertCount(1, $grants);
     }

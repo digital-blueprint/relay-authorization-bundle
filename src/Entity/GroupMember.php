@@ -54,15 +54,6 @@ class GroupMember
      */
     private ?Group $childGroup = null;
 
-    /**
-     * Pre-defined group type member.
-     *
-     * @ORM\Column(name="dynamic_group_identifier", type="string", length=40, nullable=true)
-     *
-     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output", "AuthorizationGroup:output"})
-     */
-    private ?string $dynamicGroupIdentifier = null;
-
     public function getIdentifier(): ?string
     {
         return $this->identifier;
@@ -101,15 +92,5 @@ class GroupMember
     public function setChildGroup(?Group $childGroup): void
     {
         $this->childGroup = $childGroup;
-    }
-
-    public function getDynamicGroupIdentifier(): ?string
-    {
-        return $this->dynamicGroupIdentifier;
-    }
-
-    public function setDynamicGroupIdentifier(?string $dynamicGroupIdentifier): void
-    {
-        $this->dynamicGroupIdentifier = $dynamicGroupIdentifier;
     }
 }

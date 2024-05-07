@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\API;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
@@ -24,7 +25,8 @@ class ResourceActionGrantServiceTest extends WebTestCase
         $this->testEntityManager = new TestEntityManager(self::bootKernel());
         $internalResourceActionGrantService = new InternalResourceActionGrantService(
             $this->testEntityManager->getEntityManager());
-        $this->authorizationService = new AuthorizationService($internalResourceActionGrantService);
+        $this->authorizationService = new AuthorizationService(
+            $internalResourceActionGrantService, new GroupService($this->testEntityManager->getEntityManager()));
         TestAuthorizationService::setUp($this->authorizationService, self::CURRENT_USER_IDENTIFIER);
         $this->resourceActionGrantService = new ResourceActionGrantService(
             $this->authorizationService);

@@ -27,7 +27,8 @@ class GroupServiceTest extends WebTestCase
     {
         $this->testEntityManager = new TestEntityManager(self::bootKernel());
         $internalResourceActionGrantService = new InternalResourceActionGrantService($this->testEntityManager->getEntityManager());
-        $this->authorizationService = new AuthorizationService($internalResourceActionGrantService);
+        $this->authorizationService = new AuthorizationService(
+            $internalResourceActionGrantService, new GroupService($this->testEntityManager->getEntityManager()));
         TestAuthorizationService::setUp($this->authorizationService, self::CURRENT_USER_IDENTIFIER);
 
         $this->groupService = new GroupService($this->testEntityManager->getEntityManager(), $this->authorizationService);
@@ -150,7 +151,7 @@ class GroupServiceTest extends WebTestCase
         $subgroupMember = $this->testEntityManager->addGroupMember($subGroup, self::CURRENT_USER_IDENTIFIER.'_2');
         $groupMember1 = $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
         $groupMember2 = $this->testEntityManager->addGroupMember($group, null, $subGroup);
-        $groupMember3 = $this->testEntityManager->addGroupMember($group, null, null, 'dynamicGroup');
+        $groupMember3 = $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER.'_3');
 
         $groupMembers = $this->groupService->getGroupMembers(1, 10, $subGroup->getIdentifier());
         $this->assertCount(1, $groupMembers);
@@ -185,7 +186,6 @@ class GroupServiceTest extends WebTestCase
 
         $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group, null, $subGroup);
-        $this->testEntityManager->addGroupMember($group, null, null, 'dynamicGroup');
 
         $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $group->getIdentifier()));
         $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $group->getIdentifier()));
@@ -201,5 +201,35 @@ class GroupServiceTest extends WebTestCase
         $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $subSubGroup->getIdentifier()));
         $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $subSubGroup->getIdentifier()));
         $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $subSubGroup->getIdentifier()));
+    }
+
+    public function testGetGroupsUserIsMemberOf(): void
+    {
+        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
+        $subGroup = $this->testEntityManager->addGroup('subgroup');
+        $subSubGroup = $this->testEntityManager->addGroup('subsubgroup');
+
+        $this->testEntityManager->addGroupMember($subSubGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+
+        $this->testEntityManager->addGroupMember($subGroup, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addGroupMember($subGroup, null, $subSubGroup);
+
+        $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group, null, $subGroup);
+
+        $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER);
+        $this->assertCount(1, $groups);
+        $this->assertEquals($group->getIdentifier(), $groups[0]);
+
+        $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->assertCount(2, $groups);
+        $this->assertContains($group->getIdentifier(), $groups);
+        $this->assertContains($subGroup->getIdentifier(), $groups);
+
+        $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->assertCount(3, $groups);
+        $this->assertContains($group->getIdentifier(), $groups);
+        $this->assertContains($subGroup->getIdentifier(), $groups);
+        $this->assertContains($subSubGroup->getIdentifier(), $groups);
     }
 }
