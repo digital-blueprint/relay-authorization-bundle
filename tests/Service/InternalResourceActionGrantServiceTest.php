@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Tests\Rest\AbstractTest;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractTest;
 
 class InternalResourceActionGrantServiceTest extends AbstractTest
 {

@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractTest;
 
 abstract class AbstractGroupControllerTest extends AbstractTest
 {

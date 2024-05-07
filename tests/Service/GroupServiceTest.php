@@ -231,5 +231,8 @@ class GroupServiceTest extends WebTestCase
         $this->assertContains($group->getIdentifier(), $groups);
         $this->assertContains($subGroup->getIdentifier(), $groups);
         $this->assertContains($subSubGroup->getIdentifier(), $groups);
+
+        $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->assertCount(0, $groups);
     }
 }

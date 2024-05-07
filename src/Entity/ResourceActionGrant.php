@@ -53,7 +53,7 @@ class ResourceActionGrant
     /**
      * Group type grant holder.
      *
-     * @ORM\OneToOne(targetEntity="Group")
+     * @ORM\ManyToOne(targetEntity="Group")
      *
      * @ORM\JoinColumn(name="group_identifier", referencedColumnName="identifier", nullable=true)
      *

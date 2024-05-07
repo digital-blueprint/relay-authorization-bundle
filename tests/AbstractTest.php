@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
+namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;

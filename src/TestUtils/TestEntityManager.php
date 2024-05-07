@@ -16,6 +16,9 @@ use Symfony\Component\HttpKernel\KernelInterface;
 
 class TestEntityManager
 {
+    public const DEFAULT_RESOURCE_CLASS = 'resourceClass';
+    public const DEFAULT_RESOURCE_IDENTIFIER = 'resourceIdentifier';
+
     private EntityManager $entityManager;
 
     //    private static bool $haveCustomTypesBeenAdded = false;
@@ -97,7 +100,8 @@ class TestEntityManager
         return $resourceActionGrant;
     }
 
-    public function addAuthorizationResource(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
+    public function addAuthorizationResource(string $resourceClass = self::DEFAULT_RESOURCE_CLASS,
+        ?string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER): AuthorizationResource
     {
         $resource = new AuthorizationResource();
         $resource->setIdentifier(Uuid::uuid7()->toString());
