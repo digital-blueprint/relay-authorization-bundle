@@ -165,7 +165,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     public function getResourceCollectionActionGrantsForCurrentUser(string $resourceClass, ?array $actions,
-        int $currentPageNumber, int $maxNumItemsPerPage): array
+        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         $this->assertResouceClassNotReserved($resourceClass);
         $currentUserIdentifier = $this->getCurrentUserIdentifier(false);
