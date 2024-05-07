@@ -63,7 +63,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $this->groupService = $groupService;
     }
 
-    public function setConfig(array $config)
+    public function setConfig(array $config): void
     {
         $policies = [];
         $policies[self::getManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS)] = $config[Configuration::CREATE_GROUPS_POLICY];
