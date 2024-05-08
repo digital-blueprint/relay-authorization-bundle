@@ -11,7 +11,7 @@ use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Proxies\__CG__\Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupMemberProcessorTest extends AbstractGroupControllerTest
+class GroupMemberProcessorTest extends AbstractGroupControllerTestCase
 {
     private DataProcessorTester $groupMemberProcessorTester;
 

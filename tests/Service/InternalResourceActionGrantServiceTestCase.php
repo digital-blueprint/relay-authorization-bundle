@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTest;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 
-class InternalResourceActionGrantServiceTest extends AbstractTest
+class InternalResourceActionGrantServiceTestCase extends AbstractTestCase
 {
     public function testAddResourceAndManageResourceGrantForUser(): void
     {

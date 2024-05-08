@@ -7,9 +7,9 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTest;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 
-abstract class AbstractResourceActionGrantControllerTest extends AbstractTest
+abstract class AbstractResourceActionGrantControllerTestCase extends AbstractTestCase
 {
     protected function getResourceActionGrant(string $identifier): ?ResourceActionGrant
     {

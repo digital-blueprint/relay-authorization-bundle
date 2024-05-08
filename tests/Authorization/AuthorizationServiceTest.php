@@ -6,10 +6,10 @@ namespace Authorization;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTest;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 
-class AuthorizationServiceTest extends AbstractTest
+class AuthorizationServiceTest extends AbstractTestCase
 {
     private const TEST_RESOURCE_CLASS = 'Vendor/Package/TestResource';
 

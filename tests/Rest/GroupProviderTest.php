@@ -11,7 +11,7 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupProviderTest extends AbstractGroupControllerTest
+class GroupProviderTest extends AbstractGroupControllerTestCase
 {
     private DataProviderTester $groupProviderTester;
 

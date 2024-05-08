@@ -11,7 +11,7 @@ use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-abstract class AbstractTest extends WebTestCase
+abstract class AbstractTestCase extends WebTestCase
 {
     protected const CURRENT_USER_IDENTIFIER = 'userIdentifier';
     protected const ANOTHER_USER_IDENTIFIER = 'anotherUserIdentifier';
