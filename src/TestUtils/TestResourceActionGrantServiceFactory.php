@@ -31,7 +31,7 @@ class TestResourceActionGrantServiceFactory
     private static function getTestConfig(): array
     {
         return [
-            'create_groups_policy' => 'user.get("MAY_CREATE_GROUPS")',
+            'database_url' => 'sqlite:///:memory:',
         ];
     }
 }
