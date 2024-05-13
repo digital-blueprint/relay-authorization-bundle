@@ -27,21 +27,14 @@ class TestEntityManager
             throw new \RuntimeException('Execution only in Test environment possible!');
         }
 
-        $this->initDatabase($kernel);
-
-        $entityManager = $kernel->getContainer()
-            ->get('doctrine')
-            ->getManager();
-
-        $this->entityManager = $entityManager;
-    }
-
-    private function initDatabase(KernelInterface $kernel): void
-    {
-        $entityManager = $kernel->getContainer()->get('doctrine.orm.entity_manager');
+        $entityManager = $kernel->getContainer()->get('doctrine')->getManager('dbp_relay_authorization_bundle');
         $metaData = $entityManager->getMetadataFactory()->getAllMetadata();
         $schemaTool = new SchemaTool($entityManager);
         $schemaTool->updateSchema($metaData);
+
+        $entityManager =
+
+        $this->entityManager = $entityManager;
     }
 
     public function getEntityManager(): EntityManager
@@ -68,6 +61,14 @@ class TestEntityManager
         }
 
         return $resourceActionGrant;
+    }
+
+    public function addResourceAndActionGrant(string $resourceClass, ?string $resourceIdentifier,
+        string $action, ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+    {
+        $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
+
+        return $this->addResourceActionGrant($authorizationResource, $action, $userIdentifier, $group, $dynamicGroupIdentifier);
     }
 
     public function addAuthorizationResource(string $resourceClass = self::DEFAULT_RESOURCE_CLASS,

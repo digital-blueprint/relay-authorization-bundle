@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use ApiPlatform\Symfony\Bundle\ApiPlatformBundle;
 use Dbp\Relay\AuthorizationBundle\DbpRelayAuthorizationBundle;
+use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\CoreBundle\DbpRelayCoreBundle;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Doctrine\Bundle\MigrationsBundle\DoctrineMigrationsBundle;
@@ -52,7 +53,7 @@ class Kernel extends BaseKernel
         ]);
 
         $container->extension('dbp_relay_authorization', [
-            'database_url' => 'sqlite:///:memory:',
+            Configuration::DATABASE_URL => 'sqlite:///:memory:',
         ]);
     }
 }
