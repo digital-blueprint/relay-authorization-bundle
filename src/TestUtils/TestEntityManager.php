@@ -63,7 +63,7 @@ class TestEntityManager
         return $resourceActionGrant;
     }
 
-    public function addResourceAndActionGrant(string $resourceClass, ?string $resourceIdentifier,
+    public function addAuthorizationResourceAndActionGrant((string $resourceClass, ?string $resourceIdentifier,
         string $action, ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
