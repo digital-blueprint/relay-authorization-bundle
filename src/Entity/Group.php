@@ -9,35 +9,23 @@ use Doctrine\ORM\PersistentCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * @ORM\Entity
- *
- * @ORM\Table(name="authorization_groups")
- *
  * @internal
  */
+#[ORM\Table(name: 'authorization_groups')]
+#[ORM\Entity]
 class Group
 {
-    /**
-     * @ORM\Id
-     *
-     * @ORM\Column(type="relay_authorization_uuid_binary", unique=true)
-     *
-     * @Groups({"AuthorizationGroup:output"})
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'relay_authorization_uuid_binary', unique: true)]
+    #[Groups(['AuthorizationGroup:output'])]
     private ?string $identifier = null;
 
-    /**
-     * @ORM\Column(name="name", type="string", length=64)
-     *
-     * @Groups({"AuthorizationGroup:input", "AuthorizationGroup:output"})
-     */
+    #[ORM\Column(name: 'name', type: 'string', length: 64)]
+    #[Groups(['AuthorizationGroup:input', 'AuthorizationGroup:output'])]
     private ?string $name = null;
 
-    /**
-     * @ORM\OneToMany(targetEntity="GroupMember", mappedBy="group")
-     *
-     * @Groups({"AuthorizationGroup:output"})
-     */
+    #[ORM\OneToMany(targetEntity: GroupMember::class, mappedBy: 'group')]
+    #[Groups(['AuthorizationGroup:output'])]
     private ?PersistentCollection $members = null;
 
     public function getIdentifier(): ?string

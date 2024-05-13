@@ -8,50 +8,35 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * @ORM\Entity
- *
- * @ORM\Table(name="authorization_group_members")
- *
  * @internal
  */
+#[ORM\Table(name: 'authorization_group_members')]
+#[ORM\Entity]
 class GroupMember
 {
-    /**
-     * @ORM\Id
-     *
-     * @ORM\Column(type="relay_authorization_uuid_binary", unique=true)
-     *
-     * @Groups({"AuthorizationGroupMember:output"})
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'relay_authorization_uuid_binary', unique: true)]
+    #[Groups(['AuthorizationGroupMember:output'])]
     private ?string $identifier = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="Group", inversedBy="members")
-     *
-     * @ORM\JoinColumn(name="parent_group_identifier", referencedColumnName="identifier")
-     *
-     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output"})
-     */
+    #[ORM\JoinColumn(name: 'parent_group_identifier', referencedColumnName: 'identifier')]
+    #[ORM\ManyToOne(targetEntity: Group::class, inversedBy: 'members')]
+    #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output'])]
     private ?Group $group = null;
 
     /**
      * User type member.
-     *
-     * @ORM\Column(name="user_identifier", type="string", length=40, nullable=true)
-     *
-     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output", "AuthorizationGroup:output"})
      */
+    #[ORM\Column(name: 'user_identifier', type: 'string', length: 40, nullable: true)]
+    #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]
     private ?string $userIdentifier = null;
 
     /**
      * Group type member.
-     *
-     * @ORM\OneToOne(targetEntity="Group")
-     *
-     * @ORM\JoinColumn(name="child_group_identifier", referencedColumnName="identifier")
-     *
-     * @Groups({"AuthorizationGroupMember:input", "AuthorizationGroupMember:output", "AuthorizationGroup:output"})
      */
+    #[ORM\JoinColumn(name: 'child_group_identifier', referencedColumnName: 'identifier')]
+    #[ORM\OneToOne(targetEntity: Group::class)]
+    #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]
     private ?Group $childGroup = null;
 
     public function getIdentifier(): ?string

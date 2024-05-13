@@ -8,66 +8,46 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
- * @ORM\Entity
- *
- * @ORM\Table(name="authorization_resource_action_grants")
- *
  * @internal
  */
+#[ORM\Table(name: 'authorization_resource_action_grants')]
+#[ORM\Entity]
 class ResourceActionGrant
 {
-    /**
-     * @ORM\Id
-     *
-     * @ORM\Column(type="relay_authorization_uuid_binary", unique=true)
-     *
-     * @Groups({"AuthorizationResourceActionGrant:output"})
-     */
+    #[ORM\Id]
+    #[ORM\Column(type: 'relay_authorization_uuid_binary', unique: true)]
+    #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?string $identifier = null;
 
-    /**
-     * @ORM\ManyToOne(targetEntity="AuthorizationResource")
-     *
-     * @ORM\JoinColumn(name="authorization_resource_identifier", referencedColumnName="identifier")
-     *
-     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
-     */
+    #[ORM\JoinColumn(name: 'authorization_resource_identifier', referencedColumnName: 'identifier')]
+    #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?AuthorizationResource $authorizationResource = null;
 
-    /**
-     * @ORM\Column(name="action", type="string", length=40)
-     *
-     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
-     */
+    #[ORM\Column(name: 'action', type: 'string', length: 40)]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $action = null;
 
     /**
      * User type grant holder.
-     *
-     * @ORM\Column(name="user_identifier", type="string", length=40, nullable=true)
-     *
-     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
+    #[ORM\Column(name: 'user_identifier', type: 'string', length: 40, nullable: true)]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $userIdentifier = null;
 
     /**
      * Group type grant holder.
-     *
-     * @ORM\ManyToOne(targetEntity="Group")
-     *
-     * @ORM\JoinColumn(name="group_identifier", referencedColumnName="identifier", nullable=true)
-     *
-     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
+    #[ORM\JoinColumn(name: 'group_identifier', referencedColumnName: 'identifier', nullable: true)]
+    #[ORM\ManyToOne(targetEntity: Group::class)]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?Group $group = null;
 
     /**
      * Pre-defined group type grant holder.
-     *
-     * @ORM\Column(name="dynamic_group_identifier", type="string", length=40, nullable=true)
-     *
-     * @Groups({"AuthorizationResourceActionGrant:input", "AuthorizationResourceActionGrant:output"})
      */
+    #[ORM\Column(name: 'dynamic_group_identifier', type: 'string', length: 40, nullable: true)]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $dynamicGroupIdentifier = null;
 
     public function getIdentifier(): ?string

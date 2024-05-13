@@ -16,9 +16,7 @@ abstract class EntityManagerMigration extends AbstractMigration implements Conta
 
     private ?ContainerInterface $container = null;
 
-    /**
-     * @required
-     */
+    #[\Symfony\Contracts\Service\Attribute\Required]
     public function setContainer(?ContainerInterface $container = null)
     {
         $this->container = $container;

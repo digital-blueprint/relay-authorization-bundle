@@ -59,7 +59,7 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
                         'connection' => 'dbp_relay_authorization_bundle',
                         'mappings' => [
                             'dbp_relay_authorization' => [
-                                'type' => 'annotation',
+                                'type' => 'attribute',
                                 'dir' => __DIR__.'/../Entity',
                                 'prefix' => 'Dbp\Relay\AuthorizationBundle\Entity',
                             ],
