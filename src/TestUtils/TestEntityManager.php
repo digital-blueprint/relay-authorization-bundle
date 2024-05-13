@@ -32,8 +32,6 @@ class TestEntityManager
         $schemaTool = new SchemaTool($entityManager);
         $schemaTool->updateSchema($metaData);
 
-        $entityManager =
-
         $this->entityManager = $entityManager;
     }
 
