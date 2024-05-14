@@ -14,6 +14,7 @@ use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
@@ -174,9 +175,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         if ($currentUserIdentifier !== null) {
             $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
                 $resourceClass, InternalResourceActionGrantService::IS_NULL, $actions, $currentUserIdentifier,
-                InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
-                $currentPageNumber, $maxNumItemsPerPage);
-            $currentUsersGrants = $this->filterGrantsByUser($grants, $currentUserIdentifier);
+                InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
+
+            // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
+            // the requested page size ($maxNumItemsPerPage), we have to get more grants
+            // TODO: handle page numbers other than 1
+            $currentUsersGrants = $this->filterGrantsByUser($grants, $currentUserIdentifier, $currentPageNumber, $maxNumItemsPerPage);
 
             // if:
             // * the current page is not yet full
@@ -296,7 +300,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function isCurrentUserAuthorizedToReadResource(AuthorizationResource $item): bool
     {
         return count($this->getGrantsForAuthorizationResourceForUser(
-            $this->getUserIdentifier(), $item->getIdentifier(), null)) > 0;
+            $this->getUserIdentifier(), $item->getIdentifier(), null, 1, 1)) > 0;
     }
 
     public function getResourcesCurrentUserIsAuthorizedToRead(int $currentPageNumber, int $maxNumItemsPerPage): array
@@ -327,10 +331,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $actions, $userIdentifier,
-            InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
-            $currentPageNumber, $maxNumItemsPerPage);
+            InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
+        // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
+        // the requested page size ($maxNumItemsPerPage), we have to get more grants
+        // TODO: handle page numbers other than 1
 
-        return $this->filterGrantsByUser($grants, $userIdentifier);
+        return $this->filterGrantsByUser($grants, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     /**
@@ -341,10 +347,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             $resourceClass, InternalResourceActionGrantService::IS_NOT_NULL, $actions, $userIdentifier,
-            $this->groupService->getGroupsUserIsMemberOf($userIdentifier), $this->getDynamicGroupsCurrentUserIsMemberOf(),
-            $currentPageNumber, $maxNumItemsPerPage);
+            $this->groupService->getGroupsUserIsMemberOf($userIdentifier), $this->getDynamicGroupsCurrentUserIsMemberOf());
+        // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
+        // the requested page size ($maxNumItemsPerPage), we have to get more grants
+        // TODO: handle page numbers other than 1
 
-        return $this->filterGrantsByUser($grants, $userIdentifier);
+        return $this->filterGrantsByUser($grants, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     /**
@@ -355,10 +363,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $grants = $this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
             $authorizationResourceIdentifier, $actions, $userIdentifier,
-            InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
-            $currentPageNumber, $maxNumItemsPerPage);
+            InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
+        // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
+        // the requested page size ($maxNumItemsPerPage), we have to get more grants
+        // TODO: handle page numbers other than 1
 
-        return $this->filterGrantsByUser($grants, $userIdentifier);
+        return $this->filterGrantsByUser($grants, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     /**
@@ -366,7 +376,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @return ResourceActionGrant[]
      */
-    private function filterGrantsByUser(array $grants, string $userIdentifier): array
+    private function filterGrantsByUser(array $grants, string $userIdentifier, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
         $currentUsersGrants = [];
         foreach ($grants as $grant) {
@@ -377,7 +387,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             }
         }
 
-        return $currentUsersGrants;
+        return array_slice($currentUsersGrants, Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
     }
 
     private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
