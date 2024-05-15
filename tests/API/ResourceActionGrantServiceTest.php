@@ -168,6 +168,28 @@ class ResourceActionGrantServiceTest extends AbstractTestCase
             'resourceClass', 'resourceIdentifier'));
     }
 
+    public function testHasUserGrantedResourceItemActions(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
+        $this->assertFalse($this->resourceActionGrantService->hasGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier'));
+
+        $this->testEntityManager->addResourceActionGrant($resource,
+            ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->assertTrue($this->resourceActionGrantService->hasUserGrantedResourceItemActions(
+            self::CURRENT_USER_IDENTIFIER, 'resourceClass', 'resourceIdentifier'));
+        $this->assertTrue($this->resourceActionGrantService->hasUserGrantedResourceItemActions(
+            self::CURRENT_USER_IDENTIFIER, 'resourceClass', 'resourceIdentifier', [ResourceActionGrantService::MANAGE_ACTION]));
+        $this->assertFalse($this->resourceActionGrantService->hasUserGrantedResourceItemActions(
+            self::CURRENT_USER_IDENTIFIER, 'resourceClass', 'resourceIdentifier', ['read']));
+        $this->assertFalse($this->resourceActionGrantService->hasUserGrantedResourceItemActions(
+            self::CURRENT_USER_IDENTIFIER.'_2', 'resourceClass', 'resourceIdentifier'));
+
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->assertTrue($this->resourceActionGrantService->hasUserGrantedResourceItemActions(
+            self::CURRENT_USER_IDENTIFIER, 'resourceClass', 'resourceIdentifier'));
+    }
+
     public function testGetGrantedResourceCollectionActions(): void
     {
         $resource = $this->testEntityManager->addAuthorizationResource(

@@ -147,22 +147,34 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @throws ApiError
      */
-    public function getResourceItemActionGrantsForCurrentUser(string $resourceClass, ?string $resourceIdentifier = null,
+    public function getResourceItemActionGrantsForUser(?string $userIdentifier, string $resourceClass, ?string $resourceIdentifier = null,
         ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        $this->assertResouceClassNotReserved($resourceClass);
-        $currentUserIdentifier = $this->getCurrentUserIdentifier(false);
-        if ($currentUserIdentifier === null) {
+        if ($userIdentifier === null) {
             return [];
         }
 
         if ($resourceIdentifier !== null) {
-            return $this->getGrantsForResourceItemForUser($currentUserIdentifier, $resourceClass, $resourceIdentifier, $actions,
+            return $this->getGrantsForResourceItemForUser($userIdentifier, $resourceClass, $resourceIdentifier, $actions,
                 $currentPageNumber, $maxNumItemsPerPage);
         } else {
-            return $this->getGrantsForAllResourceItemsForUser($currentUserIdentifier, $resourceClass, $actions,
+            return $this->getGrantsForAllResourceItemsForUser($userIdentifier, $resourceClass, $actions,
                 $currentPageNumber, $maxNumItemsPerPage);
         }
+    }
+
+    /**
+     * @parram string|null $resourceIdentifier null matches any resource identifier
+     *
+     * @return ResourceActionGrant[]
+     *
+     * @throws ApiError
+     */
+    public function getResourceItemActionGrantsForCurrentUser(string $resourceClass, ?string $resourceIdentifier = null,
+        ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+    {
+        return $this->getResourceItemActionGrantsForUser($this->getCurrentUserIdentifier(false),
+            $resourceClass, $resourceIdentifier, $actions, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     public function getResourceCollectionActionGrantsForCurrentUser(string $resourceClass, ?array $actions,
@@ -173,14 +185,13 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         $currentUsersGrants = [];
         if ($currentUserIdentifier !== null) {
-            $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-                $resourceClass, InternalResourceActionGrantService::IS_NULL, $actions, $currentUserIdentifier,
-                InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
-
-            // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
-            // the requested page size ($maxNumItemsPerPage), we have to get more grants
-            // TODO: handle page numbers other than 1
-            $currentUsersGrants = $this->filterGrantsByUser($grants, $currentUserIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+            $currentUsersGrants = $this->getResourceActionGrantPageForUser(
+                function (int $pageNumber, int $pageSize) use ($currentUserIdentifier, $resourceClass, $actions) {
+                    return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+                        $resourceClass, InternalResourceActionGrantService::IS_NULL, $actions, $currentUserIdentifier,
+                        InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
+                        $pageNumber, $pageSize);
+                }, $currentUserIdentifier, $currentPageNumber, $maxNumItemsPerPage);
 
             // if:
             // * the current page is not yet full
@@ -329,14 +340,13 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function getGrantsForResourceItemForUser(string $userIdentifier, string $resourceClass, string $resourceIdentifier,
         ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier, $actions, $userIdentifier,
-            InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
-        // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
-        // the requested page size ($maxNumItemsPerPage), we have to get more grants
-        // TODO: handle page numbers other than 1
-
-        return $this->filterGrantsByUser($grants, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+        return $this->getResourceActionGrantPageForUser(
+            function (int $pageNumber, int $pageSize) use ($userIdentifier, $resourceClass, $resourceIdentifier, $actions) {
+                return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+                    $resourceClass, $resourceIdentifier, $actions, $userIdentifier,
+                    InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
+                    $pageNumber, $pageSize);
+            }, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     /**
@@ -345,14 +355,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function getGrantsForAllResourceItemsForUser(string $userIdentifier, string $resourceClass,
         ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        $grants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        // since grants for all resource items are requested, we get the groups the user is member of beforehand
+        // let the db do the pagination (probably more efficient)
+        return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             $resourceClass, InternalResourceActionGrantService::IS_NOT_NULL, $actions, $userIdentifier,
-            $this->groupService->getGroupsUserIsMemberOf($userIdentifier), $this->getDynamicGroupsCurrentUserIsMemberOf());
-        // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
-        // the requested page size ($maxNumItemsPerPage), we have to get more grants
-        // TODO: handle page numbers other than 1
-
-        return $this->filterGrantsByUser($grants, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+            $this->groupService->getGroupsUserIsMemberOf($userIdentifier), $this->getDynamicGroupsCurrentUserIsMemberOf(),
+            $currentPageNumber, $maxNumItemsPerPage);
     }
 
     /**
@@ -361,33 +369,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function getGrantsForAuthorizationResourceForUser(string $userIdentifier, string $authorizationResourceIdentifier, ?array $actions,
         int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
     {
-        $grants = $this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
-            $authorizationResourceIdentifier, $actions, $userIdentifier,
-            InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
-        // TODO: if a full default size (1024) page of grants is returned, and the number of results filtered by user is smaller than
-        // the requested page size ($maxNumItemsPerPage), we have to get more grants
-        // TODO: handle page numbers other than 1
-
-        return $this->filterGrantsByUser($grants, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
-    }
-
-    /**
-     * @param ResourceActionGrant[] $grants
-     *
-     * @return ResourceActionGrant[]
-     */
-    private function filterGrantsByUser(array $grants, string $userIdentifier, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
-    {
-        $currentUsersGrants = [];
-        foreach ($grants as $grant) {
-            if ($grant->getUserIdentifier() === $userIdentifier
-                || ($grant->getGroup() !== null && $this->groupService->isUserMemberOfGroup($userIdentifier, $grant->getGroup()->getIdentifier()))
-                || ($grant->getDynamicGroupIdentifier() !== null && $this->isCurrentUserMemberOfDynamicGroup($grant->getDynamicGroupIdentifier()))) {
-                $currentUsersGrants[] = $grant;
-            }
-        }
-
-        return array_slice($currentUsersGrants, Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
+        return $this->getResourceActionGrantPageForUser(function (int $pageNumber, int $pageSize) use ($userIdentifier, $authorizationResourceIdentifier, $actions) {
+            return $this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
+                $authorizationResourceIdentifier, $actions, $userIdentifier,
+                InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
+                $pageNumber, $pageSize);
+        }, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
     }
 
     private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
@@ -427,7 +414,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    private function assertResouceClassNotReserved(string $resourceClass)
+    private function assertResouceClassNotReserved(string $resourceClass): void
     {
         if ($resourceClass === self::GROUP_RESOURCE_CLASS) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST, 'The resource class \''.$resourceClass.'\' is reserved.');
@@ -443,5 +430,40 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         }
 
         return $currentUserIdentifier;
+    }
+
+    private function getResourceActionGrantPageForUser(callable $getGrantsCallback, string $userIdentifier, int $currentPageNumber, int $maxNumItemsPerPage): array
+    {
+        $resultPage = [];
+        if ($maxNumItemsPerPage > 0) {
+            $currentUsersGrantsIndex = 0;
+            $firstItemIndex = Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage);
+            $grantPageNumberToGet = 1;
+            $done = false;
+            while (($grants = $getGrantsCallback($grantPageNumberToGet, 1024)) !== [] && !$done) {
+                foreach ($grants as $grant) {
+                    if ($this->isUsersGrant($grant, $userIdentifier)) {
+                        if ($currentUsersGrantsIndex >= $firstItemIndex) {
+                            $resultPage[] = $grant;
+                        }
+                        ++$currentUsersGrantsIndex;
+                        if (count($resultPage) === $maxNumItemsPerPage) {
+                            $done = true;
+                            break;
+                        }
+                    }
+                }
+                ++$grantPageNumberToGet;
+            }
+        }
+
+        return $resultPage;
+    }
+
+    private function isUsersGrant(ResourceActionGrant $grant, string $userIdentifier): bool
+    {
+        return $grant->getUserIdentifier() === $userIdentifier
+            || ($grant->getGroup() !== null && $this->groupService->isUserMemberOfGroup($userIdentifier, $grant->getGroup()->getIdentifier()))
+            || ($grant->getDynamicGroupIdentifier() !== null && $this->isCurrentUserMemberOfDynamicGroup($grant->getDynamicGroupIdentifier()));
     }
 }

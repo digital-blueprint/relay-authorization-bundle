@@ -46,6 +46,20 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
+    public function hasUserGrantedResourceItemActions(string $userIdentifier, string $resourceClass, ?string $resourceIdentifier = null,
+        ?array $actions = null): bool
+    {
+        return count($this->authorizationService->getResourceItemActionGrantsForUser($userIdentifier, $resourceClass,
+            $resourceIdentifier, $actions, 1, 1)) > 0;
+    }
+
+    /**
+     * @parram string|null $resourceIdentifier null matches any resource identifier
+     *
+     * @param array|null $actions null matches any action
+     *
+     * @throws ApiError
+     */
     public function hasGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null,
         ?array $actions = null): bool
     {
