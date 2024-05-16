@@ -129,8 +129,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
-     * Deletes all resource action grants for the given resource.
-     *
      * @throws ApiError
      */
     public function removeResource(string $resourceClass, string $resourceIdentifier): void
@@ -138,6 +136,16 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $this->assertResouceClassNotReserved($resourceClass);
 
         $this->resourceActionGrantService->removeResource($resourceClass, $resourceIdentifier);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function removeResources(string $resourceClass, array $resourceIdentifiers): void
+    {
+        $this->assertResouceClassNotReserved($resourceClass);
+
+        $this->resourceActionGrantService->removeResources($resourceClass, $resourceIdentifiers);
     }
 
     /**

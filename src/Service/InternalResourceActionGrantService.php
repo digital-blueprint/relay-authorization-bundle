@@ -13,14 +13,18 @@ use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @internal
  */
-class InternalResourceActionGrantService
+class InternalResourceActionGrantService implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     public const IS_NULL = '@@@ __is_null__ @@@';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
 
@@ -201,37 +205,45 @@ class InternalResourceActionGrantService
     public function removeResource(string $resourceClass, string $resourceIdentifier): void
     {
         try {
-            $this->entityManager->getConnection()->beginTransaction();
-
-            $resource = $this->entityManager->getRepository(AuthorizationResource::class)->findOneBy([
-                'resourceClass' => $resourceClass,
-                'resourceIdentifier' => $resourceIdentifier,
-            ]);
-
-            // don't fail if the resource is not found for whatever reason
-            // consider using cascade remove (requires adding a '$resourceActionGrants' property to AuthorizationResource which inverses
-            // '$authorizationResource' under ResourceActionGrant
-            if ($resource !== null) {
-                $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
-                $queryBuilder = $this->entityManager->createQueryBuilder();
-                $queryBuilder
-                    ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                    ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource', ':authorizationResourceIdentifier'))
-                    ->setParameter(':authorizationResourceIdentifier', $resource->getIdentifier(), AuthorizationUuidBinaryType::NAME)
-                    ->getQuery()
-                    ->execute();
-
-                $this->entityManager->remove($resource);
-                $this->entityManager->flush();
-            }
-
-            $this->entityManager->getConnection()->commit();
+            $RESOURCE_ALIAS = 'r';
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
+                ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
+                ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
+                ->setParameter(':resourceClass', $resourceClass)
+                ->setParameter(':resourceIdentifier', $resourceIdentifier)
+                ->getQuery()
+                ->execute();
         } catch (\Exception $e) {
-            $this->entityManager->getConnection()->rollback();
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
                 ['message' => $e->getMessage()]);
-            throw $apiError;
+        }
+    }
+
+    /**
+     * @param string[] $resourceIdentifiers
+     *
+     * @throws ApiError
+     */
+    public function removeResources(string $resourceClass, array $resourceIdentifiers): void
+    {
+        try {
+            $RESOURCE_ALIAS = 'r';
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
+                ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
+                ->andWhere($queryBuilder->expr()->in("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifiers'))
+                ->setParameter(':resourceClass', $resourceClass)
+                ->setParameter(':resourceIdentifiers', $resourceIdentifiers)
+                ->getQuery()
+                ->execute();
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
+                ['message' => $e->getMessage()]);
         }
     }
 
@@ -332,7 +344,7 @@ class InternalResourceActionGrantService
         } catch (ApiError $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get resource action grant collection!',
-                self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
             throw $apiError;
         }
     }

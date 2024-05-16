@@ -27,7 +27,7 @@ class GroupService
     private const GETTING_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-group-item-failed';
     private const REMOVING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-group-member-failed';
     private const ADDING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:adding-group-member-failed';
-    private const GROUP_MEMBER_INVALID_ERROR_ID = 'authorization:group-member-invalid';
+    public const GROUP_MEMBER_INVALID_ERROR_ID = 'authorization:group-member-invalid';
     private const GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID = 'authorization:getting-group-member-item-failed';
     private const GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-group-member-collection-failed';
 
@@ -278,6 +278,12 @@ class GroupService
         if ($groupMember->getGroup() === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'group member is invalid: \'group\' is required', self::GROUP_MEMBER_INVALID_ERROR_ID, ['group']);
+        }
+        // Matching parent and child group would cause and endless loop
+        if ($groupMember->getGroup() === $groupMember->getChildGroup()) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                'group member is invalid: \'group\' and \'childGroup\' must not refer to the same group',
+                self::GROUP_MEMBER_INVALID_ERROR_ID, ['childGroup']);
         }
         if (($groupMember->getUserIdentifier() === null && $groupMember->getChildGroup() === null)
             || ($groupMember->getUserIdentifier() !== null && $groupMember->getChildGroup() !== null)) {

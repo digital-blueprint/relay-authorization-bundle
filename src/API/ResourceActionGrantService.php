@@ -40,6 +40,20 @@ class ResourceActionGrantService
     }
 
     /**
+     * Deletes all resource action grants for the given resources.
+     *
+     * @param string[] $resourceIdentifiers
+     *
+     * @throws ApiError
+     */
+    public function removeResources(string $resourceClass, array $resourceIdentifiers): void
+    {
+        if (!empty($resourceIdentifiers)) {
+            $this->authorizationService->removeResources($resourceClass, $resourceIdentifiers);
+        }
+    }
+
+    /**
      * @parram string|null $resourceIdentifier null matches any resource identifier
      *
      * @param array|null $actions null matches any action

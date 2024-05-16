@@ -19,7 +19,7 @@ class GroupMember
     #[Groups(['AuthorizationGroupMember:output'])]
     private ?string $identifier = null;
 
-    #[ORM\JoinColumn(name: 'parent_group_identifier', referencedColumnName: 'identifier')]
+    #[ORM\JoinColumn(name: 'parent_group_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Group::class, inversedBy: 'members')]
     #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output'])]
     private ?Group $group = null;
@@ -34,7 +34,7 @@ class GroupMember
     /**
      * Group type member.
      */
-    #[ORM\JoinColumn(name: 'child_group_identifier', referencedColumnName: 'identifier')]
+    #[ORM\JoinColumn(name: 'child_group_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\OneToOne(targetEntity: Group::class)]
     #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]
     private ?Group $childGroup = null;

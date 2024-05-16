@@ -27,10 +27,20 @@ class TestEntityManager
             throw new \RuntimeException('Execution only in Test environment possible!');
         }
 
-        $entityManager = $kernel->getContainer()->get('doctrine')->getManager('dbp_relay_authorization_bundle');
-        $metaData = $entityManager->getMetadataFactory()->getAllMetadata();
-        $schemaTool = new SchemaTool($entityManager);
-        $schemaTool->updateSchema($metaData);
+        try {
+            $entityManager = $kernel->getContainer()->get('doctrine')->getManager('dbp_relay_authorization_bundle');
+            assert($entityManager instanceof EntityManager);
+
+            // enable foreign key and 'ON DELETE CASCADE' support
+            $sqlStatement = $entityManager->getConnection()->prepare('PRAGMA foreign_keys = ON');
+            $sqlStatement->executeQuery();
+
+            $metaData = $entityManager->getMetadataFactory()->getAllMetadata();
+            $schemaTool = new SchemaTool($entityManager);
+            $schemaTool->updateSchema($metaData);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
 
         $this->entityManager = $entityManager;
     }

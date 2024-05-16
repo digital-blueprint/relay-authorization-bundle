@@ -19,7 +19,7 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?string $identifier = null;
 
-    #[ORM\JoinColumn(name: 'authorization_resource_identifier', referencedColumnName: 'identifier')]
+    #[ORM\JoinColumn(name: 'authorization_resource_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?AuthorizationResource $authorizationResource = null;
@@ -38,7 +38,7 @@ class ResourceActionGrant
     /**
      * Group type grant holder.
      */
-    #[ORM\JoinColumn(name: 'group_identifier', referencedColumnName: 'identifier', nullable: true)]
+    #[ORM\JoinColumn(name: 'group_identifier', referencedColumnName: 'identifier', nullable: true, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Group::class)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?Group $group = null;

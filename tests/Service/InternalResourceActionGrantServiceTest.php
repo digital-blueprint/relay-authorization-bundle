@@ -7,7 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 
-class InternalResourceActionGrantServiceTestCase extends AbstractTestCase
+class InternalResourceActionGrantServiceTest extends AbstractTestCase
 {
     public function testAddResourceAndManageResourceGrantForUser(): void
     {
@@ -29,18 +29,43 @@ class InternalResourceActionGrantServiceTestCase extends AbstractTestCase
     public function testRemoveResource(): void
     {
         $resource = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
-        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant(
-            $resource, AuthorizationService::MANAGE_ACTION, 'userIdentifier', null);
-
         $this->assertEquals($resource->getIdentifier(),
             $this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier())->getIdentifier());
-        $this->assertEquals($resourceActionGrant->getIdentifier(),
-            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier())->getIdentifier());
 
         $this->internalResourceActionGrantService->removeResource('resourceClass', 'resourceIdentifier');
 
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier()));
+    }
+
+    public function testRemoveResourceAndItsGrants(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
+        $group = $this->testEntityManager->addGroup();
+
+        $this->assertEquals($resource->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier())->getIdentifier());
+        $this->assertEquals($group->getIdentifier(),
+            $this->testEntityManager->getGroup($group->getIdentifier())->getIdentifier());
+
+        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant(
+            $resource, AuthorizationService::MANAGE_ACTION, 'userIdentifier');
+        $resourceActionGrantGroup = $this->testEntityManager->addResourceActionGrant(
+            $resource, AuthorizationService::MANAGE_ACTION, null, $group);
+
+        $this->assertEquals($resourceActionGrant->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrantGroup->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrantGroup->getIdentifier())->getIdentifier());
+
+        $this->internalResourceActionGrantService->removeResource('resourceClass', 'resourceIdentifier');
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier()));
+        // assert that group has not been deleted alongside with group grant
+        $this->assertEquals($group->getIdentifier(),
+            $this->testEntityManager->getGroup($group->getIdentifier())->getIdentifier());
+
         $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrantGroup->getIdentifier()));
     }
 
     public function testGetResourceActionGrantsForResourceClassAndIdentifierUserGrantsOnly(): void
