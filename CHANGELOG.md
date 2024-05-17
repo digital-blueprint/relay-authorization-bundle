@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.11
+
+* enable ON CASCADE DELETE for foreign key associations
+* add ResourceActionGrant::removeResources to remove multiple resources at once
+* enable group loop check for new group members
+* add unit tests
+
 ## v0.1.10
 
 * enhance pagination support
