@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
@@ -110,7 +111,7 @@ class GroupMemberProviderTest extends AbstractGroupControllerTestCase
             $this->fail('Expected exception not thrown');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
-            $this->assertEquals(GroupMemberProvider::REQUIRED_PARAMETER_MISSION_ERROR_ID, $apiError->getErrorId());
+            $this->assertEquals(Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, $apiError->getErrorId());
         }
     }
 }

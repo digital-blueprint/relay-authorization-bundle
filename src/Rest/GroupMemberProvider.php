@@ -20,8 +20,6 @@ class GroupMemberProvider extends AbstractDataProvider
 {
     public const GROUP_IDENTIFIER_QUERY_PARAMETER = 'groupIdentifier';
 
-    public const REQUIRED_PARAMETER_MISSION_ERROR_ID = 'authorization:required-parameter-missing';
-
     private GroupService $groupService;
     private AuthorizationService $authorizationService;
 
@@ -41,7 +39,7 @@ class GroupMemberProvider extends AbstractDataProvider
         if (($groupIdentifier = $filters[self::GROUP_IDENTIFIER_QUERY_PARAMETER] ?? null) === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'query parameter \''.self::GROUP_IDENTIFIER_QUERY_PARAMETER.'\' is required',
-                self::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::GROUP_IDENTIFIER_QUERY_PARAMETER]);
+                Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::GROUP_IDENTIFIER_QUERY_PARAMETER]);
         }
 
         return $this->groupService->getGroupMembers($currentPageNumber, $maxNumItemsPerPage, $groupIdentifier);

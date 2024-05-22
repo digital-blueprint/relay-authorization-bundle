@@ -189,3 +189,28 @@ resources:
         iri: 'https://schema.org/identifier'
       dynamicGroupIdentifier:
         iri: 'https://schema.org/identifier'
+
+  Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions:
+    shortName: "AuthorizationAvailableResourceClassActions"
+    normalizationContext:
+      groups: ["AuthorizationAvailableResourceClassActions:output"]
+    operations:
+      ApiPlatform\Metadata\Get:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider
+        uriTemplate: "/authorization/available-resource-class-actions"
+        openapiContext:
+          tags: ["Authorization"]
+          parameters:
+            - name: resourceClass
+              in: query
+              description: 'The resource class to get available actions for'
+              type: string
+              required: true
+    properties:
+      identifier:
+        identifier: true
+        iri: 'https://schema.org/identifier'
+      availableResourceItemActions:
+        iri: 'https://schema.org/additionalProperty'
+      availableResourceCollectionActions:
+        iri: 'https://schema.org/additionalProperty'
