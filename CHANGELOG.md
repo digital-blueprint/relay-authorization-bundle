@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.1.12
+
 * extend group loop check to the whole lineage of a parent group candidate
 * add operation that returns all available item and collection actions for a given resource class
 
