@@ -20,8 +20,8 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
 
         $resourceActionGrantProcessor = new ResourceActionGrantProcessor(
             $this->internalResourceActionGrantService, $this->authorizationService);
-        $this->resourceActionGrantProcessorTester = new DataProcessorTester($resourceActionGrantProcessor, ResourceActionGrant::class);
-        DataProcessorTester::setUp($resourceActionGrantProcessor);
+        $this->resourceActionGrantProcessorTester = DataProcessorTester::create(
+            $resourceActionGrantProcessor, ResourceActionGrant::class);
     }
 
     public function testCreateResourceActionGrant(): void

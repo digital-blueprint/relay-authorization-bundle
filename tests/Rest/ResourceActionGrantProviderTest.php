@@ -21,8 +21,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
         $resourceActionGrantProvider = new ResourceActionGrantProvider(
             $this->internalResourceActionGrantService, $this->authorizationService);
-        $this->resourceActionGrantProviderTester = new DataProviderTester($resourceActionGrantProvider, ResourceActionGrant::class);
-        DataProviderTester::setUp($resourceActionGrantProvider);
+        $this->resourceActionGrantProviderTester = DataProviderTester::create($resourceActionGrantProvider, ResourceActionGrant::class);
     }
 
     public function testGetResourceActionGrantItem(): void

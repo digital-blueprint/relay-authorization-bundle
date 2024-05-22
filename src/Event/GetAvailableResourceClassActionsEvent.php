@@ -11,14 +11,14 @@ class GetAvailableResourceClassActionsEvent extends Event
     private string $resourceClass;
 
     /**
-     * @var string[]
+     * @var string[]|null
      */
-    private array $availableResourceItemActions = [];
+    private ?array $itemActions = null;
 
     /**
-     * @var string[]
+     * @var string[]|null
      */
-    private array $availableResourceCollectionActions = [];
+    private ?array $collectionActions = null;
 
     public function __construct(string $resourceClass)
     {
@@ -31,34 +31,34 @@ class GetAvailableResourceClassActionsEvent extends Event
     }
 
     /**
-     * @return string[]
+     * @return string[]|null
      */
-    public function getAvailableResourceItemActions(): array
+    public function getItemActions(): ?array
     {
-        return $this->availableResourceItemActions;
+        return $this->itemActions;
     }
 
     /**
-     * @param string[] $availableResourceItemActions
+     * @param string[] $itemActions
      */
-    public function setAvailableResourceItemActions(array $availableResourceItemActions): void
+    public function setItemActions(array $itemActions): void
     {
-        $this->availableResourceItemActions = $availableResourceItemActions;
+        $this->itemActions = $itemActions;
     }
 
     /**
-     * @return string[]
+     * @return string[]|null
      */
-    public function getAvailableResourceCollectionActions(): array
+    public function getCollectionActions(): ?array
     {
-        return $this->availableResourceCollectionActions;
+        return $this->collectionActions;
     }
 
     /**
-     * @param string[] $availableResourceCollectionActions
+     * @param string[] $collectionActions
      */
-    public function setAvailableResourceCollectionActions(array $availableResourceCollectionActions): void
+    public function setCollectionActions(array $collectionActions): void
     {
-        $this->availableResourceCollectionActions = $availableResourceCollectionActions;
+        $this->collectionActions = $collectionActions;
     }
 }

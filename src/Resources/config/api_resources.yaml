@@ -210,7 +210,7 @@ resources:
       identifier:
         identifier: true
         iri: 'https://schema.org/identifier'
-      availableResourceItemActions:
+      itemActions:
         iri: 'https://schema.org/additionalProperty'
-      availableResourceCollectionActions:
+      collectionActions:
         iri: 'https://schema.org/additionalProperty'

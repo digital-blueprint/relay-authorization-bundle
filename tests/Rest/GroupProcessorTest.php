@@ -21,8 +21,7 @@ class GroupProcessorTest extends AbstractGroupControllerTestCase
 
         $groupProcessor = new GroupProcessor(
             $this->groupService, $this->authorizationService);
-        $this->groupProcessorTester = new DataProcessorTester($groupProcessor, Group::class);
-        DataProcessorTester::setUp($groupProcessor);
+        $this->groupProcessorTester = DataProcessorTester::create($groupProcessor, Group::class);
     }
 
     public function testCreateGroupItemWithManageGrant(): void

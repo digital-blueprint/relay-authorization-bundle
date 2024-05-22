@@ -17,18 +17,18 @@ class AvailableResourceClassActions
      * @var string[]
      */
     #[Groups(['AuthorizationAvailableResourceClassActions:output'])]
-    private array $availableResourceItemActions;
+    private ?array $itemActions;
 
     /**
      * @var string[]
      */
     #[Groups(['AuthorizationAvailableResourceClassActions:output'])]
-    private array $availableResourceCollectionActions;
+    private ?array $collectionActions;
 
-    public function __construct(array $availableResourceItemActions, array $availableResourceCollectionActions)
+    public function __construct(?array $availableResourceItemActions, ?array $availableResourceCollectionActions)
     {
-        $this->availableResourceItemActions = $availableResourceItemActions;
-        $this->availableResourceCollectionActions = $availableResourceCollectionActions;
+        $this->itemActions = $availableResourceItemActions;
+        $this->collectionActions = $availableResourceCollectionActions;
     }
 
     public function getIdentifier(): ?string
@@ -41,18 +41,18 @@ class AvailableResourceClassActions
     }
 
     /**
-     * @return string[]
+     * @return string[]|null
      */
-    public function getAvailableResourceItemActions(): array
+    public function getItemActions(): ?array
     {
-        return $this->availableResourceItemActions;
+        return $this->itemActions;
     }
 
     /**
-     * @return string[]
+     * @return string[]|null
      */
-    public function getAvailableResourceCollectionActions(): array
+    public function getCollectionActions(): ?array
     {
-        return $this->availableResourceCollectionActions;
+        return $this->collectionActions;
     }
 }

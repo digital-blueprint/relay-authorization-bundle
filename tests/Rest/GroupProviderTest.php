@@ -21,8 +21,7 @@ class GroupProviderTest extends AbstractGroupControllerTestCase
 
         $groupProvider = new GroupProvider(
             $this->groupService, $this->authorizationService);
-        $this->groupProviderTester = new DataProviderTester($groupProvider, Group::class);
-        DataProviderTester::setUp($groupProvider);
+        $this->groupProviderTester = DataProviderTester::create($groupProvider, Group::class);
     }
 
     public function testGetGroupItem(): void

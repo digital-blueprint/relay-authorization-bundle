@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -18,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AvailableResourceClassActionsProvider extends AbstractDataProvider
 {
-    private const RESOURCE_CLASS_QUERY_PARAMETER = 'resourceClass';
+    public const RESOURCE_CLASS_QUERY_PARAMETER = 'resourceClass';
 
     private EventDispatcherInterface $eventDispatcher;
 
@@ -40,9 +41,19 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
         $getActionsEvent = new GetAvailableResourceClassActionsEvent($resourceClass);
         $this->eventDispatcher->dispatch($getActionsEvent);
 
+        $itemActions = $getActionsEvent->getItemActions();
+        if ($itemActions !== null
+            && !in_array(AuthorizationService::MANAGE_ACTION, $itemActions, true)) {
+            $itemActions[] = AuthorizationService::MANAGE_ACTION;
+        }
+        $collectionActions = $getActionsEvent->getCollectionActions();
+        if ($collectionActions !== null
+            && !in_array(AuthorizationService::MANAGE_ACTION, $collectionActions, true)) {
+            $collectionActions[] = AuthorizationService::MANAGE_ACTION;
+        }
+
         return new AvailableResourceClassActions(
-            $getActionsEvent->getAvailableResourceItemActions(),
-            $getActionsEvent->getAvailableResourceCollectionActions());
+            $itemActions, $collectionActions);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
