@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* extend group loop check to the whole lineage of a parent group candidate 
+
 ## v0.1.11
 
 * enable ON CASCADE DELETE for foreign key associations

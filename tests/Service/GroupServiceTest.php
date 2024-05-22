@@ -213,6 +213,79 @@ class GroupServiceTest extends WebTestCase
         }
     }
 
+    /**
+     * Matching parent and child group would cause and endless loop.
+     */
+    public function testAddGroupMemberInvalidChildGroupIsAncestorOfGroup(): void
+    {
+        $group0 = $this->testEntityManager->addGroup();
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+        $group3 = $this->testEntityManager->addGroup();
+
+        $this->testEntityManager->addGroupMember($group0, null, $group2);
+        $this->testEntityManager->addGroupMember($group1, null, $group2);
+        $this->testEntityManager->addGroupMember($group2, null, $group3);
+        $this->testEntityManager->addGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
+
+        $groupMember = new GroupMember();
+
+        $groupMember->setGroup($group3);
+        $groupMember->setChildGroup($group0);
+        try {
+            $this->groupService->addGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(GroupService::GROUP_MEMBER_INVALID_ERROR_ID, $apiError->getErrorId());
+        }
+
+        $groupMember->setGroup($group3);
+        $groupMember->setChildGroup($group1);
+        try {
+            $this->groupService->addGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(GroupService::GROUP_MEMBER_INVALID_ERROR_ID, $apiError->getErrorId());
+        }
+
+        $groupMember->setGroup($group3);
+        $groupMember->setChildGroup($group2);
+        try {
+            $this->groupService->addGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(GroupService::GROUP_MEMBER_INVALID_ERROR_ID, $apiError->getErrorId());
+        }
+
+        $groupMember->setGroup($group2);
+        $groupMember->setChildGroup($group0);
+        try {
+            $this->groupService->addGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(GroupService::GROUP_MEMBER_INVALID_ERROR_ID, $apiError->getErrorId());
+        }
+
+        $groupMember->setGroup($group2);
+        $groupMember->setChildGroup($group1);
+        try {
+            $this->groupService->addGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(GroupService::GROUP_MEMBER_INVALID_ERROR_ID, $apiError->getErrorId());
+        }
+
+        // OK:
+        $groupMember->setGroup($group1);
+        $groupMember->setChildGroup($group0);
+        $this->groupService->addGroupMember($groupMember);
+    }
+
     public function testAddGroupMemberInvalidBothUserAndChildGroupSet(): void
     {
         $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
@@ -310,64 +383,108 @@ class GroupServiceTest extends WebTestCase
 
     public function testIsUserMemberOfGroup(): void
     {
-        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
-        $subGroup = $this->testEntityManager->addGroup('subgroup');
-        $subSubGroup = $this->testEntityManager->addGroup('subsubgroup');
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+        $subGroup1 = $this->testEntityManager->addGroup();
+        $subGroup2 = $this->testEntityManager->addGroup();
+        $subSubGroup1 = $this->testEntityManager->addGroup();
 
-        $this->testEntityManager->addGroupMember($subSubGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $this->testEntityManager->addGroupMember($subGroup, self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->testEntityManager->addGroupMember($subGroup, null, $subSubGroup);
+        $this->testEntityManager->addGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addGroupMember($subGroup1, null, $subSubGroup1);
 
-        $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group, null, $subGroup);
+        $this->testEntityManager->addGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
 
-        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $group->getIdentifier()));
-        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $group->getIdentifier()));
-        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $group->getIdentifier()));
-        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $group->getIdentifier()));
+        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group1, null, $subGroup1);
+        $this->testEntityManager->addGroupMember($group1, null, $subGroup2);
 
-        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $subGroup->getIdentifier()));
-        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $subGroup->getIdentifier()));
-        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $subGroup->getIdentifier()));
-        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $subGroup->getIdentifier()));
+        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_5');
+        $this->testEntityManager->addGroupMember($group2, null, $subGroup1);
 
-        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $subSubGroup->getIdentifier()));
-        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $subSubGroup->getIdentifier()));
-        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $subSubGroup->getIdentifier()));
-        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $subSubGroup->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $group1->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $group1->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $group1->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $group1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_5', $group1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_6', $group1->getIdentifier()));
+
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $group2->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $group2->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $group2->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $group2->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_5', $group2->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_6', $group2->getIdentifier()));
+
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $subGroup1->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $subGroup1->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $subGroup1->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $group1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_5', $subGroup1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_6', $subGroup1->getIdentifier()));
+
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $subGroup2->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $subGroup2->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $subGroup2->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $subGroup2->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_5', $subGroup2->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_6', $subGroup2->getIdentifier()));
+
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $subSubGroup1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $subSubGroup1->getIdentifier()));
+        $this->assertTrue($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $subSubGroup1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $subSubGroup1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_5', $subSubGroup1->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_6', $subSubGroup1->getIdentifier()));
     }
 
     public function testGetGroupsUserIsMemberOf(): void
     {
-        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
-        $subGroup = $this->testEntityManager->addGroup('subgroup');
-        $subSubGroup = $this->testEntityManager->addGroup('subsubgroup');
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+        $subGroup1 = $this->testEntityManager->addGroup();
+        $subGroup2 = $this->testEntityManager->addGroup();
+        $subSubGroup1 = $this->testEntityManager->addGroup();
 
-        $this->testEntityManager->addGroupMember($subSubGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $this->testEntityManager->addGroupMember($subGroup, self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->testEntityManager->addGroupMember($subGroup, null, $subSubGroup);
+        $this->testEntityManager->addGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addGroupMember($subGroup1, null, $subSubGroup1);
 
-        $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group, null, $subGroup);
+        $this->testEntityManager->addGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
+
+        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group1, null, $subGroup1);
+        $this->testEntityManager->addGroupMember($group1, null, $subGroup2);
+
+        $this->testEntityManager->addGroupMember($group2, null, $subGroup1);
+        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_3');
 
         $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(1, $groups);
-        $this->assertEquals($group->getIdentifier(), $groups[0]);
+        $this->assertEquals($group1->getIdentifier(), $groups[0]);
 
         $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->assertCount(2, $groups);
-        $this->assertContains($group->getIdentifier(), $groups);
-        $this->assertContains($subGroup->getIdentifier(), $groups);
+        $this->assertCount(3, $groups);
+        $this->assertContains($group1->getIdentifier(), $groups);
+        $this->assertContains($subGroup1->getIdentifier(), $groups);
+        $this->assertContains($group2->getIdentifier(), $groups);
 
         $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_3');
-        $this->assertCount(3, $groups);
-        $this->assertContains($group->getIdentifier(), $groups);
-        $this->assertContains($subGroup->getIdentifier(), $groups);
-        $this->assertContains($subSubGroup->getIdentifier(), $groups);
+        $this->assertCount(4, $groups);
+        $this->assertContains($group1->getIdentifier(), $groups);
+        $this->assertContains($subGroup1->getIdentifier(), $groups);
+        $this->assertContains($subSubGroup1->getIdentifier(), $groups);
+        $this->assertContains($group2->getIdentifier(), $groups);
 
         $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->assertCount(2, $groups);
+        $this->assertContains($group1->getIdentifier(), $groups);
+        $this->assertContains($subGroup2->getIdentifier(), $groups);
+
+        $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_5');
         $this->assertCount(0, $groups);
     }
 }

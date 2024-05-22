@@ -35,7 +35,7 @@ class GroupMember
      * Group type member.
      */
     #[ORM\JoinColumn(name: 'child_group_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
-    #[ORM\OneToOne(targetEntity: Group::class)]
+    #[ORM\ManyToOne(targetEntity: Group::class)]
     #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]
     private ?Group $childGroup = null;
 

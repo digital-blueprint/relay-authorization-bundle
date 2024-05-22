@@ -11,7 +11,6 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Query\ResultSetMapping;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -54,22 +53,6 @@ class GroupService
                       on agm_2.parent_group_identifier = cte.child_group_identifier)
              select user_identifier from cte where user_identifier = :user_identifier;';
 
-        // didn't get hydration of results to work for native query:
-        //        $resultSetMapping = new ResultSetMapping();
-        //        $resultSetMapping->addEntityResult(GroupMember::class, 'agm_1');
-        //        $resultSetMapping->addEntityResult(GroupMember::class, 'agm_2');
-        //        $resultSetMapping->addFieldResult('agm_1', 'parent_group_identifier', 'group');
-        //        $resultSetMapping->addFieldResult('agm_1', 'child_group_identifier', 'childGroup');
-        //        $resultSetMapping->addFieldResult('agm_1', 'user_identifier', 'userIdentifier');
-        //        $resultSetMapping->addFieldResult('agm_2', 'parent_group_identifier', 'group');
-        //        $resultSetMapping->addFieldResult('agm_2', 'child_group_identifier', 'childGroup');
-        //        $resultSetMapping->addFieldResult('agm_2', 'user_identifier', 'userIdentifier');
-        //
-        //        return count($this->entityManager->createNativeQuery($sql, $resultSetMapping)
-        //            ->setParameter(':parent_group_identifier', $groupIdentifier, AuthorizationUuidBinaryType::NAME)
-        //            ->setParameter(':user_identifier', $userIdentifier)
-        //            ->getResult()) > 0);
-
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
             $sqlStatement->bindValue(':parent_group_identifier',
@@ -98,7 +81,7 @@ class GroupService
                  from       authorization_group_members agm_2
                  inner join cte
                  on agm_2.child_group_identifier = cte.parent_group_identifier)
-             select parent_group_identifier from cte;';
+             select parent_group_identifier from cte group by parent_group_identifier;';
 
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
@@ -280,9 +263,11 @@ class GroupService
                 'group member is invalid: \'group\' is required', self::GROUP_MEMBER_INVALID_ERROR_ID, ['group']);
         }
         // Matching parent and child group would cause and endless loop
-        if ($groupMember->getGroup() === $groupMember->getChildGroup()) {
+        if ($groupMember->getChildGroup() !== null
+            && ($groupMember->getGroup() === $groupMember->getChildGroup()
+                || $this->isGroupAncestorOf($groupMember->getChildGroup(), $groupMember->getGroup()))) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'group member is invalid: \'group\' and \'childGroup\' must not refer to the same group',
+                'group member is invalid:  \'childGroup\' must not be the same or an ancestor of \'group\' (causes infinite loop)',
                 self::GROUP_MEMBER_INVALID_ERROR_ID, ['childGroup']);
         }
         if (($groupMember->getUserIdentifier() === null && $groupMember->getChildGroup() === null)
@@ -290,6 +275,33 @@ class GroupService
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'group member is invalid: exactly one of \'userIdentifier\' or \'childGroup\' must be given',
                 self::GROUP_MEMBER_INVALID_ERROR_ID);
+        }
+    }
+
+    private function isGroupAncestorOf(Group $testAncestor, Group $testDescendant): bool
+    {
+        $sql = 'with recursive cte as (
+             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+                 from       authorization_group_members agm_1
+                 where      agm_1.child_group_identifier = :childGroupIdentifier
+                 union all
+                 select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+                 from       authorization_group_members agm_2
+                 inner join cte
+                 on agm_2.child_group_identifier = cte.parent_group_identifier)
+             select parent_group_identifier from cte where parent_group_identifier = :parentGroupIdentifier;';
+
+        try {
+            $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
+            $sqlStatement->bindValue(':childGroupIdentifier',
+                AuthorizationUuidBinaryType::toBinaryUuid($testDescendant->getIdentifier()), ParameterType::BINARY);
+            $sqlStatement->bindValue(':parentGroupIdentifier',
+                AuthorizationUuidBinaryType::toBinaryUuid($testAncestor->getIdentifier()), ParameterType::BINARY);
+
+            return $sqlStatement->executeQuery()->fetchOne() !== false;
+        } catch (\Exception $exception) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'testing if group is ancestor failed: '.$exception->getMessage());
         }
     }
 }

@@ -204,22 +204,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     public function removeResource(string $resourceClass, string $resourceIdentifier): void
     {
-        try {
-            $RESOURCE_ALIAS = 'r';
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            $queryBuilder
-                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
-                ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
-                ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
-                ->setParameter(':resourceClass', $resourceClass)
-                ->setParameter(':resourceIdentifier', $resourceIdentifier)
-                ->getQuery()
-                ->execute();
-        } catch (\Exception $e) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
-                ['message' => $e->getMessage()]);
-        }
+        $this->removeResourcesInternal($resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -229,22 +214,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     public function removeResources(string $resourceClass, array $resourceIdentifiers): void
     {
-        try {
-            $RESOURCE_ALIAS = 'r';
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            $queryBuilder
-                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
-                ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
-                ->andWhere($queryBuilder->expr()->in("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifiers'))
-                ->setParameter(':resourceClass', $resourceClass)
-                ->setParameter(':resourceIdentifiers', $resourceIdentifiers)
-                ->getQuery()
-                ->execute();
-        } catch (\Exception $e) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
-                ['message' => $e->getMessage()]);
-        }
+        $this->removeResourcesInternal($resourceClass, $resourceIdentifiers);
     }
 
     /**
@@ -483,6 +453,36 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         if ($resource->getResourceClass() === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'resource action invalid: \'resourceClass\' is required', self::RESOURCE_INVALID_ERROR_ID, ['resourceClass']);
+        }
+    }
+
+    /**
+     * @param string|array $resourceIdentifiers
+     */
+    private function removeResourcesInternal(string $resourceClass, mixed $resourceIdentifiers): void
+    {
+        try {
+            $RESOURCE_ALIAS = 'r';
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
+                ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
+                ->setParameter(':resourceClass', $resourceClass);
+
+            if (is_array($resourceIdentifiers)) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->in("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifiers'))
+                    ->setParameter(':resourceIdentifiers', $resourceIdentifiers);
+            } else {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
+                    ->setParameter(':resourceIdentifier', $resourceIdentifiers);
+            }
+            $queryBuilder->getQuery()->execute();
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
+                ['message' => $e->getMessage()]);
         }
     }
 }
