@@ -14,7 +14,6 @@ use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
@@ -156,7 +155,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getResourceItemActionGrantsForUser(?string $userIdentifier, string $resourceClass, ?string $resourceIdentifier = null,
-        ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         if ($userIdentifier === null) {
             return [];
@@ -164,10 +163,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         if ($resourceIdentifier !== null) {
             return $this->getGrantsForResourceItemForUser($userIdentifier, $resourceClass, $resourceIdentifier, $actions,
-                $currentPageNumber, $maxNumItemsPerPage);
+                $firstResultIndex, $maxNumResults);
         } else {
             return $this->getGrantsForAllResourceItemsForUser($userIdentifier, $resourceClass, $actions,
-                $currentPageNumber, $maxNumItemsPerPage);
+                $firstResultIndex, $maxNumResults);
         }
     }
 
@@ -179,27 +178,27 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getResourceItemActionGrantsForCurrentUser(string $resourceClass, ?string $resourceIdentifier = null,
-        ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         return $this->getResourceItemActionGrantsForUser($this->getCurrentUserIdentifier(false),
-            $resourceClass, $resourceIdentifier, $actions, $currentPageNumber, $maxNumItemsPerPage);
+            $resourceClass, $resourceIdentifier, $actions, $firstResultIndex, $maxNumResults);
     }
 
     public function getResourceCollectionActionGrantsForCurrentUser(string $resourceClass, ?array $actions,
-        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         $this->assertResouceClassNotReserved($resourceClass);
         $currentUserIdentifier = $this->getCurrentUserIdentifier(false);
 
         $currentUsersGrants = [];
         if ($currentUserIdentifier !== null) {
-            $currentUsersGrants = $this->getResourceActionGrantPageForUser(
-                function (int $pageNumber, int $pageSize) use ($currentUserIdentifier, $resourceClass, $actions) {
+            $currentUsersGrants = $this->getResourceActionGrantsForUser(
+                function (int $firstResultIndex, int $maxNumResults) use ($currentUserIdentifier, $resourceClass, $actions) {
                     return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
                         $resourceClass, InternalResourceActionGrantService::IS_NULL, $actions, $currentUserIdentifier,
                         InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
-                        $pageNumber, $pageSize);
-                }, $currentUserIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+                        $firstResultIndex, $maxNumResults);
+                }, $currentUserIdentifier, $firstResultIndex, $maxNumResults);
 
             // if:
             // * the current page is not yet full
@@ -207,7 +206,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             // * and no manage action grant was found in the database
             // * and there is a manage resource collection policy defined, which evaluates to true
             // then: add a manage resource collection grant to the list of grants
-            if (count($currentUsersGrants) < $maxNumItemsPerPage
+            if (count($currentUsersGrants) < $maxNumResults
                 && ($actions === null /* any action */ || in_array(self::MANAGE_ACTION, $actions, true))) {
                 $foundManageCollectionGrant = false;
                 foreach ($currentUsersGrants as $currentUsersGrant) {
@@ -319,70 +318,70 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function isCurrentUserAuthorizedToReadResource(AuthorizationResource $item): bool
     {
         return count($this->getGrantsForAuthorizationResourceForUser(
-            $this->getUserIdentifier(), $item->getIdentifier(), null, 1, 1)) > 0;
+            $this->getUserIdentifier(), $item->getIdentifier(), null, 0, 1)) > 0;
     }
 
-    public function getResourcesCurrentUserIsAuthorizedToRead(int $currentPageNumber, int $maxNumItemsPerPage): array
+    public function getResourcesCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
         return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResources(
             null, null, null, $currentUserIdentifier,
-            $currentPageNumber, $maxNumItemsPerPage) : [];
+            $firstResultIndex, $maxNumResults) : [];
     }
 
     /**
      * @return ResourceActionGrant[]
      */
-    public function getResourceActionGrantsUserIsAuthorizedToRead(int $currentPageNumber, int $maxNumItemsPerPage): array
+    public function getResourceActionGrantsUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
         return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResourceActionGrantsUserIsAuthorizedToRead(
-            $currentPageNumber, $maxNumItemsPerPage, $currentUserIdentifier) : [];
+            $firstResultIndex, $maxNumResults, $currentUserIdentifier) : [];
     }
 
     /**
      * @return ResourceActionGrant[]
      */
     private function getGrantsForResourceItemForUser(string $userIdentifier, string $resourceClass, string $resourceIdentifier,
-        ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
-        return $this->getResourceActionGrantPageForUser(
-            function (int $pageNumber, int $pageSize) use ($userIdentifier, $resourceClass, $resourceIdentifier, $actions) {
+        return $this->getResourceActionGrantsForUser(
+            function (int $firstResultIndex, int $maxNumResults) use ($userIdentifier, $resourceClass, $resourceIdentifier, $actions) {
                 return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
                     $resourceClass, $resourceIdentifier, $actions, $userIdentifier,
                     InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
-                    $pageNumber, $pageSize);
-            }, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+                    $firstResultIndex, $maxNumResults);
+            }, $userIdentifier, $firstResultIndex, $maxNumResults);
     }
 
     /**
      * @return ResourceActionGrant[]
      */
     private function getGrantsForAllResourceItemsForUser(string $userIdentifier, string $resourceClass,
-        ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         // since grants for all resource items are requested, we get the groups the user is member of beforehand
         // let the db do the pagination (probably more efficient)
         return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             $resourceClass, InternalResourceActionGrantService::IS_NOT_NULL, $actions, $userIdentifier,
             $this->groupService->getGroupsUserIsMemberOf($userIdentifier), $this->getDynamicGroupsCurrentUserIsMemberOf(),
-            $currentPageNumber, $maxNumItemsPerPage);
+            $firstResultIndex, $maxNumResults);
     }
 
     /**
      * @return ResourceActionGrant[]
      */
     private function getGrantsForAuthorizationResourceForUser(string $userIdentifier, string $authorizationResourceIdentifier, ?array $actions,
-        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
-        return $this->getResourceActionGrantPageForUser(function (int $pageNumber, int $pageSize) use ($userIdentifier, $authorizationResourceIdentifier, $actions) {
+        return $this->getResourceActionGrantsForUser(function (int $firstResultIndex, int $maxNumResults) use ($userIdentifier, $authorizationResourceIdentifier, $actions) {
             return $this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
                 $authorizationResourceIdentifier, $actions, $userIdentifier,
                 InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL,
-                $pageNumber, $pageSize);
-        }, $userIdentifier, $currentPageNumber, $maxNumItemsPerPage);
+                $firstResultIndex, $maxNumResults);
+        }, $userIdentifier, $firstResultIndex, $maxNumResults);
     }
 
     private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
@@ -393,7 +392,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return
             $currentUserIdentifier !== null
             && count($this->getGrantsForAuthorizationResourceForUser($currentUserIdentifier, $authorizationResourceIdentifier,
-                [AuthorizationService::MANAGE_ACTION], 1, 1)) > 0;
+                [AuthorizationService::MANAGE_ACTION], 0, 1)) > 0;
     }
 
     private function doesCurrentUserHaveAGrantForResourceItemToManageOr(
@@ -404,7 +403,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return
             $currentUserIdentifier !== null
             && count($this->getGrantsForResourceItemForUser($currentUserIdentifier, $resourceClass, $resourceIdentifier,
-                [self::MANAGE_ACTION, $action], 1, 1)) > 0;
+                [self::MANAGE_ACTION, $action], 0, 1)) > 0;
     }
 
     private function doesCurrentUserHaveAGrantForResourceCollectionToManageOr(
@@ -416,7 +415,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $currentUserIdentifier !== null
             && count($this->getGrantsForResourceItemForUser($currentUserIdentifier, $resourceClass,
                 InternalResourceActionGrantService::IS_NULL, [self::MANAGE_ACTION, $action],
-                1, 1)) > 0;
+                0, 1)) > 0;
     }
 
     /**
@@ -440,28 +439,28 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $currentUserIdentifier;
     }
 
-    private function getResourceActionGrantPageForUser(callable $getGrantsCallback, string $userIdentifier, int $currentPageNumber, int $maxNumItemsPerPage): array
+    private function getResourceActionGrantsForUser(callable $getGrantsCallback, string $userIdentifier, int $firstResultIndex, int $maxNumResults): array
     {
         $resultPage = [];
-        if ($maxNumItemsPerPage > 0) {
+        if ($maxNumResults > 0) {
             $currentUsersGrantsIndex = 0;
-            $firstItemIndex = Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage);
-            $grantPageNumberToGet = 1;
+            $firstGrantIndexToGet = 0;
+            $maxNumGrantsToGet = 1024;
             $done = false;
-            while (($grants = $getGrantsCallback($grantPageNumberToGet, 1024)) !== [] && !$done) {
+            while (!$done && ($grants = $getGrantsCallback($firstGrantIndexToGet, $maxNumGrantsToGet)) !== []) {
                 foreach ($grants as $grant) {
                     if ($this->isUsersGrant($grant, $userIdentifier)) {
-                        if ($currentUsersGrantsIndex >= $firstItemIndex) {
+                        if ($currentUsersGrantsIndex >= $firstResultIndex) {
                             $resultPage[] = $grant;
                         }
                         ++$currentUsersGrantsIndex;
-                        if (count($resultPage) === $maxNumItemsPerPage) {
+                        if (count($resultPage) === $maxNumResults) {
                             $done = true;
                             break;
                         }
                     }
                 }
-                ++$grantPageNumberToGet;
+                $firstGrantIndexToGet += $maxNumGrantsToGet;
             }
         }
 

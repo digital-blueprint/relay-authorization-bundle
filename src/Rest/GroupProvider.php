@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
+use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
 /**
  * @extends AbstractDataProvider<Group>
@@ -32,7 +33,7 @@ class GroupProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        return $this->groupService->getGroups($currentPageNumber, $maxNumItemsPerPage);
+        return $this->groupService->getGroups(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool

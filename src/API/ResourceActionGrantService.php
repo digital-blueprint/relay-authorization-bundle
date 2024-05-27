@@ -10,8 +10,8 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 class ResourceActionGrantService
 {
     public const MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
-    public const MAX_NUM_ITEMS_PER_PAGE_DEFAULT = 30;
-    public const MAX_NUM_ITEMS_PER_PAGE_MAX = 1024;
+    public const MAX_NUM_RESULTS_DEFAULT = 30;
+    public const MAX_NUM_RESULTS_MAX = 1024;
 
     private AuthorizationService $authorizationService;
 
@@ -65,7 +65,7 @@ class ResourceActionGrantService
         ?array $actions = null): bool
     {
         return count($this->authorizationService->getResourceItemActionGrantsForUser($userIdentifier, $resourceClass,
-            $resourceIdentifier, $actions, 1, 1)) > 0;
+            $resourceIdentifier, $actions, 0, 1)) > 0;
     }
 
     /**
@@ -79,7 +79,7 @@ class ResourceActionGrantService
         ?array $actions = null): bool
     {
         return count($this->authorizationService->getResourceItemActionGrantsForCurrentUser($resourceClass,
-            $resourceIdentifier, $actions, 1, 1)) > 0;
+            $resourceIdentifier, $actions, 0, 1)) > 0;
     }
 
     /**
@@ -92,12 +92,12 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function getGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null,
-        ?array $actions = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = self::MAX_NUM_ITEMS_PER_PAGE_DEFAULT): array
+        ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $maxNumItemsPerPage = min($maxNumItemsPerPage, self::MAX_NUM_ITEMS_PER_PAGE_MAX);
+        $maxNumResults = min($maxNumResults, self::MAX_NUM_RESULTS_MAX);
 
         $internalResourceActionGrants = $this->authorizationService->getResourceItemActionGrantsForCurrentUser($resourceClass,
-            $resourceIdentifier, $actions, $currentPageNumber, $maxNumItemsPerPage);
+            $resourceIdentifier, $actions, $firstResultIndex, $maxNumResults);
 
         $resourceActionGrants = [];
         foreach ($internalResourceActionGrants as $internalResourceActionGrant) {
@@ -118,7 +118,7 @@ class ResourceActionGrantService
     public function hasGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null): bool
     {
         return count($this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
-            $resourceClass, $actions, 1, 1)) > 0;
+            $resourceClass, $actions, 0, 1)) > 0;
     }
 
     /**
@@ -129,12 +129,12 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function getGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null,
-        int $currentPageNumber = 1, int $maxNumItemsPerPage = self::MAX_NUM_ITEMS_PER_PAGE_DEFAULT): array
+        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $maxNumItemsPerPage = min($maxNumItemsPerPage, self::MAX_NUM_ITEMS_PER_PAGE_MAX);
+        $maxNumResults = min($maxNumResults, self::MAX_NUM_RESULTS_MAX);
 
         $internalResourceActionGrants = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
-            $resourceClass, $actions, $currentPageNumber, $maxNumItemsPerPage);
+            $resourceClass, $actions, $firstResultIndex, $maxNumResults);
 
         $resourceActionGrants = [];
         foreach ($internalResourceActionGrants as $internalResourceActionGrant) {

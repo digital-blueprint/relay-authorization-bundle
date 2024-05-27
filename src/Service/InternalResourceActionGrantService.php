@@ -9,7 +9,6 @@ use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
@@ -51,7 +50,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         return $this->entityManager;
     }
 
-    public function getResource(string $identifier, array $options)
+    public function getResource(string $identifier)
     {
         try {
             return $this->entityManager
@@ -67,7 +66,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function getResourceActionGrant(string $identifier, array $options): ?ResourceActionGrant
+    public function getResourceActionGrant(string $identifier): ?ResourceActionGrant
     {
         try {
             return $this->entityManager
@@ -86,7 +85,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @throws ApiError
      */
     public function getResourceActionGrantsUserIsAuthorizedToRead(
-        int $currentPageNumber, int $maxNumItemsPerPage, string $userIdentifier): array
+        int $firstResultIndex, int $maxNumResults, string $userIdentifier): array
     {
         // Get all resource action grants
         // * that the user has
@@ -117,8 +116,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
             return $queryBuilder
                 ->getQuery()
-                ->setFirstResult(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage))
-                ->setMaxResults($maxNumItemsPerPage)
+                ->setFirstResult($firstResultIndex)
+                ->setMaxResults($maxNumResults)
                 ->getResult();
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
@@ -228,11 +227,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrantsForAuthorizationResourceIdentifier(
         ?string $authorizationResourceIdentifier = null, ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         return $this->getResourceActionGrantsInternal(
             null, null, $authorizationResourceIdentifier, $actions,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $currentPageNumber, $maxNumItemsPerPage);
+            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $firstResultIndex, $maxNumResults);
     }
 
     /**
@@ -246,16 +245,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrantsForResourceClassAndIdentifier(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         return $this->getResourceActionGrantsInternal(
             $resourceClass, $resourceIdentifier, null, $actions,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $currentPageNumber, $maxNumItemsPerPage);
+            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $firstResultIndex, $maxNumResults);
     }
 
     public function getResources(
         ?string $resourceClass = null, ?string $resourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        ?array $actions = null, ?string $userIdentifier = null, int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         $RESOURCE_ALIAS = 'r';
         $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
@@ -308,8 +307,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
             return $queryBuilder
                 ->getQuery()
-                ->setFirstResult(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage))
-                ->setMaxResults($maxNumItemsPerPage)
+                ->setFirstResult($firstResultIndex)
+                ->setMaxResults($maxNumResults)
                 ->getResult();
         } catch (ApiError $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
@@ -333,7 +332,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private function getResourceActionGrantsInternal(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
         ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $currentPageNumber = 1, int $maxNumItemsPerPage = 1024): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         $RESOURCE_ALIAS = 'r';
         $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
@@ -423,8 +422,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
             return $queryBuilder
                 ->getQuery()
-                ->setFirstResult(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage))
-                ->setMaxResults($maxNumItemsPerPage)
+                ->setFirstResult($firstResultIndex)
+                ->setMaxResults($maxNumResults)
                 ->getResult();
         } catch (ApiError $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,

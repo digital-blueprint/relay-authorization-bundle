@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
+use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -42,7 +43,8 @@ class GroupMemberProvider extends AbstractDataProvider
                 Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::GROUP_IDENTIFIER_QUERY_PARAMETER]);
         }
 
-        return $this->groupService->getGroupMembers($currentPageNumber, $maxNumItemsPerPage, $groupIdentifier);
+        return $this->groupService->getGroupMembers(
+            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage, $groupIdentifier);
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool

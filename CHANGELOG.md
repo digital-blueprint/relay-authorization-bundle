@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* switch from 'currentPageNumber' to 'firstResultIndex' for flexibility
+
 ## v0.1.12
 
 * extend group loop check to the whole lineage of a parent group candidate

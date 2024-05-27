@@ -8,7 +8,6 @@ use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -117,7 +116,7 @@ class GroupService
      *
      * @throws ApiError
      */
-    public function getGroups(int $currentPageNumber, int $maxNumItemsPerPage): array
+    public function getGroups(int $firstResultIndex, int $maxNumResults): array
     {
         $ENTITY_ALIAS = 'g';
 
@@ -128,8 +127,8 @@ class GroupService
 
             return $queryBuilder
                 ->getQuery()
-                ->setFirstResult(Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage))
-                ->setMaxResults($maxNumItemsPerPage)
+                ->setFirstResult($firstResultIndex)
+                ->setMaxResults($maxNumResults)
                 ->getResult();
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group collection!',
@@ -228,13 +227,13 @@ class GroupService
      *
      * @throws ApiError
      */
-    public function getGroupMembers(int $currentPageNumber, int $maxNumItemsPerPage, string $groupIdentifier): array
+    public function getGroupMembers(int $firstResultIndex, int $maxNumResults, string $groupIdentifier): array
     {
         try {
             return Uuid::isValid($groupIdentifier) ? $this->entityManager
                 ->getRepository(GroupMember::class)
-                ->findBy(['group' => $groupIdentifier], null, $maxNumItemsPerPage,
-                    Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage)) : [];
+                ->findBy(['group' => $groupIdentifier], null, $maxNumResults,
+                    $firstResultIndex) : [];
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection!',
                 self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);

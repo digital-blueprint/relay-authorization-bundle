@@ -133,13 +133,13 @@ class GroupServiceTest extends WebTestCase
         $group2 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_2');
         $group3 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_3');
 
-        $groups = $this->groupService->getGroups(1, 10);
+        $groups = $this->groupService->getGroups(0, 10);
         $this->assertCount(3, $groups);
         $this->assertEquals($group1->getIdentifier(), $groups[0]->getIdentifier());
         $this->assertEquals($group2->getIdentifier(), $groups[1]->getIdentifier());
         $this->assertEquals($group3->getIdentifier(), $groups[2]->getIdentifier());
 
-        $groups = $this->groupService->getGroups(1, 2);
+        $groups = $this->groupService->getGroups(0, 2);
         $this->assertCount(2, $groups);
         $this->assertEquals($group1->getIdentifier(), $groups[0]->getIdentifier());
         $this->assertEquals($group2->getIdentifier(), $groups[1]->getIdentifier());
@@ -361,17 +361,17 @@ class GroupServiceTest extends WebTestCase
         $groupMember2 = $this->testEntityManager->addGroupMember($group, null, $subGroup);
         $groupMember3 = $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $groupMembers = $this->groupService->getGroupMembers(1, 10, $subGroup->getIdentifier());
+        $groupMembers = $this->groupService->getGroupMembers(0, 10, $subGroup->getIdentifier());
         $this->assertCount(1, $groupMembers);
         $this->assertEquals($subgroupMember->getIdentifier(), $groupMembers[0]->getIdentifier());
 
-        $groupMembers = $this->groupService->getGroupMembers(1, 10, $group->getIdentifier());
+        $groupMembers = $this->groupService->getGroupMembers(0, 10, $group->getIdentifier());
         $this->assertCount(3, $groupMembers);
         $this->assertEquals($groupMember1->getIdentifier(), $groupMembers[0]->getIdentifier());
         $this->assertEquals($groupMember2->getIdentifier(), $groupMembers[1]->getIdentifier());
         $this->assertEquals($groupMember3->getIdentifier(), $groupMembers[2]->getIdentifier());
 
-        $groupMembers = $this->groupService->getGroupMembers(1, 2, $group->getIdentifier());
+        $groupMembers = $this->groupService->getGroupMembers(0, 2, $group->getIdentifier());
         $this->assertCount(2, $groupMembers);
         $this->assertEquals($groupMember1->getIdentifier(), $groupMembers[0]->getIdentifier());
         $this->assertEquals($groupMember2->getIdentifier(), $groupMembers[1]->getIdentifier());
@@ -379,6 +379,9 @@ class GroupServiceTest extends WebTestCase
         $groupMembers = $this->groupService->getGroupMembers(2, 2, $group->getIdentifier());
         $this->assertCount(1, $groupMembers);
         $this->assertEquals($groupMember3->getIdentifier(), $groupMembers[0]->getIdentifier());
+
+        $groupMembers = $this->groupService->getGroupMembers(4, 2, $group->getIdentifier());
+        $this->assertCount(0, $groupMembers);
     }
 
     public function testIsUserMemberOfGroup(): void

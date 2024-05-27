@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
+use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
 /**
  * @extends AbstractDataProvider<AuthorizationResource>
@@ -27,7 +28,7 @@ class AuthorizationResourceProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->resourceActionGrantService->getResource($id, $options);
+        return $this->resourceActionGrantService->getResource($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
@@ -36,7 +37,7 @@ class AuthorizationResourceProvider extends AbstractDataProvider
 
         return $currentUserIdentifier !== null ?
             $this->authorizationService->getResourcesCurrentUserIsAuthorizedToRead(
-                $currentPageNumber, $maxNumItemsPerPage) : [];
+                Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage) : [];
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool

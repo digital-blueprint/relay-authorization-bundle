@@ -207,7 +207,7 @@ class AuthorizationServiceTest extends AbstractTestCase
         // test pagination (page size 2):
         $usersGrantsPage1 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER,
-            null, 1, 2);
+            null, 0, 2);
         $this->assertCount(2, $usersGrantsPage1);
         $usersGrantsPage2 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER,
@@ -215,7 +215,7 @@ class AuthorizationServiceTest extends AbstractTestCase
         $this->assertCount(1, $usersGrantsPage2);
         $usersGrantsPage3 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER,
-            null, 3, 2);
+            null, 4, 2);
         $this->assertCount(0, $usersGrantsPage3);
         $this->assertEmpty(array_uintersect($usersGrantsPage1, $usersGrantsPage2, function ($rag1, $rag2) {
             return strcmp($rag1->getIdentifier(), $rag2->getIdentifier());
@@ -259,13 +259,13 @@ class AuthorizationServiceTest extends AbstractTestCase
 
         // test pagination (page size 3):
         $usersGrantsPage1 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 1, 3);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 0, 3);
         $this->assertCount(3, $usersGrantsPage1);
         $usersGrantsPage2 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 2, 3);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 3, 3);
         $this->assertCount(1, $usersGrantsPage2);
         $usersGrantsPage3 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 3, 3);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 6, 3);
         $this->assertCount(0, $usersGrantsPage3);
         $this->assertEmpty(array_uintersect($usersGrantsPage1, $usersGrantsPage2, function ($rag1, $rag2) {
             return strcmp($rag1->getIdentifier(), $rag2->getIdentifier());
@@ -273,7 +273,7 @@ class AuthorizationServiceTest extends AbstractTestCase
 
         // test pagination (page size 0):
         $usersGrantsPage2 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 2, 0);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 0, 0);
         $this->assertCount(0, $usersGrantsPage2);
     }
 
@@ -444,10 +444,10 @@ class AuthorizationServiceTest extends AbstractTestCase
 
         // test pagination (page size 3):
         $usersGrantsPage1 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 1, 3);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 0, 3);
         $this->assertCount(3, $usersGrantsPage1);
         $usersGrantsPage2 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 2, 3);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 3, 3);
         $this->assertCount(1, $usersGrantsPage2);
         $this->assertEmpty(array_uintersect($usersGrantsPage1, $usersGrantsPage2, function ($rag1, $rag2) {
             return strcmp($rag1->getIdentifier(), $rag2->getIdentifier());
@@ -505,13 +505,13 @@ class AuthorizationServiceTest extends AbstractTestCase
 
         // test pagination (page size 2):
         $usersGrantsPage1 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 1, 2);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 0, 2);
         $this->assertCount(2, $usersGrantsPage1);
         $usersGrantsPage2 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 2, 2);
         $this->assertCount(2, $usersGrantsPage2);
         $usersGrantsPage3 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 3, 2);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 4, 2);
         $this->assertCount(0, $usersGrantsPage3);
         $this->assertEmpty(array_uintersect($usersGrantsPage1, $usersGrantsPage2, function ($rag1, $rag2) {
             return strcmp($rag1->getIdentifier(), $rag2->getIdentifier());
@@ -543,12 +543,12 @@ class AuthorizationServiceTest extends AbstractTestCase
 
         // test pagination (page size 1):
         $usersGrantsPage1 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 1, 1);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 0, 1);
         $this->assertCount(1, $usersGrantsPage1);
 
         // test pagination (page size 0):
         $usersGrantsPage1 = $this->authorizationService->getResourceItemActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 1, 0);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, null, 0, 0);
         $this->assertCount(0, $usersGrantsPage1);
 
         // ----------------------------------------------------------------
@@ -786,13 +786,13 @@ class AuthorizationServiceTest extends AbstractTestCase
 
         // test pagination (page size 2):
         $usersGrantsPage1 = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 1, 2);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 0, 2);
         $this->assertCount(2, $usersGrantsPage1);
         $usersGrantsPage2 = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 2, 2);
         $this->assertCount(2, $usersGrantsPage2);
         $usersGrantsPage3 = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 3, 2);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 4, 2);
         $this->assertCount(0, $usersGrantsPage3);
         $this->assertEmpty(array_uintersect($usersGrantsPage1, $usersGrantsPage2, function ($rag1, $rag2) {
             return strcmp($rag1->getIdentifier(), $rag2->getIdentifier());
@@ -800,7 +800,7 @@ class AuthorizationServiceTest extends AbstractTestCase
 
         // test pagination (page size 0):
         $usersGrantsPage1 = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 1, 0);
+            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 0, 0);
         $this->assertCount(0, $usersGrantsPage1);
     }
 
