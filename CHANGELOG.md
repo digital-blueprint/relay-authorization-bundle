@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Add support for system account clients which may be holders of grants with a dynamic group set 
+
 ## v0.1.13
 
 * switch from 'currentPageNumber' to 'firstResultIndex' for flexibility
