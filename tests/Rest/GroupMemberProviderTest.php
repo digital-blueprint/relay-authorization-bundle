@@ -85,6 +85,7 @@ class GroupMemberProviderTest extends AbstractGroupControllerTestCase
         $this->assertEquals($groupMemberB->getIdentifier(), $groupMembers[1]->getIdentifier());
         $this->assertEquals($groupMemberC->getIdentifier(), $groupMembers[2]->getIdentifier());
 
+        // test pagination
         $groupMembers = $this->groupMemberProviderTester->getCollection([
             GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier(),
             'page' => 1,

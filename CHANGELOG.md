@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.1.13
+
 * switch from 'currentPageNumber' to 'firstResultIndex' for flexibility
 
 ## v0.1.12

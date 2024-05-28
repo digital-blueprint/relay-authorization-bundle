@@ -115,5 +115,20 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantCollection[0]->getIdentifier());
         $this->assertEquals($resourceActionGrant2->getIdentifier(), $resourceActionGrantCollection[1]->getIdentifier());
         $this->assertEquals($resourceActionGrant4->getIdentifier(), $resourceActionGrantCollection[2]->getIdentifier());
+
+        // test pagination
+        $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
+            'page' => 1,
+            'perPage' => 2,
+        ]);
+        $this->assertCount(2, $resourceActionGrantCollection);
+        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantCollection[0]->getIdentifier());
+        $this->assertEquals($resourceActionGrant2->getIdentifier(), $resourceActionGrantCollection[1]->getIdentifier());
+
+        $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
+            'page' => 2,
+            'perPage' => 2,
+        ]);
+        $this->assertEquals($resourceActionGrant4->getIdentifier(), $resourceActionGrantCollection[0]->getIdentifier());
     }
 }
