@@ -10,6 +10,8 @@ use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 class TestResourceActionGrantServiceFactory
@@ -20,13 +22,20 @@ class TestResourceActionGrantServiceFactory
     }
 
     public static function createTestResourceActionGrantService(EntityManagerInterface $entityManager,
-        string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = []): ResourceActionGrantService
+        string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = [],
+        ?EventSubscriberInterface $eventSubscriber = null): ResourceActionGrantService
     {
-        $internalResourceActionGrantService = new InternalResourceActionGrantService($entityManager);
+        $eventDispatcher = new EventDispatcher();
+        $internalResourceActionGrantService = new InternalResourceActionGrantService($entityManager, $eventDispatcher);
         $authorizationService = new AuthorizationService(
             $internalResourceActionGrantService, new GroupService($entityManager));
         TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier, $currentUserAttributes);
         $authorizationService->setConfig(self::getTestConfig());
+
+        if ($eventSubscriber !== null) {
+            $eventDispatcher->addSubscriber($eventSubscriber);
+        }
+        $eventDispatcher->addSubscriber($authorizationService);
 
         return new ResourceActionGrantService($authorizationService);
     }

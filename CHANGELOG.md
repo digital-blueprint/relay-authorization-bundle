@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+* Introduce authorization for GET Group collection operation (only return groups the current user is authorized to read)
+* Validate action attribute of posted resource action grants (only accept available actions, i.e. actions returned by a
+get-available-actions subscriber for the respective resource class)
+* Add documentation
+
 ## v0.1.14
 
 * Add support for system account clients which may be holders of grants with a dynamic group set 

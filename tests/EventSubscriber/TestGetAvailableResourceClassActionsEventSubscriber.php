@@ -10,16 +10,23 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class TestGetAvailableResourceClassActionsEventSubscriber implements EventSubscriberInterface
 {
-    public const TEST_RESOURCE_CLASS = 'TestResourceClass';
+    public const TEST_RESOURCE_CLASS = 'resourceClass';
+
+    public const READ_ACTION = 'read';
+    public const WRITE_ACTION = 'write';
+    public const UPDATE_ACTION = 'update';
+    public const DELETE_ACTION = 'delete';
+    public const CREATE_ACTION = 'create';
 
     public const TEST_RESOURCE_ITEM_ACTIONS = [
-        'read',
-        'update',
-        'delete',
+        self::READ_ACTION,
+        self::WRITE_ACTION,
+        self::UPDATE_ACTION,
+        self::DELETE_ACTION,
     ];
 
     public const TEST_RESOURCE_COLLECTION_ACTIONS = [
-        'create',
+        self::CREATE_ACTION,
         AuthorizationService::MANAGE_ACTION,
     ];
 

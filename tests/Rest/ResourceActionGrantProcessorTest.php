@@ -29,7 +29,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $manageResourceGrant = $this->addResourceAndManageGrant();
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
-        $resourceActionGrant->setAction('action');
+        $resourceActionGrant->setAction('read');
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
@@ -48,7 +48,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
             self::CURRENT_USER_IDENTIFIER.'_2');
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
-        $resourceActionGrant->setAction('action');
+        $resourceActionGrant->setAction('write');
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
         try {

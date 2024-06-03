@@ -804,11 +804,6 @@ class AuthorizationServiceTest extends AbstractTestCase
         $this->assertCount(0, $usersGrantsPage1);
     }
 
-    protected function selectWhere(array $results, callable $where): array
-    {
-        return array_filter($results, $where);
-    }
-
     protected function getTestConfig(): array
     {
         $config = parent::getTestConfig();

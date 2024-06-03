@@ -7,12 +7,11 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
 use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 
-class AvailableResourceClassActionsProviderTest extends WebTestCase
+class AvailableResourceClassActionsProviderTest extends AbstractTestCase
 {
     private DataProviderTester $availableResourceClassActionsProviderTester;
 
@@ -20,10 +19,7 @@ class AvailableResourceClassActionsProviderTest extends WebTestCase
     {
         parent::setUp();
 
-        $eventDispatcher = new EventDispatcher();
-        $eventDispatcher->addSubscriber(new TestGetAvailableResourceClassActionsEventSubscriber());
-
-        $provider = new AvailableResourceClassActionsProvider($eventDispatcher);
+        $provider = new AvailableResourceClassActionsProvider($this->internalResourceActionGrantService);
         $this->availableResourceClassActionsProviderTester = DataProviderTester::create($provider,
             AvailableResourceClassActions::class,
             ['AuthorizationAvailableResourceClassActions:output']);

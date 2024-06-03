@@ -21,6 +21,8 @@ class GroupMemberProvider extends AbstractDataProvider
 {
     public const GROUP_IDENTIFIER_QUERY_PARAMETER = 'groupIdentifier';
 
+    public const GROUP_NOT_FOUND_ERROR_ID = 'authorization:group-not-found';
+
     private GroupService $groupService;
     private AuthorizationService $authorizationService;
 
@@ -41,6 +43,15 @@ class GroupMemberProvider extends AbstractDataProvider
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'query parameter \''.self::GROUP_IDENTIFIER_QUERY_PARAMETER.'\' is required',
                 Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::GROUP_IDENTIFIER_QUERY_PARAMETER]);
+        }
+
+        $group = $this->groupService->getGroup($groupIdentifier);
+        if ($group === null) {
+            throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
+                "Group with ID '$groupIdentifier' not found", self::GROUP_NOT_FOUND_ERROR_ID, [$groupIdentifier]);
+        }
+        if (!$this->authorizationService->isCurrentUserAuthorizedToReadGroup($group)) {
+            throw new ApiError(Response::HTTP_FORBIDDEN, 'forbidden');
         }
 
         return $this->groupService->getGroupMembers(

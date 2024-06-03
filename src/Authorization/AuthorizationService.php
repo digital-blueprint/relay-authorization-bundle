@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
@@ -16,19 +17,21 @@ use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @internal
  */
-class AuthorizationService extends AbstractAuthorizationService implements LoggerAwareInterface
+class AuthorizationService extends AbstractAuthorizationService implements LoggerAwareInterface, EventSubscriberInterface
 {
     use LoggerAwareTrait;
 
     public const MANAGE_ACTION = 'manage';
 
-    public const READ_GROUP_ACTION = 'read';
     public const CREATE_GROUPS_ACTION = 'create';
+
+    public const READ_GROUP_ACTION = 'read';
     public const DELETE_GROUP_ACTION = 'delete';
     public const ADD_GROUP_MEMBERS_GROUP_ACTION = 'add_members';
     public const DELETE_GROUP_MEMBERS_GROUP_ACTION = 'delete_members';
@@ -39,6 +42,13 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     private InternalResourceActionGrantService $resourceActionGrantService;
     private GroupService $groupService;
+
+    public static function getSubscribedEvents()
+    {
+        return [
+            GetAvailableResourceClassActionsEvent::class => 'onGetAvailableResourceClassActionsEvent',
+        ];
+    }
 
     private static function getManageResourceCollectionPolicyName(string $resourceClass): string
     {
@@ -79,6 +89,23 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         }
 
         $this->configure($policies, $attributes);
+    }
+
+    public function onGetAvailableResourceClassActionsEvent(GetAvailableResourceClassActionsEvent $event): void
+    {
+        switch ($event->getResourceClass()) {
+            case self::GROUP_RESOURCE_CLASS:
+                $event->setItemActions([
+                    self::READ_GROUP_ACTION,
+                    self::DELETE_GROUP_ACTION,
+                    self::ADD_GROUP_MEMBERS_GROUP_ACTION,
+                    self::DELETE_GROUP_MEMBERS_GROUP_ACTION,
+                ]);
+                $event->setCollectionActions([self::CREATE_GROUPS_ACTION]);
+                break;
+            default:
+                break;
+        }
     }
 
     /**
@@ -300,11 +327,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public function isCurrentUserAuthorizedToReadGrant(ResourceActionGrant $resourceActionGrant): bool
     {
-        $currentUserIdentifier = $this->getUserIdentifier();
-
-        return
-            ($currentUserIdentifier !== null
-                && $resourceActionGrant->getUserIdentifier() === $currentUserIdentifier)
+        return $this->isUsersGrant($resourceActionGrant, $this->getUserIdentifier())
             || $this->doesCurrentUserHaveAManageGrantForAuthorizationResource(
                 $resourceActionGrant->getAuthorizationResource()->getIdentifier());
     }
@@ -317,6 +340,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public function getResourcesCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
     {
+        // TODO: work with null user identifier
         $currentUserIdentifier = $this->getUserIdentifier();
 
         return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResources(
@@ -329,10 +353,24 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getResourceActionGrantsUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
     {
+        // TODO: work with null user identifier
         $currentUserIdentifier = $this->getUserIdentifier();
 
         return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResourceActionGrantsUserIsAuthorizedToRead(
             $firstResultIndex, $maxNumResults, $currentUserIdentifier) : [];
+    }
+
+    /**
+     * @return Group[]
+     */
+    public function getGroupsCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
+    {
+        $groupIdentifiers = array_map(function ($resourceActionGrant) {
+            return $resourceActionGrant->getAuthorizationResource()->getResourceIdentifier();
+        }, $this->getGrantsForAllResourceItemsForUser($this->getUserIdentifier(), self::GROUP_RESOURCE_CLASS,
+            [self::MANAGE_ACTION, self::READ_GROUP_ACTION], $firstResultIndex, $maxNumResults));
+
+        return $this->groupService->getGroupsByIdentifiers($groupIdentifiers, 0, $maxNumResults);
     }
 
     /**

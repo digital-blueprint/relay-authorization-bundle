@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -115,15 +116,17 @@ class GroupService
      * @return Group[]
      *
      * @throws ApiError
+     *
+     * @deprecated
      */
     public function getGroups(int $firstResultIndex, int $maxNumResults): array
     {
-        $ENTITY_ALIAS = 'g';
+        $GROUP_ENTITY_ALIAS = 'g';
 
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder()
-                ->select($ENTITY_ALIAS)
-                ->from(Group::class, $ENTITY_ALIAS);
+                ->select($GROUP_ENTITY_ALIAS)
+                ->from(Group::class, $GROUP_ENTITY_ALIAS);
 
             return $queryBuilder
                 ->getQuery()
@@ -134,6 +137,33 @@ class GroupService
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group collection!',
                 self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
             throw $apiError;
+        }
+    }
+
+    /**
+     * @return Group[]
+     *
+     * @throws ApiError
+     */
+    public function getGroupsByIdentifiers(array $groupIdentifiers, int $firstResultIndex, int $maxNumResults): array
+    {
+        try {
+            $GROUP_ENTITY_ALIAS = 'g';
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+
+            return $queryBuilder
+                ->select($GROUP_ENTITY_ALIAS)
+                ->from(Group::class, $GROUP_ENTITY_ALIAS)
+                ->where($queryBuilder->expr()->in("$GROUP_ENTITY_ALIAS.identifier", ':groupIdentifiers'))
+                ->setParameter(':groupIdentifiers',
+                    AuthorizationUuidBinaryType::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY)
+                ->getQuery()
+                ->setFirstResult($firstResultIndex)
+                ->setMaxResults($maxNumResults)
+                ->getResult();
+        } catch (\Exception $exception) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, $exception->getMessage(),
+                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
         }
     }
 

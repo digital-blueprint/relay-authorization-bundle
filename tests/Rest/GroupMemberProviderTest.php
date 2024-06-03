@@ -67,9 +67,12 @@ class GroupMemberProviderTest extends AbstractGroupControllerTestCase
         }
     }
 
-    public function testGetMemberCollection(): void
+    public function testGetGroupMemberCollection(): void
     {
         $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        // add some noise:
+        $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+
         $groupMembers = $this->groupMemberProviderTester->getCollection(
             [GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier()]);
         $this->assertCount(0, $groupMembers);
@@ -78,30 +81,47 @@ class GroupMemberProviderTest extends AbstractGroupControllerTestCase
         $groupMemberB = $this->testEntityManager->addGroupMember($group, 'b');
         $groupMemberC = $this->testEntityManager->addGroupMember($group, 'c');
 
+        // add some noise:
+        $this->testEntityManager->addGroupMember($group2, 'd');
+
         $groupMembers = $this->groupMemberProviderTester->getCollection(
             [GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier()]);
         $this->assertCount(3, $groupMembers);
-        $this->assertEquals($groupMemberA->getIdentifier(), $groupMembers[0]->getIdentifier());
-        $this->assertEquals($groupMemberB->getIdentifier(), $groupMembers[1]->getIdentifier());
-        $this->assertEquals($groupMemberC->getIdentifier(), $groupMembers[2]->getIdentifier());
+        $this->assertCount(1, $this->selectWhere($groupMembers, function ($groupMember) use ($groupMemberA) {
+            return $groupMember->getIdentifier() === $groupMemberA->getIdentifier();
+        }));
+        $this->assertCount(1, $this->selectWhere($groupMembers, function ($groupMember) use ($groupMemberB) {
+            return $groupMember->getIdentifier() === $groupMemberB->getIdentifier();
+        }));
+        $this->assertCount(1, $this->selectWhere($groupMembers, function ($groupMember) use ($groupMemberC) {
+            return $groupMember->getIdentifier() === $groupMemberC->getIdentifier();
+        }));
 
         // test pagination
-        $groupMembers = $this->groupMemberProviderTester->getCollection([
+        $groupMemberPage1 = $this->groupMemberProviderTester->getCollection([
             GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier(),
             'page' => 1,
             'perPage' => 2,
         ]);
-        $this->assertCount(2, $groupMembers);
-        $this->assertEquals($groupMemberA->getIdentifier(), $groupMembers[0]->getIdentifier());
-        $this->assertEquals($groupMemberB->getIdentifier(), $groupMembers[1]->getIdentifier());
+        $this->assertCount(2, $groupMemberPage1);
 
-        $groupMembers = $this->groupMemberProviderTester->getCollection([
+        $groupMemberPage2 = $this->groupMemberProviderTester->getCollection([
             GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier(),
             'page' => 2,
             'perPage' => 2,
         ]);
-        $this->assertCount(1, $groupMembers);
-        $this->assertEquals($groupMemberC->getIdentifier(), $groupMembers[0]->getIdentifier());
+        $this->assertCount(1, $groupMemberPage2);
+
+        $groupMembers = array_merge($groupMemberPage1, $groupMemberPage2);
+        $this->assertCount(1, $this->selectWhere($groupMembers, function ($groupMember) use ($groupMemberA) {
+            return $groupMember->getIdentifier() === $groupMemberA->getIdentifier();
+        }));
+        $this->assertCount(1, $this->selectWhere($groupMembers, function ($groupMember) use ($groupMemberB) {
+            return $groupMember->getIdentifier() === $groupMemberB->getIdentifier();
+        }));
+        $this->assertCount(1, $this->selectWhere($groupMembers, function ($groupMember) use ($groupMemberC) {
+            return $groupMember->getIdentifier() === $groupMemberC->getIdentifier();
+        }));
     }
 
     public function testGetMemberCollectionGroupIdentifierParameterMissing(): void
@@ -112,6 +132,31 @@ class GroupMemberProviderTest extends AbstractGroupControllerTestCase
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
             $this->assertEquals(Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
+    public function testGetMemberCollectionGroupNotFound(): void
+    {
+        try {
+            $this->groupMemberProviderTester->getCollection([
+                GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => '404',
+            ]);
+            $this->fail('Expected exception not thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+        }
+    }
+
+    public function testGetMemberCollectionGroupAccessForbidden(): void
+    {
+        $group = $this->testEntityManager->addGroup();
+        try {
+            $this->groupMemberProviderTester->getCollection([
+                GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier(),
+            ]);
+            $this->fail('Expected exception not thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
         }
     }
 }

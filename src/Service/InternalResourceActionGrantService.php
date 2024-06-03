@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
@@ -15,6 +16,7 @@ use Doctrine\ORM\Query\Expr\Join;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Ramsey\Uuid\Uuid;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -29,7 +31,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     private const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
-    private const RESOURCE_ACTION_INVALID_ERROR_ID = 'authorization:resource-action-grant-invalid';
+    public const RESOURCE_ACTION_GRANT_INVALID_ACTION_MISSING_ERROR_ID = 'authorization:resource-action-grant-invalid-action-missing';
+    public const RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID = 'authorization:resource_action_grant-invalid-action-undefined';
     private const GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-collection-failed';
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
@@ -39,10 +42,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private const RESOURCE_INVALID_ERROR_ID = 'authorization:resource-invalid';
 
     private EntityManagerInterface $entityManager;
+    private EventDispatcherInterface $eventDispatcher;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, EventDispatcherInterface $eventDispatcher)
     {
         $this->entityManager = $entityManager;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     public function getEntityManager(): EntityManagerInterface
@@ -150,10 +155,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function removeResourceActionGrant(ResourceActionGrant $resourceAction): void
+    public function removeResourceActionGrant(ResourceActionGrant $resourceActionGrant): void
     {
         try {
-            $this->entityManager->remove($resourceAction);
+            $this->entityManager->remove($resourceActionGrant);
             $this->entityManager->flush();
         } catch (\Exception $e) {
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be removed!',
@@ -436,12 +441,44 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    private function validateResourceActionGrant(ResourceActionGrant $resourceAction): void
+    private function validateResourceActionGrant(ResourceActionGrant $resourceActionGrant): void
     {
-        if ($resourceAction->getAction() === null) {
+        $action = $resourceActionGrant->getAction();
+        if ($action === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'resource action invalid: \'action\' is required', self::RESOURCE_ACTION_INVALID_ERROR_ID, ['action']);
+                'resource action grant is invalid: \'action\' is required', self::RESOURCE_ACTION_GRANT_INVALID_ACTION_MISSING_ERROR_ID, ['action']);
         }
+        [$itemActions, $collectionActions] = $this->getAvailableResourceClassActions(
+            $resourceActionGrant->getAuthorizationResource()->getResourceClass());
+
+        if ($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier() !== null) {
+            $actionsToCheck = &$itemActions;
+        } else {
+            $actionsToCheck = &$collectionActions;
+        }
+        if (!in_array($action, $actionsToCheck, true)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                "resource action is invalid: action '$action' is not defined for this resource class", self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [$action]);
+        }
+    }
+
+    public function getAvailableResourceClassActions(string $resourceClass): array
+    {
+        $getActionsEvent = new GetAvailableResourceClassActionsEvent($resourceClass);
+        $this->eventDispatcher->dispatch($getActionsEvent);
+
+        $itemActions = $getActionsEvent->getItemActions();
+        if ($itemActions !== null
+            && !in_array(AuthorizationService::MANAGE_ACTION, $itemActions, true)) {
+            $itemActions[] = AuthorizationService::MANAGE_ACTION;
+        }
+        $collectionActions = $getActionsEvent->getCollectionActions();
+        if ($collectionActions !== null
+            && !in_array(AuthorizationService::MANAGE_ACTION, $collectionActions, true)) {
+            $collectionActions[] = AuthorizationService::MANAGE_ACTION;
+        }
+
+        return [$itemActions, $collectionActions];
     }
 
     /**

@@ -4,34 +4,24 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
-use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Ramsey\Uuid\Uuid;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupServiceTest extends WebTestCase
+class GroupServiceTest extends AbstractTestCase
 {
-    private const CURRENT_USER_IDENTIFIER = 'userIdentifier';
     private const TEST_GROUP_NAME = 'test_group';
 
     private GroupService $groupService;
-    private AuthorizationService $authorizationService;
-    private TestEntityManager $testEntityManager;
 
     protected function setUp(): void
     {
-        $this->testEntityManager = new TestEntityManager(self::bootKernel());
-        $internalResourceActionGrantService = new InternalResourceActionGrantService($this->testEntityManager->getEntityManager());
-        $this->authorizationService = new AuthorizationService(
-            $internalResourceActionGrantService, new GroupService($this->testEntityManager->getEntityManager()));
-        TestAuthorizationService::setUp($this->authorizationService, self::CURRENT_USER_IDENTIFIER);
+        parent::setUp();
 
         $this->groupService = new GroupService($this->testEntityManager->getEntityManager());
     }
@@ -127,26 +117,38 @@ class GroupServiceTest extends WebTestCase
         $this->assertNull($this->groupService->getGroup('404'));
     }
 
-    public function testGetGroupCollection(): void
+    public function testGetGroupsByIdentifiers(): void
     {
         $group1 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
         $group2 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_2');
         $group3 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_3');
 
-        $groups = $this->groupService->getGroups(0, 10);
+        $allGroupIdentifiers = [$group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()];
+
+        $groups = $this->groupService->getGroupsByIdentifiers($allGroupIdentifiers, 0, 10);
         $this->assertCount(3, $groups);
-        $this->assertEquals($group1->getIdentifier(), $groups[0]->getIdentifier());
-        $this->assertEquals($group2->getIdentifier(), $groups[1]->getIdentifier());
-        $this->assertEquals($group3->getIdentifier(), $groups[2]->getIdentifier());
+        $this->assertCount(1, $this->selectWhere($groups, function ($group) use ($group1) { return $group->getIdentifier() === $group1->getIdentifier(); }));
+        $this->assertCount(1, $this->selectWhere($groups, function ($group) use ($group2) { return $group->getIdentifier() === $group2->getIdentifier(); }));
+        $this->assertCount(1, $this->selectWhere($groups, function ($group) use ($group3) { return $group->getIdentifier() === $group3->getIdentifier(); }));
 
-        $groups = $this->groupService->getGroups(0, 2);
-        $this->assertCount(2, $groups);
-        $this->assertEquals($group1->getIdentifier(), $groups[0]->getIdentifier());
-        $this->assertEquals($group2->getIdentifier(), $groups[1]->getIdentifier());
-
-        $groups = $this->groupService->getGroups(2, 2);
+        $groups = $this->groupService->getGroupsByIdentifiers([$group2->getIdentifier()], 0, 10);
         $this->assertCount(1, $groups);
-        $this->assertEquals($group3->getIdentifier(), $groups[0]->getIdentifier());
+        $this->assertEquals($group2->getIdentifier(), $groups[0]->getIdentifier());
+
+        $groups = $this->groupService->getGroupsByIdentifiers([], 0, 10);
+        $this->assertCount(0, $groups);
+
+        $groupPage1 = $this->groupService->getGroupsByIdentifiers($allGroupIdentifiers, 0, 2);
+        $this->assertCount(2, $groupPage1);
+
+        $groupPage2 = $this->groupService->getGroupsByIdentifiers($allGroupIdentifiers, 2, 2);
+        $this->assertCount(1, $groupPage2);
+
+        $groups = array_merge($groupPage1, $groupPage2);
+        $this->assertCount(3, $groups);
+        $this->assertCount(1, $this->selectWhere($groups, function ($group) use ($group1) { return $group->getIdentifier() === $group1->getIdentifier(); }));
+        $this->assertCount(1, $this->selectWhere($groups, function ($group) use ($group2) { return $group->getIdentifier() === $group2->getIdentifier(); }));
+        $this->assertCount(1, $this->selectWhere($groups, function ($group) use ($group3) { return $group->getIdentifier() === $group3->getIdentifier(); }));
     }
 
     public function testAddGroupMemberWithUserIdentifier(): void
