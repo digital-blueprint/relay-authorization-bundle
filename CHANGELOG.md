@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.1.15
+
 * Introduce authorization for GET Group collection operation (only return groups the current user is authorized to read)
 * Validate action attribute of posted resource action grants (only accept available actions, i.e. actions returned by a
 get-available-actions subscriber for the respective resource class)
