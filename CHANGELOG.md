@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Assure that elements of ResourceAction arrays returned by the PHP API are unique
+
 ## v0.1.15
 
 * Introduce authorization for GET Group collection operation (only return groups the current user is authorized to read)

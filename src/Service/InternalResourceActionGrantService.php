@@ -228,6 +228,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicGroupIdentifiers
+     * @param bool                 $onlyGetUniqueResourceActions If false (default), all matching resource action grants are returned,
+     *                                                           otherwise only unique combinations of resource and actions are returned
+     *                                                           (i.e. results are GROUPed BY authorization resource and action)
      *
      * @return ResourceActionGrant[]|AuthorizationResource[]
      *
@@ -236,11 +239,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrantsForResourceClassAndIdentifier(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024, bool $onlyGetUniqueResourceActions = false): array
     {
         return $this->getResourceActionGrantsInternal(
             $resourceClass, $resourceIdentifier, null, $actions,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $firstResultIndex, $maxNumResults);
+            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $firstResultIndex, $maxNumResults, $onlyGetUniqueResourceActions);
     }
 
     /**
@@ -410,12 +413,21 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private function getResourceActionGrantsInternal(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
         ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024, bool $onlyGetUniqueResourceActions = false): array
     {
+        $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
         try {
-            return $this->getResourceActionGrantQueryBuilder(self::RESOURCE_ACTION_GRANT_ALIAS,
+            $queryBuilder = $this->getResourceActionGrantQueryBuilder(
+                $RESOURCE_ACTION_GRANT_ALIAS,
                 $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier,
-                $actions, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers)
+                $actions, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
+            if ($onlyGetUniqueResourceActions) {
+                $queryBuilder
+                    ->addGroupBy("$RESOURCE_ACTION_GRANT_ALIAS.action")
+                    ->addGroupBy("$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource");
+            }
+
+            return $queryBuilder
                 ->getQuery()
                 ->setFirstResult($firstResultIndex)
                 ->setMaxResults($maxNumResults)

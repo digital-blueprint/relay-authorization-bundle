@@ -64,8 +64,8 @@ class ResourceActionGrantService
     public function hasUserGrantedResourceItemActions(string $userIdentifier, string $resourceClass, ?string $resourceIdentifier = null,
         ?array $actions = null): bool
     {
-        return count($this->authorizationService->getResourceItemActionGrantsForUser($userIdentifier, $resourceClass,
-            $resourceIdentifier, $actions, 0, 1)) > 0;
+        return !empty($this->authorizationService->getResourceItemActionsForUser($userIdentifier, $resourceClass,
+            $resourceIdentifier, $actions, 0, 1));
     }
 
     /**
@@ -78,8 +78,8 @@ class ResourceActionGrantService
     public function hasGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null,
         ?array $actions = null): bool
     {
-        return count($this->authorizationService->getResourceItemActionGrantsForCurrentUser($resourceClass,
-            $resourceIdentifier, $actions, 0, 1)) > 0;
+        return !empty($this->authorizationService->getResourceItemActionsForCurrentUser($resourceClass,
+            $resourceIdentifier, $actions, 0, 1));
     }
 
     /**
@@ -94,20 +94,8 @@ class ResourceActionGrantService
     public function getGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null,
         ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $maxNumResults = min($maxNumResults, self::MAX_NUM_RESULTS_MAX);
-
-        $internalResourceActionGrants = $this->authorizationService->getResourceItemActionGrantsForCurrentUser($resourceClass,
-            $resourceIdentifier, $actions, $firstResultIndex, $maxNumResults);
-
-        $resourceActionGrants = [];
-        foreach ($internalResourceActionGrants as $internalResourceActionGrant) {
-            $resourceActionGrants[] = new ResourceAction(
-                $internalResourceActionGrant->getAuthorizationResource()->getResourceIdentifier(),
-                $internalResourceActionGrant->getAction()
-            );
-        }
-
-        return $resourceActionGrants;
+        return $this->authorizationService->getResourceItemActionsForCurrentUser($resourceClass,
+            $resourceIdentifier, $actions, $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }
 
     /**
@@ -117,7 +105,7 @@ class ResourceActionGrantService
      */
     public function hasGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null): bool
     {
-        return count($this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
+        return count($this->authorizationService->getResourceCollectionActionsForCurrentUser(
             $resourceClass, $actions, 0, 1)) > 0;
     }
 
@@ -131,19 +119,7 @@ class ResourceActionGrantService
     public function getGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $maxNumResults = min($maxNumResults, self::MAX_NUM_RESULTS_MAX);
-
-        $internalResourceActionGrants = $this->authorizationService->getResourceCollectionActionGrantsForCurrentUser(
-            $resourceClass, $actions, $firstResultIndex, $maxNumResults);
-
-        $resourceActionGrants = [];
-        foreach ($internalResourceActionGrants as $internalResourceActionGrant) {
-            $resourceActionGrants[] = new ResourceAction(
-                null,
-                $internalResourceActionGrant->getAction()
-            );
-        }
-
-        return $resourceActionGrants;
+        return $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            $resourceClass, $actions, $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }
 }
