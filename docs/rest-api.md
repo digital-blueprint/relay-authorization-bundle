@@ -1,8 +1,44 @@
 # REST Web API
 
-For details on parameters and schemas, see the OpenAPI documentation of all available operations under the **Authorization** tag.
+For details on parameters and schemas, see the operations under the **Authorization** tag of your OpenAPI documentation.
 
-## `POST /authorization/groups`
+## Entities
+
+### AuthorizationGroup
+
+Represents a group of users. See [Groups](./groups.md).
+
+### AuthorizationGroupMember
+
+Represents a member of an `AuthorizationGroup`. A member is either
+* a user with an unique identifier or
+* another `AuthorizationGroup`
+
+See [Groups](./groups.md).
+
+### AuthorizationResource
+
+Represents an app resource uniquely identified by a **resource class** and a **resource identifier**.
+See [Resource Action Grants](./resource-action-grants.md).
+
+### AuthorizationResourceActionGrant
+
+Represents a grant that entitles a user, or an `AuthorizationGroup`, or a _dynamic group_ of users 
+to perform an **action** on an `AuthorizationResource`. See [Resource Action Grants](./resource-action-grants.md).
+
+### AuthorizationAvailableResourceClassActions
+
+Represents the set of available
+* resource item actions (like 'patch', 'delete', or 'read' item)
+* resource collection collection (like 'post' new resources)
+
+for one resource class. 
+
+The 'manage' action is predefined and available for all resource items and collections. See [Resource Action Grants](./resource-action-grants.md).
+
+## Operations
+
+### `POST /authorization/groups`
 
 Creates a new group.
 

@@ -5,9 +5,10 @@ Source: https://github.com/digital-blueprint/relay-authorization-bundle
 ## Overwiew
 
 * [Getting started](./getting-started.md)
-* [Integration into the Relay API Server](./integration.md)
+* [Setup](./setup.md)
 * [Configuration](./config.md)
-* [Database](./database.md)
 * [PHP Backend API](./php-api.md)
 * [REST Web API](./rest-api.md)
+* [Groups](./groups.md)
+* [Resource Action Grants](./resource-action-grants.md)
 * [Events](./events.md)

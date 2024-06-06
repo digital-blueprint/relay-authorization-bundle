@@ -12,3 +12,5 @@ The REST Web API can be used to
 * create/delete/request user **groups**
 * create/delete/request **members** (users, or subgroups) of groups
 * create/delete/request **_resource action grants_** for users/groups to perform certain actions on the registered resources. 
+
+See [Groups](groups.md) and [Resource Action Grants](./resource-action-grants.md) for more information.

@@ -6,6 +6,7 @@
 * Validate action attribute of posted resource action grants (only accept available actions, i.e. actions returned by a
 get-available-actions subscriber for the respective resource class)
 * Add documentation
+* REST API: Restrict authorization resource and resource action grant collections to entities the user is authorized to read
 
 ## v0.1.14
 

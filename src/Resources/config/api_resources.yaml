@@ -118,6 +118,12 @@ resources:
         uriTemplate: "/authorization/resources"
         openapiContext:
           tags: [ "Authorization" ]
+          parameters:
+            - name: resourceClass
+              in: query
+              description: 'The resource class to get grants for'
+              type: string
+              required: false
     properties:
       identifier:
         identifier: true
@@ -143,6 +149,12 @@ resources:
         uriTemplate: "/authorization/resource-action-grants"
         openapiContext:
           tags: [ "Authorization" ]
+          parameters:
+            - name: resourceClass
+              in: query
+              description: 'The resource class to get grants for'
+              type: string
+              required: false
       ApiPlatform\Metadata\Post:
         processor: Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor
         uriTemplate: "/authorization/resource-action-grants"

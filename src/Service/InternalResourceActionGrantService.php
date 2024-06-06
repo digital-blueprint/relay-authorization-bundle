@@ -13,6 +13,7 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\ORM\QueryBuilder;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Ramsey\Uuid\Uuid;
@@ -40,6 +41,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private const GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-collection-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
     private const RESOURCE_INVALID_ERROR_ID = 'authorization:resource-invalid';
+
+    private const RESOURCE_ACTION_GRANT_ALIAS = 'rag';
+    private const AUTHORIZATION_RESOURCE_ALIAS = 'ar';
 
     private EntityManagerInterface $entityManager;
     private EventDispatcherInterface $eventDispatcher;
@@ -85,51 +89,33 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     * @return AuthorizationResource[]
+     *
+     * @throws ApiError
+     */
+    public function getAuthorizationResourcesUserIsAuthorizedToRead(
+        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
+    {
+        return $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(false,
+            $resourceClass, $resourceIdentifier, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+            $firstResultIndex, $maxNumResults);
+    }
+
+    /**
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     public function getResourceActionGrantsUserIsAuthorizedToRead(
-        int $firstResultIndex, int $maxNumResults, string $userIdentifier): array
+        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
-        // Get all resource action grants
-        // * that the user has
-        // * for all resources that the user manages
-
-        // SELECT * FROM `authorization_resource_action_grants` WHERE
-        // (user_identifier = '<user identifier>' AND action != 'manage')
-        // OR resource_identifier IN (SELECT resource_identifier FROM
-        // `authorization_resource_action_grants` WHERE user_identifier = '<user identifier>' AND action = 'manage')
-
-        try {
-            $SUBQUERY_RESOURCE_ALIAS = 'r_sub';
-            $subqueryBuilder = $this->entityManager->createQueryBuilder();
-            $subqueryBuilder->select('IDENTITY('.$SUBQUERY_RESOURCE_ALIAS.'.authorizationResource)')
-                ->from(ResourceActionGrant::class, $SUBQUERY_RESOURCE_ALIAS)
-                ->where($subqueryBuilder->expr()->eq($SUBQUERY_RESOURCE_ALIAS.'.userIdentifier', ':userIdentifier'))
-                ->andWhere($subqueryBuilder->expr()->eq($SUBQUERY_RESOURCE_ALIAS.'.action', ':action'));
-
-            $RESOURCE_ALIAS = 'r';
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            $queryBuilder->select($RESOURCE_ALIAS)
-                ->from(ResourceActionGrant::class, $RESOURCE_ALIAS)
-                ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.userIdentifier', ':userIdentifier'))
-                ->andWhere($queryBuilder->expr()->neq($RESOURCE_ALIAS.'.action', ':action'))
-                ->orWhere($queryBuilder->expr()->in($RESOURCE_ALIAS.'.authorizationResource', $subqueryBuilder->getDQL()))
-                ->setParameter(':action', AuthorizationService::MANAGE_ACTION)
-                ->setParameter(':userIdentifier', $userIdentifier);
-
-            return $queryBuilder
-                ->getQuery()
-                ->setFirstResult($firstResultIndex)
-                ->setMaxResults($maxNumResults)
-                ->getResult();
-        } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Failed to get resource action grant collection!',
-                self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
-        }
+        return $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(true,
+            $resourceClass, $resourceIdentifier, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+            $firstResultIndex, $maxNumResults);
     }
 
     /**
@@ -225,7 +211,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicGroupIdentifiers
      *
-     * @return ResourceActionGrant[]
+     * @return ResourceActionGrant[]|AuthorizationResource[]
      *
      * @throws ApiError
      */
@@ -243,7 +229,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicGroupIdentifiers
      *
-     * @return ResourceActionGrant[]
+     * @return ResourceActionGrant[]|AuthorizationResource[]
      *
      * @throws ApiError
      */
@@ -255,6 +241,34 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         return $this->getResourceActionGrantsInternal(
             $resourceClass, $resourceIdentifier, null, $actions,
             $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $firstResultIndex, $maxNumResults);
+    }
+
+    /**
+     * @param string[]|string|null $groupIdentifiers
+     * @param string[]|string|null $dynamicGroupIdentifiers
+     *
+     * @return AuthorizationResource[]
+     *
+     * @throws ApiError
+     */
+    public function getAuthorizationResourcesForResourceClassAndIdentifier(
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?array $actions = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
+    {
+        try {
+            return $this->getResourceActionGrantQueryBuilder(self::AUTHORIZATION_RESOURCE_ALIAS,
+                $resourceClass, $resourceIdentifier, null,
+                $actions, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers)
+                ->getQuery()
+                ->setFirstResult($firstResultIndex)
+                ->setMaxResults($maxNumResults)
+                ->getResult();
+        } catch (ApiError $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Failed to get resource action grant collection!',
+                self::GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+        }
     }
 
     public function getResources(
@@ -324,13 +338,72 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     * @return ResourceActionGrant[]|AuthorizationResource[]
+     *
+     * @throws ApiError
+     */
+    private function getResourceActionGrantsUserIsAuthorizedToReadInternal(bool $getGrants = true,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
+    {
+        // Get all grants
+        // * that the user is a holder of (personally or by (dynamic) group)
+        // * from all resources that the user manages
+        try {
+            // create a subquery getting the authorization resource IDs that the user manages:
+            $subqueryBuilder = $this->getResourceActionGrantQueryBuilder(
+                'IDENTITY('.self::RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource)',
+                $resourceClass, $resourceIdentifier, null, [AuthorizationService::MANAGE_ACTION],
+                $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
+
+            // NOTE: resource action grant alias for subquery and main query must differ
+            $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS.'_2';
+            $AUTHORIZATION_RESOURCE_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS.'_2';
+
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            if ($getGrants) {
+                $queryBuilder
+                    ->select($RESOURCE_ACTION_GRANT_ALIAS)
+                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS);
+            } else {
+                $queryBuilder
+                    ->select($AUTHORIZATION_RESOURCE_ALIAS)
+                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
+                    ->innerJoin(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
+                        "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource = $AUTHORIZATION_RESOURCE_ALIAS.identifier")
+                    // groupBy is required for setMaxResults to work properly, because of possible duplicates in the joined collection
+                    ->groupBy("$AUTHORIZATION_RESOURCE_ALIAS.identifier");
+            }
+            $this->addGrantHolderCriteria($queryBuilder, $RESOURCE_ACTION_GRANT_ALIAS,
+                $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
+            $queryBuilder
+                ->andWhere($queryBuilder->expr()->neq("$RESOURCE_ACTION_GRANT_ALIAS.action", ':manageAction'))
+                ->orWhere($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource", $subqueryBuilder->getDQL()))
+                ->setParameters($subqueryBuilder->getParameters()) // NOTE: bound subquery parameters are lost when using getDQL()
+                ->setParameter(':manageAction', AuthorizationService::MANAGE_ACTION);
+
+            return $queryBuilder
+                ->getQuery()
+                ->setFirstResult($firstResultIndex)
+                ->setMaxResults($maxNumResults)
+                ->getResult();
+        } catch (\Exception $e) {
+            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Failed to get resource action grant collection!',
+                self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+            throw $apiError;
+        }
+    }
+
+    /**
      * Since exclusively userIdentifier, or group or dynamicGroupIdentifier are set in a ResourceAction grant,
      * we combine them with an OR conjunction.
      *
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicGroupIdentifiers
      *
-     * @return ResourceActionGrant[]
+     * @return ResourceActionGrant[]|AuthorizationResource[]
      *
      * @throws ApiError
      */
@@ -339,103 +412,84 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
-        $RESOURCE_ALIAS = 'r';
-        $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
-
         try {
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            if ($authorizationResourceIdentifier === null) {
-                $queryBuilder
-                    ->select($RESOURCE_ACTION_GRANT_ALIAS)
-                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                    ->innerJoin(AuthorizationResource::class, $RESOURCE_ALIAS, Join::WITH,
-                        $RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource = '.$RESOURCE_ALIAS.'.identifier');
-                if ($resourceClass !== null) {
-                    $queryBuilder
-                        ->where($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceClass', ':resourceClass'))
-                        ->setParameter(':resourceClass', $resourceClass);
-                }
-                if ($resourceIdentifier !== null) {
-                    switch ($resourceIdentifier) {
-                        case self::IS_NULL:
-                            $queryBuilder
-                                ->andWhere($queryBuilder->expr()->isNull($RESOURCE_ALIAS.'.resourceIdentifier'));
-                            break;
-                        case self::IS_NOT_NULL:
-                            $queryBuilder
-                                ->andWhere($queryBuilder->expr()->isNotNull($RESOURCE_ALIAS.'.resourceIdentifier'));
-                            break;
-                        default:
-                            $queryBuilder
-                                ->andWhere($queryBuilder->expr()->eq($RESOURCE_ALIAS.'.resourceIdentifier', ':resourceIdentifier'))
-                                ->setParameter(':resourceIdentifier', $resourceIdentifier);
-                    }
-                }
-            } else {
-                $queryBuilder
-                    ->select($RESOURCE_ACTION_GRANT_ALIAS)
-                    ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
-                    ->where($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.authorizationResource', ':authorizationResourceIdentifier'))
-                    ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
-            }
-
-            if ($actions !== null) {
-                if (count($actions) === 1) {
-                    $queryBuilder
-                        ->andWhere($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.action', ':action'))
-                        ->setParameter(':action', $actions[0]);
-                } else {
-                    $queryBuilder
-                        ->andWhere($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.action', ':action'))
-                        ->setParameter(':action', $actions);
-                }
-            }
-
-            $orClause = $queryBuilder->expr()->orX();
-            if ($userIdentifier !== null) {
-                $orClause
-                    ->add($queryBuilder->expr()->eq($RESOURCE_ACTION_GRANT_ALIAS.'.userIdentifier', ':userIdentifier'));
-                $queryBuilder->setParameter(':userIdentifier', $userIdentifier);
-            }
-            if ($groupIdentifiers !== null) {
-                if ($groupIdentifiers === self::IS_NOT_NULL) {
-                    $orClause
-                        ->add($queryBuilder->expr()->isNotNull($RESOURCE_ACTION_GRANT_ALIAS.'.group'));
-                } else {
-                    // There seem to be issues with doctrine and arrays of binary parameters:
-                    // https://github.com/ramsey/uuid-doctrine/issues/18
-                    // https://github.com/ramsey/uuid-doctrine/issues/164
-                    $orClause
-                        ->add($queryBuilder->expr()->in('IDENTITY('.$RESOURCE_ACTION_GRANT_ALIAS.'.group)', ':groupIdentifiers'));
-                    $queryBuilder->setParameter(':groupIdentifiers',
-                        AuthorizationUuidBinaryType::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY);
-                }
-            }
-            if ($dynamicGroupIdentifiers !== null) {
-                if ($dynamicGroupIdentifiers === self::IS_NOT_NULL) {
-                    $orClause
-                        ->add($queryBuilder->expr()->isNotNull($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier'));
-                } else {
-                    $orClause
-                        ->add($queryBuilder->expr()->in($RESOURCE_ACTION_GRANT_ALIAS.'.dynamicGroupIdentifier', ':dynamicGroupIdentifiers'));
-                    $queryBuilder->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
-                }
-            }
-            if ($orClause->count() > 0) {
-                $queryBuilder->andWhere($orClause);
-            }
-
-            return $queryBuilder
+            return $this->getResourceActionGrantQueryBuilder(self::RESOURCE_ACTION_GRANT_ALIAS,
+                $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier,
+                $actions, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers)
                 ->getQuery()
                 ->setFirstResult($firstResultIndex)
                 ->setMaxResults($maxNumResults)
                 ->getResult();
         } catch (ApiError $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get resource action grant collection!',
                 self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
+    }
+
+    private function getResourceActionGrantQueryBuilder(string $select = self::RESOURCE_ACTION_GRANT_ALIAS,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
+        ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null): QueryBuilder
+    {
+        $AUTHORIZATION_RESOURCE_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS;
+        $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
+
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $queryBuilder
+            ->select($select)
+            ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS);
+
+        if ($authorizationResourceIdentifier !== null) {
+            $queryBuilder
+                ->where($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource", ':authorizationResourceIdentifier'))
+                ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
+        } else {
+            $queryBuilder
+                ->innerJoin(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
+                    "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource = $AUTHORIZATION_RESOURCE_ALIAS.identifier");
+            if ($resourceClass !== null) {
+                $queryBuilder
+                    ->where($queryBuilder->expr()->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass", ':resourceClass'))
+                    ->setParameter(':resourceClass', $resourceClass);
+            }
+            if ($resourceIdentifier !== null) {
+                switch ($resourceIdentifier) {
+                    case self::IS_NULL:
+                        $queryBuilder
+                            ->andWhere($queryBuilder->expr()->isNull("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier"));
+                        break;
+                    case self::IS_NOT_NULL:
+                        $queryBuilder
+                            ->andWhere($queryBuilder->expr()->isNotNull("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier"));
+                        break;
+                    default:
+                        $queryBuilder
+                            ->andWhere($queryBuilder->expr()->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
+                            ->setParameter(':resourceIdentifier', $resourceIdentifier);
+                }
+            }
+        }
+
+        if ($actions !== null) {
+            if (count($actions) === 1) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.action", ':action'))
+                    ->setParameter(':action', $actions[0]);
+            } else {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.action", ':action'))
+                    ->setParameter(':action', $actions);
+            }
+        }
+
+        $this->addGrantHolderCriteria($queryBuilder, $RESOURCE_ACTION_GRANT_ALIAS, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
+
+        // if we get authorization resources we group by them to remove duplicates
+        if ($select === self::AUTHORIZATION_RESOURCE_ALIAS) {
+            $queryBuilder->groupBy("$AUTHORIZATION_RESOURCE_ALIAS.identifier");
+        }
+
+        return $queryBuilder;
     }
 
     /**
@@ -519,6 +573,43 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
                 ['message' => $e->getMessage()]);
+        }
+    }
+
+    private function addGrantHolderCriteria(QueryBuilder $queryBuilder, string $RESOURCE_ACTION_GRANT_ALIAS, ?string $userIdentifier, mixed $groupIdentifiers, mixed $dynamicGroupIdentifiers): void
+    {
+        $orClause = $queryBuilder->expr()->orX();
+        if ($userIdentifier !== null) {
+            $orClause
+                ->add($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.userIdentifier", ':userIdentifier'));
+            $queryBuilder->setParameter(':userIdentifier', $userIdentifier);
+        }
+        if ($groupIdentifiers !== null) {
+            if ($groupIdentifiers === self::IS_NOT_NULL) {
+                $orClause
+                    ->add($queryBuilder->expr()->isNotNull("$RESOURCE_ACTION_GRANT_ALIAS.group"));
+            } else {
+                // There seem to be issues with doctrine and arrays of binary parameters:
+                // https://github.com/ramsey/uuid-doctrine/issues/18
+                // https://github.com/ramsey/uuid-doctrine/issues/164
+                $orClause
+                    ->add($queryBuilder->expr()->in("IDENTITY($RESOURCE_ACTION_GRANT_ALIAS.group)", ':groupIdentifiers'));
+                $queryBuilder->setParameter(':groupIdentifiers',
+                    AuthorizationUuidBinaryType::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY);
+            }
+        }
+        if ($dynamicGroupIdentifiers !== null) {
+            if ($dynamicGroupIdentifiers === self::IS_NOT_NULL) {
+                $orClause
+                    ->add($queryBuilder->expr()->isNotNull("$RESOURCE_ACTION_GRANT_ALIAS.dynamicGroupIdentifier"));
+            } else {
+                $orClause
+                    ->add($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.dynamicGroupIdentifier", ':dynamicGroupIdentifiers'));
+                $queryBuilder->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
+            }
+        }
+        if ($orClause->count() > 0) {
+            $queryBuilder->andWhere($orClause);
         }
     }
 }

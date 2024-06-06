@@ -33,11 +33,9 @@ class AuthorizationResourceProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $currentUserIdentifier = $this->getUserIdentifier();
-
-        return $currentUserIdentifier !== null ?
-            $this->authorizationService->getResourcesCurrentUserIsAuthorizedToRead(
-                Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage) : [];
+        return $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(
+            $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null,
+            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool

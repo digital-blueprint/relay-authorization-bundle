@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AvailableResourceClassActionsProvider extends AbstractDataProvider
 {
-    public const RESOURCE_CLASS_QUERY_PARAMETER = 'resourceClass';
+
 
     private InternalResourceActionGrantService $resourceActionGrantService;
 
@@ -30,11 +30,11 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        $resourceClass = $filters[self::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
+        $resourceClass = $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
         if ($resourceClass === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'query parameter \''.self::RESOURCE_CLASS_QUERY_PARAMETER.'\' is required',
-                Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::RESOURCE_CLASS_QUERY_PARAMETER]);
+                'query parameter \''.Common::RESOURCE_CLASS_QUERY_PARAMETER.'\' is required',
+                Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [Common::RESOURCE_CLASS_QUERY_PARAMETER]);
         }
 
         [$itemActions, $collectionActions] =

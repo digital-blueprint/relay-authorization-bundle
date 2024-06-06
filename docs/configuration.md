@@ -20,8 +20,6 @@ Here is the content of an exmple config file:
           -  # user whose user attribute 'ROLE_ADMIN' evaluates to true are member of 'admins'
           - identifier: resourceFooWriters
             is_user_group_member: 'user.get("ROLE_ADMIN") || user.get("ROLE_WRITER")'
-          - identifier: resourceBarReaders
-    # ....
 ```
 
 ### database_url (required)
@@ -51,14 +49,15 @@ Read the chapter on
 [Access Control Policies](https://handbook.digital-blueprint.org/frameworks/relay/admin/access_control/#access-control-policies)
 to learn how to write policies.
 
-* `identifier` is the fully qualified resource class name you are using to register and query a resource, and
-* `manage_resource_collection_policy` is the condition which the logged-in user must fulfill in order to manage the collection
-  of the respective resource
-
+* `identifier` is the fully qualified resource class name you are using to register and query a resource
+* `manage_resource_collection_policy` is the condition which the logged-in user must fulfill in order to have 'manage' 
+permissions on the resource collection
 
 ### dynamic_groups (optional)
 
-Grants may not only be issued to users and user groups, but also by so-called _dynamic groups_. As opposed to user groups, where 
-the group member are defined by their user identifier, _dynamic group_ membership is defined by the
-evaluation of [policies](https://handbook.digital-blueprint.org/frameworks/relay/admin/access_control/#access-control-policies).
-This means that group membership may change, depending on the user attributes used in the policy expression.
+See [Dynamic Groups](./groups.md/#dynamic-groups) and 
+[Access Control Policies](https://handbook.digital-blueprint.org/frameworks/relay/admin/access_control/#access-control-policies) for 
+information on how to write policies.
+
+* `identifier` is the fully qualified resource class name you are using to register and query a resource
+* `is_user_group_member` is the condition which the logged-in user must fulfill in order to be member of the dynamic group

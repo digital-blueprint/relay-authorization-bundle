@@ -65,6 +65,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $attributeName;
     }
 
+    private static function nullIfEmpty(array $array): ?array
+    {
+        return empty($array) ? null : $array;
+    }
+
     public function __construct(InternalResourceActionGrantService $resourceActionGrantService, GroupService $groupService)
     {
         parent::__construct();
@@ -338,26 +343,37 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $this->getUserIdentifier(), $item->getIdentifier(), null, 0, 1)) > 0;
     }
 
-    public function getResourcesCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
+    /**
+     * @return AuthorizationResource[]
+     */
+    public function getAuthorizationResourcesCurrentUserIsAuthorizedToRead(?string $resourceClass, int $firstResultIndex, int $maxNumResults): array
     {
-        // TODO: work with null user identifier
-        $currentUserIdentifier = $this->getUserIdentifier();
+        $userIdentifier = $this->getUserIdentifier();
 
-        return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResources(
-            null, null, null, $currentUserIdentifier,
-            $firstResultIndex, $maxNumResults) : [];
+        // since grants for all resource items are requested, we get the groups the user is member of beforehand
+        // let the db do the pagination (probably more efficient)
+        return $this->resourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
+            $resourceClass, null, $userIdentifier,
+            $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
+            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
+            $firstResultIndex, $maxNumResults);
     }
 
     /**
      * @return ResourceActionGrant[]
      */
-    public function getResourceActionGrantsUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
+    public function getResourceActionGrantsUserIsAuthorizedToRead(?string $resourceClass, ?string $resourceIdentifier,
+        int $firstResultIndex, int $maxNumResults): array
     {
-        // TODO: work with null user identifier
-        $currentUserIdentifier = $this->getUserIdentifier();
+        $userIdentifier = $this->getUserIdentifier();
 
-        return $currentUserIdentifier !== null ? $this->resourceActionGrantService->getResourceActionGrantsUserIsAuthorizedToRead(
-            $firstResultIndex, $maxNumResults, $currentUserIdentifier) : [];
+        // since grants for all resource items are requested, we get the groups the user is member of beforehand
+        // let the db do the pagination (probably more efficient)
+        return $this->resourceActionGrantService->getResourceActionGrantsUserIsAuthorizedToRead(
+            $resourceClass, $resourceIdentifier, $userIdentifier,
+            $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
+            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
+            $firstResultIndex, $maxNumResults);
     }
 
     /**
@@ -398,8 +414,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         // let the db do the pagination (probably more efficient)
         return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             $resourceClass, InternalResourceActionGrantService::IS_NOT_NULL, $actions, $userIdentifier,
-            $userIdentifier !== null ? $this->groupService->getGroupsUserIsMemberOf($userIdentifier) : null,
-            $this->getDynamicGroupsCurrentUserIsMemberOf(),
+            $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
+            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
             $firstResultIndex, $maxNumResults);
     }
 
