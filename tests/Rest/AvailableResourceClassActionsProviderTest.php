@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
 use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider;
+use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
@@ -29,7 +30,7 @@ class AvailableResourceClassActionsProviderTest extends AbstractTestCase
     {
         $availableResourceClassActions =
             $this->availableResourceClassActionsProviderTester->getItem('', [
-                AvailableResourceClassActionsProvider::RESOURCE_CLASS_QUERY_PARAMETER => TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS,
             ]);
 
         $expectedItemActions = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_ITEM_ACTIONS;
@@ -48,7 +49,7 @@ class AvailableResourceClassActionsProviderTest extends AbstractTestCase
     {
         $availableResourceClassActions =
             $this->availableResourceClassActionsProviderTester->getItem('', [
-                AvailableResourceClassActionsProvider::RESOURCE_CLASS_QUERY_PARAMETER => 'NoSubscribersResourceClass',
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => 'NoSubscribersResourceClass',
             ]);
 
         $this->assertEquals(null, $availableResourceClassActions->getItemActions());

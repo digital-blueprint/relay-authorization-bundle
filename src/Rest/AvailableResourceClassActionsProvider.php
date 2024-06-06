@@ -17,8 +17,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AvailableResourceClassActionsProvider extends AbstractDataProvider
 {
-
-
     private InternalResourceActionGrantService $resourceActionGrantService;
 
     public function __construct(InternalResourceActionGrantService $resourceActionGrantService)
