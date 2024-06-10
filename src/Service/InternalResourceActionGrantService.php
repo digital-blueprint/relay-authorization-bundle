@@ -45,6 +45,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private const RESOURCE_ACTION_GRANT_ALIAS = 'rag';
     private const AUTHORIZATION_RESOURCE_ALIAS = 'ar';
 
+    private const GET_RESOURCE_ACTION_GRANTS = 'rag';
+    private const GET_AUTHORIZATION_RESOURCES = 'ar';
+    private const GET_RESOURCE_CLASSES = 'rc';
+
     private EntityManagerInterface $entityManager;
     private EventDispatcherInterface $eventDispatcher;
 
@@ -59,7 +63,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         return $this->entityManager;
     }
 
-    public function getResource(string $identifier)
+    public function getAuthorizationResource(string $identifier)
     {
         try {
             return $this->entityManager
@@ -93,14 +97,29 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function getAuthorizationResourcesUserIsAuthorizedToRead(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+    public function getAuthorizationResourcesUserIsAuthorizedToRead(?string $resourceClass = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
-        return $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(false,
-            $resourceClass, $resourceIdentifier, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+        return $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(self::GET_AUTHORIZATION_RESOURCES,
+            $resourceClass, null, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
             $firstResultIndex, $maxNumResults);
+    }
+
+    /**
+     * @return string[]
+     *
+     * @throws ApiError
+     */
+    public function getResourceClassesUserIsAuthorizedToRead(
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
+    {
+        return array_map(function ($authorizationResource) {
+            return $authorizationResource->getResourceClass();
+        }, $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(self::GET_RESOURCE_CLASSES,
+            null, null, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+            $firstResultIndex, $maxNumResults));
     }
 
     /**
@@ -113,7 +132,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
-        return $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(true,
+        return $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(self::GET_RESOURCE_ACTION_GRANTS,
             $resourceClass, $resourceIdentifier, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
             $firstResultIndex, $maxNumResults);
     }
@@ -345,7 +364,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    private function getResourceActionGrantsUserIsAuthorizedToReadInternal(bool $getGrants = true,
+    private function getResourceActionGrantsUserIsAuthorizedToReadInternal(string $get = self::GET_RESOURCE_ACTION_GRANTS,
         ?string $resourceClass = null, ?string $resourceIdentifier = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $firstResultIndex = 0, int $maxNumResults = 1024): array
@@ -365,7 +384,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $AUTHORIZATION_RESOURCE_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS.'_2';
 
             $queryBuilder = $this->entityManager->createQueryBuilder();
-            if ($getGrants) {
+            if ($get === self::GET_RESOURCE_ACTION_GRANTS) {
                 $queryBuilder
                     ->select($RESOURCE_ACTION_GRANT_ALIAS)
                     ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS);
@@ -374,9 +393,15 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     ->select($AUTHORIZATION_RESOURCE_ALIAS)
                     ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
                     ->innerJoin(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
-                        "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource = $AUTHORIZATION_RESOURCE_ALIAS.identifier")
+                        "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource = $AUTHORIZATION_RESOURCE_ALIAS.identifier");
+                if ($get === self::GET_AUTHORIZATION_RESOURCES) {
                     // groupBy is required for setMaxResults to work properly, because of possible duplicates in the joined collection
-                    ->groupBy("$AUTHORIZATION_RESOURCE_ALIAS.identifier");
+                    $queryBuilder
+                        ->groupBy("$AUTHORIZATION_RESOURCE_ALIAS.identifier");
+                } elseif ($get === self::GET_RESOURCE_CLASSES) {
+                    $queryBuilder
+                        ->groupBy("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass");
+                }
             }
             $this->addGrantHolderCriteria($queryBuilder, $RESOURCE_ACTION_GRANT_ALIAS,
                 $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);

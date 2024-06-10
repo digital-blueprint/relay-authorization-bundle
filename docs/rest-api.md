@@ -159,10 +159,10 @@ Deletes the grant with the given identifier.
 |-------------------------------------------------------|-------------|---------------------------------|-----------------------|----------------------------------|
 | `authorization:removing-resource-action-grant-failed` | 500         | The grant could not be removed. | `message`             | `['message' => 'Error message']` |
 
+### `GET /authorization/available-resource-class-actions/{identifier}`
+
+Get the list of item and collection actions that are available for the given resource class.
+
 ### `GET /authorization/available-resource-class-actions`
 
-Get the list available item and collection operations for the given resource class.
-
-| relay:errorId                              | Status code | Description                      | relay:errorDetails | Example             |
-|--------------------------------------------|-------------|----------------------------------|--------------------|---------------------|
-| `authorization:required-parameter-missing` | 400         | A required parameter is missing. |                    | `['resourceClass']` |
+Get the lists of item and collection actions that are available for all given resource classes the logged-in user is authorized to see.

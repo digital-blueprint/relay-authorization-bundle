@@ -11,7 +11,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
  */
 class AvailableResourceClassActions
 {
-    private string $identifier = 'available-resource-class-actions';
+    #[Groups(['AuthorizationAvailableResourceClassActions:output'])]
+    private ?string $identifier = null;
 
     /**
      * @var string[]
@@ -25,8 +26,9 @@ class AvailableResourceClassActions
     #[Groups(['AuthorizationAvailableResourceClassActions:output'])]
     private ?array $collectionActions;
 
-    public function __construct(?array $availableResourceItemActions, ?array $availableResourceCollectionActions)
+    public function __construct(string $resourceClass, ?array $availableResourceItemActions, ?array $availableResourceCollectionActions)
     {
+        $this->identifier = $resourceClass;
         $this->itemActions = $availableResourceItemActions;
         $this->collectionActions = $availableResourceCollectionActions;
     }
@@ -38,6 +40,7 @@ class AvailableResourceClassActions
 
     public function setIdentifier(?string $identifier): void
     {
+        $this->identifier = $identifier;
     }
 
     /**

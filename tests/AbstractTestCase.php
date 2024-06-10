@@ -49,6 +49,17 @@ abstract class AbstractTestCase extends WebTestCase
         return array_filter($results, $where);
     }
 
+    protected function containsResource(array $resources, mixed $resource): bool
+    {
+        foreach ($resources as $resource) {
+            if ($resource->getIdentifier() === $resource->getIdentifier()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected function getTestConfig(): array
     {
         return [

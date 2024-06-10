@@ -11,6 +11,8 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class TestGetAvailableResourceClassActionsEventSubscriber implements EventSubscriberInterface
 {
     public const TEST_RESOURCE_CLASS = 'resourceClass';
+    public const TEST_RESOURCE_CLASS_2 = 'resourceClass_2';
+    public const TEST_RESOURCE_CLASS_3 = 'resourceClass_3';
 
     public const READ_ACTION = 'read';
     public const WRITE_ACTION = 'write';
@@ -30,6 +32,23 @@ class TestGetAvailableResourceClassActionsEventSubscriber implements EventSubscr
         AuthorizationService::MANAGE_ACTION,
     ];
 
+    public const TEST_RESOURCE_2_ITEM_ACTIONS = [
+        self::UPDATE_ACTION,
+    ];
+
+    public const TEST_RESOURCE_2_COLLECTION_ACTIONS = [
+        self::READ_ACTION,
+    ];
+
+    public const TEST_RESOURCE_3_ITEM_ACTIONS = [
+        self::WRITE_ACTION,
+    ];
+
+    public const TEST_RESOURCE_3_COLLECTION_ACTIONS = [
+        self::READ_ACTION,
+        self::CREATE_ACTION,
+    ];
+
     public static function getSubscribedEvents()
     {
         return [
@@ -44,7 +63,13 @@ class TestGetAvailableResourceClassActionsEventSubscriber implements EventSubscr
                 $event->setItemActions(self::TEST_RESOURCE_ITEM_ACTIONS);
                 $event->setCollectionActions(self::TEST_RESOURCE_COLLECTION_ACTIONS);
                 break;
-            default:
+            case self::TEST_RESOURCE_CLASS_2:
+                $event->setItemActions(self::TEST_RESOURCE_2_ITEM_ACTIONS);
+                $event->setCollectionActions(self::TEST_RESOURCE_2_COLLECTION_ACTIONS);
+                break;
+            case self::TEST_RESOURCE_CLASS_3:
+                $event->setItemActions(self::TEST_RESOURCE_3_ITEM_ACTIONS);
+                $event->setCollectionActions(self::TEST_RESOURCE_3_COLLECTION_ACTIONS);
                 break;
         }
     }

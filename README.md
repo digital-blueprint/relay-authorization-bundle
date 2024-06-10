@@ -9,7 +9,7 @@ The DbpRelayAuthorizationBundle is a pluggable PHP 8.1+/Symfony authorization mo
 and manage user groups as well as user/group access rights (_grants_) to arbitrary resources,
 where group and grant data is stored in a database. 
 
-It integrates seamlessly with the [Relay API Server]([DBP API Server Template](https://packagist.org/packages/dbp/relay-server-template)).
+It integrates seamlessly with the [Relay API Server](https://packagist.org/packages/dbp/relay-server-template).
 
 Please see the [documentation](./docs) for more information.
 

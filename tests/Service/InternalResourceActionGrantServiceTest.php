@@ -768,39 +768,39 @@ class InternalResourceActionGrantServiceTest extends AbstractTestCase
         $this->assertTrue($this->containsResource($authorizationResources, $resourceCollection));
 
         $authorizationResources = $this->internalResourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            null, null, self::CURRENT_USER_IDENTIFIER);
+            null, self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(2, $authorizationResources);
         $this->assertTrue($this->containsResource($authorizationResources, $resource1));
         $this->assertTrue($this->containsResource($authorizationResources, $resourceCollection));
 
         $authorizationResources = $this->internalResourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            null, null, null, [$group2->getIdentifier()]);
+            null, null, [$group2->getIdentifier()]);
         $this->assertCount(1, $authorizationResources);
         $this->assertTrue($this->containsResource($authorizationResources, $resource2));
 
         $authorizationResources = $this->internalResourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            null, null, null, null, ['dynamic_group_2']);
+            null, null, null, ['dynamic_group_2']);
         $this->assertCount(1, $authorizationResources);
         $this->assertTrue($this->containsResource($authorizationResources, $resource3));
 
         $authorizationResources = $this->internalResourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            null, null, self::ANOTHER_USER_IDENTIFIER, [$group2->getIdentifier()], ['dynamic_group_2']);
+            null, self::ANOTHER_USER_IDENTIFIER, [$group2->getIdentifier()], ['dynamic_group_2']);
         $this->assertCount(3, $authorizationResources);
         $this->assertTrue($this->containsResource($authorizationResources, $resource2));
         $this->assertTrue($this->containsResource($authorizationResources, $resource3));
         $this->assertTrue($this->containsResource($authorizationResources, $resource4));
 
         $authorizationResources = $this->internalResourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            'resourceClass', null, self::ANOTHER_USER_IDENTIFIER, [$group2->getIdentifier()], ['dynamic_group_2']);
+            'resourceClass', self::ANOTHER_USER_IDENTIFIER, [$group2->getIdentifier()], ['dynamic_group_2']);
         $this->assertCount(1, $authorizationResources);
         $this->assertTrue($this->containsResource($authorizationResources, $resource2));
 
         // test pagination:
         $authorizationResourcePage1 = $this->internalResourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            null, null, null, null, null, 0, 3);
+            null, null, null, null, 0, 3);
         $this->assertCount(3, $authorizationResourcePage1);
         $authorizationResourcePage2 = $this->internalResourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            null, null, null, null, null, 3, 3);
+            null, null, null, null, 3, 3);
         $this->assertCount(2, $authorizationResourcePage2);
 
         $authorizationResources = array_merge($authorizationResourcePage1, $authorizationResourcePage2);
@@ -811,14 +811,79 @@ class InternalResourceActionGrantServiceTest extends AbstractTestCase
         $this->assertTrue($this->containsResource($authorizationResources, $resourceCollection));
     }
 
-    private function containsResource(array $resources, mixed $resource): bool
+    public function testGetResourceClassesUserIsAuthorizedToRead(): void
     {
-        foreach ($resources as $resource) {
-            if ($resource->getIdentifier() === $resource->getIdentifier()) {
-                return true;
-            }
-        }
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+        $group3 = $this->testEntityManager->addGroup();
 
-        return false;
+        $resource1 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
+        $resource2 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier2');
+        $resource3 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier');
+        $resource4 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier3');
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource('resourceClass_3', null);
+
+        $this->testEntityManager->addResourceActionGrant($resource1,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, null, $group2);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            'write', null, null, 'dynamic_group_1');
+        $this->testEntityManager->addResourceActionGrant($resource3,
+            AuthorizationService::MANAGE_ACTION, null, null, 'dynamic_group_2');
+        $this->testEntityManager->addResourceActionGrant($resource3,
+            'delete', null, $group1);
+        $this->testEntityManager->addResourceActionGrant($resource4,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            AuthorizationService::MANAGE_ACTION, null, $group1);
+        $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            'create', self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            'create', null, null, 'dynamic_group_1');
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead();
+        $this->assertCount(3, $resourceClasses);
+        $this->assertContains('resourceClass', $resourceClasses);
+        $this->assertContains('resourceClass_2', $resourceClasses);
+        $this->assertContains('resourceClass_3', $resourceClasses);
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead(
+            self::CURRENT_USER_IDENTIFIER);
+        $this->assertCount(2, $resourceClasses);
+        $this->assertContains('resourceClass', $resourceClasses);
+        $this->assertContains('resourceClass_3', $resourceClasses);
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead(
+            null, [$group1->getIdentifier()]);
+        $this->assertCount(2, $resourceClasses);
+        $this->assertContains('resourceClass_2', $resourceClasses);
+        $this->assertContains('resourceClass_3', $resourceClasses);
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead(
+            null, [$group2->getIdentifier()]);
+        $this->assertCount(1, $resourceClasses);
+        $this->assertContains('resourceClass', $resourceClasses);
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead(
+            null, null, ['dynamic_group_1']);
+        $this->assertCount(2, $resourceClasses);
+        $this->assertContains('resourceClass', $resourceClasses);
+        $this->assertContains('resourceClass_3', $resourceClasses);
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead(
+            null, null, ['dynamic_group_2']);
+        $this->assertCount(1, $resourceClasses);
+        $this->assertContains('resourceClass_2', $resourceClasses);
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead(
+            self::ANOTHER_USER_IDENTIFIER, [$group2->getIdentifier()], ['dynamic_group_2']);
+        $this->assertCount(2, $resourceClasses);
+        $this->assertContains('resourceClass', $resourceClasses);
+        $this->assertContains('resourceClass_2', $resourceClasses);
+
+        $resourceClasses = $this->internalResourceActionGrantService->getResourceClassesUserIsAuthorizedToRead(
+            'foo', [$group3->getIdentifier()], ['baz']);
+        $this->assertCount(0, $resourceClasses);
     }
 }

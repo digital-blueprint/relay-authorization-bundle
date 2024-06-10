@@ -209,15 +209,14 @@ resources:
     operations:
       ApiPlatform\Metadata\Get:
         provider: Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider
-        uriTemplate: "/authorization/available-resource-class-actions"
+        uriTemplate: "/authorization/available-resource-class-actions/{identifier}"
         openapiContext:
           tags: ["Authorization"]
-          parameters:
-            - name: resourceClass
-              in: query
-              description: 'The resource class to get available actions for'
-              type: string
-              required: true
+      ApiPlatform\Metadata\GetCollection:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider
+        uriTemplate: "/authorization/available-resource-class-actions"
+        openapiContext:
+          tags: [ "Authorization" ]
     properties:
       identifier:
         identifier: true
@@ -226,3 +225,23 @@ resources:
         iri: 'https://schema.org/additionalProperty'
       collectionActions:
         iri: 'https://schema.org/additionalProperty'
+
+  Dbp\Relay\AuthorizationBundle\Entity\DynamicGroup:
+    shortName: "AuthorizationDynamicGroup"
+    normalizationContext:
+      groups: [ "AuthorizationDynamicGroup:output" ]
+    operations:
+      ApiPlatform\Metadata\Get:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\DynamicGroupProvider
+        uriTemplate: "/authorization/dynamic-groups/{identifier}"
+        openapiContext:
+          tags: [ "Authorization" ]
+      ApiPlatform\Metadata\GetCollection:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\DynamicGroupProvider
+        uriTemplate: "/authorization/dynamic-groups"
+        openapiContext:
+          tags: [ "Authorization" ]
+    properties:
+      identifier:
+        identifier: true
+        iri: 'https://schema.org/identifier'

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
-use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
-use Symfony\Component\HttpFoundation\Response;
+use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
 /**
  * @extends AbstractDataProvider<AvailableResourceClassActions>
@@ -18,36 +18,43 @@ use Symfony\Component\HttpFoundation\Response;
 class AvailableResourceClassActionsProvider extends AbstractDataProvider
 {
     private InternalResourceActionGrantService $resourceActionGrantService;
+    private AuthorizationService $authorizationService;
 
-    public function __construct(InternalResourceActionGrantService $resourceActionGrantService)
+    public function __construct(InternalResourceActionGrantService $resourceActionGrantService,
+        AuthorizationService $authorizationService)
     {
         parent::__construct();
 
         $this->resourceActionGrantService = $resourceActionGrantService;
+        $this->authorizationService = $authorizationService;
     }
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        $resourceClass = $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
-        if ($resourceClass === null) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'query parameter \''.Common::RESOURCE_CLASS_QUERY_PARAMETER.'\' is required',
-                Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [Common::RESOURCE_CLASS_QUERY_PARAMETER]);
-        }
-
-        [$itemActions, $collectionActions] =
-            $this->resourceActionGrantService->getAvailableResourceClassActions($resourceClass);
-
-        return new AvailableResourceClassActions($itemActions, $collectionActions);
+        return $this->getAvailableResourceClassActions($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        return [];
+        $availableResourceClassActions = [];
+        foreach ($this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead(
+            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage) as $resourceClass) {
+            $availableResourceClassActions[] = $this->getAvailableResourceClassActions($resourceClass);
+        }
+
+        return $availableResourceClassActions;
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool
     {
         return $this->isAuthenticated();
+    }
+
+    private function getAvailableResourceClassActions(string $resourceClass): AvailableResourceClassActions
+    {
+        [$itemActions, $collectionActions] =
+            $this->resourceActionGrantService->getAvailableResourceClassActions($resourceClass);
+
+        return new AvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
     }
 }

@@ -130,6 +130,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
+     * @return string[]
+     */
+    public function getDynamicGroupsCurrentUserIsAuthorizedToRead(): array
+    {
+        return $this->getAttributeNames();
+    }
+
+    /**
      * @throws ApiError
      */
     public function addResource(string $resourceClass, string $resourceIdentifier): void
@@ -324,6 +332,20 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
+     * @return string[]
+     */
+    public function getResourceClassesCurrentUserIsAuthorizedToRead(mixed $firstResultIndex = 0, int $maxNumResults = 1024): array
+    {
+        $userIdentifier = $this->getUserIdentifier();
+
+        // we get the groups the user is member of beforehand and let the db do the pagination (probably more efficient)
+        return $this->resourceActionGrantService->getResourceClassesUserIsAuthorizedToRead($userIdentifier,
+            $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
+            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
+            $firstResultIndex, $maxNumResults);
+    }
+
+    /**
      * @return AuthorizationResource[]
      */
     public function getAuthorizationResourcesCurrentUserIsAuthorizedToRead(?string $resourceClass, int $firstResultIndex, int $maxNumResults): array
@@ -333,7 +355,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         // since grants for all resource items are requested, we get the groups the user is member of beforehand
         // let the db do the pagination (probably more efficient)
         return $this->resourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            $resourceClass, null, $userIdentifier,
+            $resourceClass, $userIdentifier,
             $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
             self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
             $firstResultIndex, $maxNumResults);

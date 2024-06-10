@@ -28,7 +28,7 @@ class AuthorizationResourceProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->resourceActionGrantService->getResource($id);
+        return $this->resourceActionGrantService->getAuthorizationResource($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array

@@ -3,6 +3,9 @@
 ## Unreleased
 
 * Assure that elements of ResourceAction arrays returned by the PHP API are unique
+* REST API: add endpoints to get dynamic group item/collection
+* REST API: add collection endpoint for available resource class actions returning available
+item and collection actions for the resource classes the current user is authorized to see
 
 ## v0.1.15
 
