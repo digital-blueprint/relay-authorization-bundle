@@ -55,47 +55,53 @@ class ResourceActionGrantService
     }
 
     /**
-     * @parram string|null $resourceIdentifier null matches any resource identifier
-     *
      * @param array|null $actions null matches any action
      *
      * @throws ApiError
      */
-    public function hasUserGrantedResourceItemActions(string $userIdentifier, string $resourceClass, ?string $resourceIdentifier = null,
+    public function hasUserGrantedResourceItemActions(string $userIdentifier, string $resourceClass, string $resourceIdentifier,
         ?array $actions = null): bool
     {
-        return !empty($this->authorizationService->getResourceItemActionsForUser($userIdentifier, $resourceClass,
-            $resourceIdentifier, $actions, 0, 1));
+        return $this->authorizationService->getResourceItemActionsForUser($userIdentifier, $resourceClass,
+            $resourceIdentifier, $actions) !== null;
     }
 
     /**
-     * @parram string|null $resourceIdentifier null matches any resource identifier
-     *
      * @param array|null $actions null matches any action
      *
      * @throws ApiError
      */
-    public function hasGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null,
+    public function hasGrantedResourceItemActions(string $resourceClass, string $resourceIdentifier,
         ?array $actions = null): bool
     {
-        return !empty($this->authorizationService->getResourceItemActionsForCurrentUser($resourceClass,
-            $resourceIdentifier, $actions, 0, 1));
+        return $this->authorizationService->getResourceItemActionsForCurrentUser($resourceClass,
+            $resourceIdentifier, $actions) !== null;
     }
 
     /**
-     * @parram string|null $resourceIdentifier null matches any resource identifier
+     * @param array|null $actions null matches any action
      *
+     * @throws ApiError
+     */
+    public function getGrantedResourceItemActions(string $resourceClass, string $resourceIdentifier,
+        ?array $actions = null): ?ResourceActions
+    {
+        return $this->authorizationService->getResourceItemActionsForCurrentUser($resourceClass,
+            $resourceIdentifier, $actions);
+    }
+
+    /**
      * @param array|null $actions null matches any action
      *
      * @return ResourceActions[]
      *
      * @throws ApiError
      */
-    public function getGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null,
+    public function getGrantedResourceItemActionsPage(string $resourceClass,
         ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        return $this->authorizationService->getResourceItemActionsForCurrentUser($resourceClass,
-            $resourceIdentifier, $actions, $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
+        return $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            $resourceClass, $actions, $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }
 
     /**

@@ -88,8 +88,6 @@ resources:
                       type: "string"
                     childGroup:
                       type: "string"
-                    dynamicGroupIdentifier:
-                      type: "string"
                   required:
                     - group
                 example:
@@ -102,6 +100,13 @@ resources:
         uriTemplate: "/authorization/group-members/{identifier}"
         openapiContext:
           tags: [ "Authorization" ]
+    properties:
+      identifier:
+        identifier: true
+      group:
+        iri: 'https://schema.org/additionalProperty'
+      childGroup:
+        iri: 'https://schema.org/additionalProperty'
 
   Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource:
     shortName: "AuthorizationResource"

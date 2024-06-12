@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.2.1
+
+* PHP API: Provide both getGrantedResourceItemActions (returning ?ResourceAction) and getGrantedResourceItemActionsPage (returning array) methods
+
 ## v0.2.0
 
 * PHP API: rename to (de)registerResource(s)

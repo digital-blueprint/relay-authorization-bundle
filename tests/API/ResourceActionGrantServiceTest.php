@@ -99,7 +99,7 @@ class ResourceActionGrantServiceTest extends AbstractTestCase
 
         $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
             'resourceClass', 'resourceIdentifier');
-        $this->assertCount(0, $resourceActions);
+        $this->assertNull($resourceActions);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -110,6 +110,72 @@ class ResourceActionGrantServiceTest extends AbstractTestCase
         $this->testEntityManager->addResourceActionGrant($resource2, 'read', self::CURRENT_USER_IDENTIFIER);
 
         $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier');
+        $this->assertCount(2, $resourceActions->getActions());
+        $this->assertContains(AuthorizationService::MANAGE_ACTION, $resourceActions->getActions());
+        $this->assertContains('write', $resourceActions->getActions());
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier', [AuthorizationService::MANAGE_ACTION, 'write']);
+        $this->assertCount(2, $resourceActions->getActions());
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier', [AuthorizationService::MANAGE_ACTION]);
+        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions->getActions());
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier', [AuthorizationService::MANAGE_ACTION, 'read']);
+        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions->getActions());
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier', ['write']);
+        $this->assertEquals(['write'], $resourceActions->getActions());
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier', ['read']);
+        $this->assertNull($resourceActions);
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'foo');
+        $this->assertNull($resourceActions);
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'foo', [AuthorizationService::MANAGE_ACTION]);
+        $this->assertNull($resourceActions);
+
+        // -----------------------------------------------------------------
+        // another user:
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier_2');
+        $this->assertEquals($resource2->getResourceIdentifier(), $resourceActions->getResourceIdentifier());
+        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions->getActions());
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+            'resourceClass', 'resourceIdentifier_2', [AuthorizationService::MANAGE_ACTION]);
+        $this->assertEquals($resource2->getResourceIdentifier(), $resourceActions->getResourceIdentifier());
+        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions->getActions());
+    }
+
+    public function testGetGrantedResourceItemActionsPage(): void
+    {
+        $resource1 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
+        $resource2 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier_2');
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
+            'resourceClass');
+        $this->assertEmpty($resourceActions);
+
+        $this->testEntityManager->addResourceActionGrant($resource1,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource1, 'write', self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource1, 'read', self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource2, 'read', self::CURRENT_USER_IDENTIFIER);
+
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
             'resourceClass');
         $this->assertCount(2, $resourceActions);
         $this->assertCount(1, $this->selectWhere($resourceActions, function ($resourceActions) use ($resource1) {
@@ -124,76 +190,37 @@ class ResourceActionGrantServiceTest extends AbstractTestCase
                 && in_array('read', $resourceActions->getActions(), true);
         }));
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier');
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
+            'resourceClass', [AuthorizationService::MANAGE_ACTION, 'write']);
         $this->assertCount(1, $resourceActions);
         $this->assertCount(2, $resourceActions[0]->getActions());
         $this->assertContains(AuthorizationService::MANAGE_ACTION, $resourceActions[0]->getActions());
         $this->assertContains('write', $resourceActions[0]->getActions());
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier', [AuthorizationService::MANAGE_ACTION, 'write']);
-        $this->assertCount(1, $resourceActions);
-        $this->assertCount(2, $resourceActions[0]->getActions());
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier', [AuthorizationService::MANAGE_ACTION]);
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
+            'resourceClass', [AuthorizationService::MANAGE_ACTION]);
         $this->assertCount(1, $resourceActions);
         $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions[0]->getActions());
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier', [AuthorizationService::MANAGE_ACTION, 'read']);
-        $this->assertCount(1, $resourceActions);
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions[0]->getActions());
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier', ['write']);
-        $this->assertCount(1, $resourceActions);
-        $this->assertEquals(['write'], $resourceActions[0]->getActions());
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier', ['read']);
-        $this->assertCount(0, $resourceActions);
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', null, [AuthorizationService::MANAGE_ACTION, 'write']);
-        $this->assertCount(1, $resourceActions);
-        $this->assertCount(2, $resourceActions[0]->getActions());
-        $this->assertContains(AuthorizationService::MANAGE_ACTION, $resourceActions[0]->getActions());
-        $this->assertContains('write', $resourceActions[0]->getActions());
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', null, [AuthorizationService::MANAGE_ACTION]);
-        $this->assertCount(1, $resourceActions);
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions[0]->getActions());
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', null, ['write']);
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
+            'resourceClass', ['write']);
         $this->assertCount(1, $resourceActions);
         $this->assertEquals($resource1->getResourceIdentifier(), $resourceActions[0]->getResourceIdentifier());
         $this->assertEquals(['write'], $resourceActions[0]->getActions());
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', null, ['delete']);
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
+            'resourceClass', ['delete']);
         $this->assertCount(0, $resourceActions);
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
             'resourceClass_2');
-        $this->assertCount(0, $resourceActions);
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'foo');
-        $this->assertCount(0, $resourceActions);
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'foo', [AuthorizationService::MANAGE_ACTION]);
-        $this->assertCount(0, $resourceActions);
+        $this->assertEmpty($resourceActions);
 
         // -----------------------------------------------------------------
         // another user:
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
             'resourceClass');
         $this->assertCount(2, $resourceActions);
         $this->assertCount(1, $this->selectWhere($resourceActions, function ($resourceActions) use ($resource2) {
@@ -207,20 +234,8 @@ class ResourceActionGrantServiceTest extends AbstractTestCase
                 && in_array('read', $resourceActions->getActions(), true);
         }));
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier_2');
-        $this->assertCount(1, $resourceActions);
-        $this->assertEquals($resource2->getResourceIdentifier(), $resourceActions[0]->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions[0]->getActions());
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', 'resourceIdentifier_2', [AuthorizationService::MANAGE_ACTION]);
-        $this->assertCount(1, $resourceActions);
-        $this->assertEquals($resource2->getResourceIdentifier(), $resourceActions[0]->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions[0]->getActions());
-
-        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActions(
-            'resourceClass', null, [AuthorizationService::MANAGE_ACTION]);
+        $resourceActions = $this->resourceActionGrantService->getGrantedResourceItemActionsPage(
+            'resourceClass', [AuthorizationService::MANAGE_ACTION]);
         $this->assertCount(1, $resourceActions);
         $this->assertEquals($resource2->getResourceIdentifier(), $resourceActions[0]->getResourceIdentifier());
         $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceActions[0]->getActions());
