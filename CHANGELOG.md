@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* PHP API: rename to (de)registerResource(s)
+* PHP API: only return one ResourceAction per resource (item or collection) with the set of actions 
+the current user is authorized to perform on the resource item or collection 
+
 ## v0.1.16
 
 * Assure that elements of ResourceAction arrays returned by the PHP API are unique

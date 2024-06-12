@@ -131,7 +131,7 @@ class InternalResourceActionGrantServiceTest extends AbstractTestCase
         $this->assertEquals($resource->getIdentifier(),
             $this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier())->getIdentifier());
 
-        $this->internalResourceActionGrantService->removeResource('resourceClass', 'resourceIdentifier');
+        $this->internalResourceActionGrantService->removeAuthorizationResource('resourceClass', 'resourceIdentifier');
 
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier()));
     }
@@ -156,7 +156,7 @@ class InternalResourceActionGrantServiceTest extends AbstractTestCase
         $this->assertEquals($resourceActionGrantGroup->getIdentifier(),
             $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrantGroup->getIdentifier())->getIdentifier());
 
-        $this->internalResourceActionGrantService->removeResource('resourceClass', 'resourceIdentifier');
+        $this->internalResourceActionGrantService->removeAuthorizationResource('resourceClass', 'resourceIdentifier');
 
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier()));
         // assert that group has not been deleted alongside with group grant

@@ -25,9 +25,9 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function addResource(string $resourceClass, string $resourceIdentifier): void
+    public function registerResource(string $resourceClass, string $resourceIdentifier): void
     {
-        $this->authorizationService->addResource($resourceClass, $resourceIdentifier);
+        $this->authorizationService->registerResource($resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -35,9 +35,9 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function removeResource(string $resourceClass, string $resourceIdentifier): void
+    public function deregisterResource(string $resourceClass, string $resourceIdentifier): void
     {
-        $this->authorizationService->removeResource($resourceClass, $resourceIdentifier);
+        $this->authorizationService->deregisterResource($resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -47,7 +47,7 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function removeResources(string $resourceClass, array $resourceIdentifiers): void
+    public function deregisterResources(string $resourceClass, array $resourceIdentifiers): void
     {
         if (!empty($resourceIdentifiers)) {
             $this->authorizationService->removeResources($resourceClass, $resourceIdentifiers);
@@ -87,7 +87,7 @@ class ResourceActionGrantService
      *
      * @param array|null $actions null matches any action
      *
-     * @return ResourceAction[]
+     * @return ResourceActions[]
      *
      * @throws ApiError
      */
@@ -105,21 +105,18 @@ class ResourceActionGrantService
      */
     public function hasGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null): bool
     {
-        return count($this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            $resourceClass, $actions, 0, 1)) > 0;
+        return $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            $resourceClass, $actions) !== null;
     }
 
     /**
      * @param array|null $actions null matches any action
      *
-     * @return ResourceAction[]
-     *
      * @throws ApiError
      */
-    public function getGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null,
-        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
+    public function getGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null): ?ResourceActions
     {
         return $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            $resourceClass, $actions, $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
+            $resourceClass, $actions);
     }
 }
