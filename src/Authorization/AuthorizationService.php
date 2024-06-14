@@ -269,14 +269,23 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @return Group[]
      */
-    public function getGroupsCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults): array
+    public function getGroupsCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults, array $filters = []): array
     {
-        $groupIdentifiers = array_map(function ($resourceAction) {
-            return $resourceAction->getResourceIdentifier();
-        }, $this->getResourceItemActionsPageForForUserInternal($this->getUserIdentifier(), self::GROUP_RESOURCE_CLASS,
-            [self::MANAGE_ACTION, self::READ_GROUP_ACTION], $firstResultIndex, $maxNumResults));
+        //        $groupIdentifiers = array_map(function ($resourceAction) {
+        //            return $resourceAction->getResourceIdentifier();
+        //        }, $this->getResourceItemActionsPageForForUserInternal($this->getUserIdentifier(), self::GROUP_RESOURCE_CLASS,
+        //            [self::MANAGE_ACTION, self::READ_GROUP_ACTION], $firstResultIndex, $maxNumResults));
+        $userIdentifier = $this->getUserIdentifier();
 
-        return $this->groupService->getGroupsByIdentifiers($groupIdentifiers, 0, $maxNumResults);
+        $groupIdentifiers = $this->resourceActionGrantService->getGroupIdentifiersUserIsAuthorizedToRead(
+            $userIdentifier,
+            $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
+            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
+            $firstResultIndex, $maxNumResults, $filters);
+        dump($this->groupService->getGroups(0, 10));
+
+        return $groupIdentifiers;
+        // return $this->groupService->getGroupsByIdentifiers($groupIdentifiers, 0, $maxNumResults);
     }
 
     public function isCurrentUserAuthorizedToAddGroup(Group $group): bool

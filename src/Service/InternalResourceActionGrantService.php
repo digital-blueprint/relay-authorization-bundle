@@ -6,11 +6,14 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
@@ -133,9 +136,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         } catch (\Exception $e) {
             $this->entityManager->getConnection()->rollback();
 
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
                 self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
 
         return $resourceActionGrant;
@@ -229,6 +231,54 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         return $this->getResourceActionGrantsUserIsAuthorizedToReadInternal(self::GET_RESOURCE_ACTION_GRANTS,
             $resourceClass, $resourceIdentifier, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
             $firstResultIndex, $maxNumResults);
+    }
+
+    /**
+     * @return Group[]
+     *
+     * @throws ApiError
+     */
+    public function getGroupIdentifiersUserIsAuthorizedToRead(
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        int $firstResultIndex = 0, int $maxNumResults = 1024, array $filters = []): array
+    {
+        //        return $this->getResourceActionGrantsForAuthorizationResourcePage(
+        //            AuthorizationService::GROUP_RESOURCE_CLASS, self::ITEM_ACTIONS_TYPE,
+        //            [AuthorizationService::MANAGE_ACTION, AuthorizationService::READ_GROUP_ACTION],
+        //            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $firstResultIndex, $maxNumResults);
+
+        $AUTHORIZATION_RESOURCE_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS;
+
+        $GROUP_ALIAS = 'g';
+        $actionsType = self::ITEM_ACTIONS_TYPE;
+        $resourceClass = AuthorizationService::GROUP_RESOURCE_CLASS;
+        $actions = [AuthorizationService::MANAGE_ACTION, AuthorizationService::READ_GROUP_ACTION];
+
+        // first get the requested page of authorization resource ids
+        $authorizationResourceIdPageQueryBuilder = $this->createAuthorizationResourceQueryBuilder(
+            $GROUP_ALIAS, $resourceClass,
+            $actionsType === self::COLLECTION_ACTIONS_TYPE ? self::IS_NULL : self::IS_NOT_NULL,
+            null, $actions,
+            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
+
+        $authorizationResourceIdPageQueryBuilder
+            ->innerJoin(Group::class, $GROUP_ALIAS, Join::WITH,
+                "$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier = $GROUP_ALIAS.identifier");
+        if ($groupNameFilter = $filters[GroupService::SEARCH_FILTER_OPTION] ?? null) {
+            $authorizationResourceIdPageQueryBuilder
+                ->andWhere($this->entityManager->getExpressionBuilder()->like("$GROUP_ALIAS.name", ':groupNameLike'))
+                ->setParameter(':groupNameLike', "%$groupNameFilter%");
+        }
+        dump($this->getResourceActionGrantsUserIsAuthorizedToRead(AuthorizationService::GROUP_RESOURCE_CLASS, self::IS_NOT_NULL, 'userIdentifier'));
+        dump($this->getAuthorizationResourcesUserIsAuthorizedToRead(AuthorizationService::GROUP_RESOURCE_CLASS, 'userIdentifier'));
+        dump($authorizationResourceIdPageQueryBuilder->getQuery()->getSQL());
+        // dump($authorizationResourceIdPageQueryBuilder->getParameters());
+
+        return $authorizationResourceIdPageQueryBuilder
+            ->getQuery()
+            ->setFirstResult($firstResultIndex)
+            ->setMaxResults($maxNumResults)
+            ->getResult();
     }
 
     /**
@@ -582,11 +632,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             if (is_array($resourceIdentifiers)) {
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->in("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifiers'))
-                    ->setParameter(':resourceIdentifiers', $resourceIdentifiers);
+                    ->setParameter(':resourceIdentifiers', $resourceIdentifiers, ArrayParameterType::BINARY);
             } else {
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
-                    ->setParameter(':resourceIdentifier', $resourceIdentifiers);
+                    ->setParameter(':resourceIdentifier', $resourceIdentifiers, ParameterType::BINARY);
             }
             $queryBuilder->getQuery()->execute();
         } catch (\Exception $e) {
@@ -654,7 +704,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 default:
                     $queryBuilder
                         ->andWhere($queryBuilder->expr()->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
-                        ->setParameter(':resourceIdentifier', $resourceIdentifier);
+                        ->setParameter(':resourceIdentifier', $resourceIdentifier, ParameterType::BINARY);
             }
         }
     }

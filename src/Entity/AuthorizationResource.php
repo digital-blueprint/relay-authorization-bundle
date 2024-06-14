@@ -15,7 +15,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 class AuthorizationResource
 {
     #[ORM\Id]
-    #[ORM\Column(type: 'relay_authorization_uuid_binary', unique: true, length: 16)]
+    #[ORM\Column(type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     #[Groups(['AuthorizationResource:output'])]
     private ?string $identifier = null;
 
@@ -23,7 +23,7 @@ class AuthorizationResource
     #[Groups(['AuthorizationResource:input', 'AuthorizationResource:output'])]
     private ?string $resourceClass = null;
 
-    #[ORM\Column(name: 'resource_identifier', type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: 'resource_identifier', type: 'binary', length: 16, nullable: true)]
     #[Groups(['AuthorizationResource:input', 'AuthorizationResource:output'])]
     private ?string $resourceIdentifier = null;
 

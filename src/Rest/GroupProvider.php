@@ -17,6 +17,8 @@ use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
  */
 class GroupProvider extends AbstractDataProvider
 {
+    private const SEARCH_QUERY_PARAMETER = GroupService::SEARCH_FILTER_OPTION;
+
     private GroupService $groupService;
     private AuthorizationService $authorizationService;
 
@@ -33,8 +35,13 @@ class GroupProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
+        $options = [];
+        if ($searchParameter = $filters[self::SEARCH_QUERY_PARAMETER] ?? null) {
+            $options[GroupService::SEARCH_FILTER_OPTION] = $searchParameter;
+        }
+
         return $this->authorizationService->getGroupsCurrentUserIsAuthorizedToRead(
-            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
+            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage, $options);
     }
 
     protected function isUserGrantedOperationAccess(int $operation): bool

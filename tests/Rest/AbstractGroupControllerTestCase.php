@@ -17,7 +17,7 @@ abstract class AbstractGroupControllerTestCase extends AbstractTestCase
     {
         parent::setUp();
 
-        $this->groupService = new GroupService($this->testEntityManager->getEntityManager(), $this->authorizationService);
+        $this->groupService = new GroupService($this->testEntityManager->getEntityManager());
     }
 
     protected function addTestGroupAndManageGroupGrantForCurrentUser(string $name): Group

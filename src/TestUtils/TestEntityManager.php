@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Tools\SchemaTool;
 use Ramsey\Uuid\Uuid;
@@ -161,14 +162,22 @@ class TestEntityManager
         }
     }
 
-    public function getAuthorizationResourceByClassAndIdentifier(string $resourceClass, string $resourceIdntifier): ?AuthorizationResource
+    public function getAuthorizationResourceByClassAndIdentifier(string $resourceClass, string $resourceIdentifier): ?AuthorizationResource
     {
+        $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
+        $expressionBuilder = $this->entityManager->getExpressionBuilder();
         try {
-            return $this->entityManager->getRepository(AuthorizationResource::class)
-                ->findOneBy([
-                    'resourceClass' => $resourceClass,
-                    'resourceIdentifier' => $resourceIdntifier,
-                ]);
+            $results = $this->entityManager->createQueryBuilder()
+                ->select($AUTHORIZATION_RESOURCE_ALIAS)
+                ->from(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS)
+                ->where($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass", ':resourceClass'))
+                ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
+                ->setParameter(':resourceClass', $resourceClass)
+                ->setParameter(':resourceIdentifier', $resourceIdentifier, ParameterType::BINARY)
+                ->getQuery()
+                ->getResult();
+
+            return $results[0] ?? null;
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }

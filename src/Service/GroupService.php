@@ -19,6 +19,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class GroupService
 {
+    public const SEARCH_FILTER_OPTION = 'search';
+
     private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-group-failed';
     private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-group-failed';
     private const GROUP_INVALID_ERROR_ID = 'authorization:group-invalid';

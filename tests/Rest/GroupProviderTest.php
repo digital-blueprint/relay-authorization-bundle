@@ -68,19 +68,19 @@ class GroupProviderTest extends AbstractGroupControllerTestCase
     {
         // current user has manage grants for groups 1 and 2, a read grant for group 3, and a write grant for group 5
         $this->login(self::CURRENT_USER_IDENTIFIER);
-        $group1 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $group1 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_1');
+        $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_2');
 
         // another user has manage grants for groups 3, 4, and 5
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $group3 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
+        $group3 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_3');
         $group3ManageGrant = $this->authorizationService->addGroup($group3->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($group3ManageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $group4 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $group4 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_4');
 
-        $group5 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
+        $group5 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_5');
         $group5ManageGrant = $this->authorizationService->addGroup($group5->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($group5ManageGrant->getAuthorizationResource(),
             AuthorizationService::DELETE_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -91,25 +91,27 @@ class GroupProviderTest extends AbstractGroupControllerTestCase
             'perPage' => 10,
         ]);
         $this->assertCount(3, $groups);
-        $this->assertEquals($group1->getIdentifier(), $groups[0]->getIdentifier());
-        $this->assertEquals($group2->getIdentifier(), $groups[1]->getIdentifier());
-        $this->assertEquals($group3->getIdentifier(), $groups[2]->getIdentifier());
+        $this->assertTrue($this->containsResource($groups, $group1));
+        $this->assertTrue($this->containsResource($groups, $group2));
+        $this->assertTrue($this->containsResource($groups, $group3));
 
         // test pagination
-        $groups = $this->groupProviderTester->getCollection([
+        $groupPage1 = $this->groupProviderTester->getCollection([
             'page' => 1,
             'perPage' => 2,
         ]);
-        $this->assertCount(2, $groups);
-        $this->assertEquals($group1->getIdentifier(), $groups[0]->getIdentifier());
-        $this->assertEquals($group2->getIdentifier(), $groups[1]->getIdentifier());
+        $this->assertCount(2, $groupPage1);
 
-        $groups = $this->groupProviderTester->getCollection([
+        $groupPage2 = $this->groupProviderTester->getCollection([
             'page' => 2,
             'perPage' => 2,
         ]);
-        $this->assertCount(1, $groups);
-        $this->assertEquals($group3->getIdentifier(), $groups[0]->getIdentifier());
+        $this->assertCount(1, $groupPage2);
+
+        $groups = array_merge($groupPage1, $groupPage2);
+        $this->assertTrue($this->containsResource($groups, $group1));
+        $this->assertTrue($this->containsResource($groups, $group2));
+        $this->assertTrue($this->containsResource($groups, $group3));
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $groups = $this->groupProviderTester->getCollection([
@@ -117,8 +119,39 @@ class GroupProviderTest extends AbstractGroupControllerTestCase
             'perPage' => 10,
         ]);
         $this->assertCount(3, $groups);
-        $this->assertEquals($group3->getIdentifier(), $groups[0]->getIdentifier());
-        $this->assertEquals($group4->getIdentifier(), $groups[1]->getIdentifier());
-        $this->assertEquals($group5->getIdentifier(), $groups[2]->getIdentifier());
+        $this->assertTrue($this->containsResource($groups, $group3));
+        $this->assertTrue($this->containsResource($groups, $group4));
+        $this->assertTrue($this->containsResource($groups, $group5));
+    }
+
+    public function testGetGroupCollectionWithSearchParameter(): void
+    {
+        // current user has manage grants for groups 1 and 2, a read grant for group 3, and a write grant for group 5
+        $this->login(self::CURRENT_USER_IDENTIFIER);
+        $group1 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_1');
+        $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_2');
+
+        // another user has manage grants for groups 3, 4, and 5
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $group3 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_3');
+        $group3ManageGrant = $this->authorizationService->addGroup($group3->getIdentifier());
+        $this->testEntityManager->addResourceActionGrant($group3ManageGrant->getAuthorizationResource(),
+            AuthorizationService::READ_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $group4 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_4');
+
+        $group5 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_5');
+        $group5ManageGrant = $this->authorizationService->addGroup($group5->getIdentifier());
+        $this->testEntityManager->addResourceActionGrant($group5ManageGrant->getAuthorizationResource(),
+            AuthorizationService::DELETE_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->login(self::CURRENT_USER_IDENTIFIER);
+        $groups = $this->groupProviderTester->getCollection([
+            'search' => self::TEST_GROUP_NAME,
+        ]);
+        $this->assertCount(3, $groups);
+        $this->assertTrue($this->containsResource($groups, $group1));
+        $this->assertTrue($this->containsResource($groups, $group2));
+        $this->assertTrue($this->containsResource($groups, $group3));
     }
 }

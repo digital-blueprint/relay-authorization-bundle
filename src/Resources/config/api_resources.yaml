@@ -16,6 +16,12 @@ resources:
         uriTemplate: "/authorization/groups"
         openapiContext:
           tags: ["Authorization"]
+          parameters:
+            - name: search
+              in: query
+              description: 'A substring to search for in the group name'
+              type: string
+              required: false
       ApiPlatform\Metadata\Post:
         processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
         uriTemplate: "/authorization/groups"
