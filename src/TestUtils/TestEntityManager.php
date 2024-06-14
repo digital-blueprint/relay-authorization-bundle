@@ -9,7 +9,6 @@ use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
-use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Tools\SchemaTool;
 use Ramsey\Uuid\Uuid;
@@ -173,7 +172,7 @@ class TestEntityManager
                 ->where($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass", ':resourceClass'))
                 ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
                 ->setParameter(':resourceClass', $resourceClass)
-                ->setParameter(':resourceIdentifier', $resourceIdentifier, ParameterType::BINARY)
+                ->setParameter(':resourceIdentifier', $resourceIdentifier)
                 ->getQuery()
                 ->getResult();
 

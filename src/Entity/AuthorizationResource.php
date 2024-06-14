@@ -23,7 +23,7 @@ class AuthorizationResource
     #[Groups(['AuthorizationResource:input', 'AuthorizationResource:output'])]
     private ?string $resourceClass = null;
 
-    #[ORM\Column(name: 'resource_identifier', type: 'binary', length: 16, nullable: true)]
+    #[ORM\Column(name: 'resource_identifier', type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationResource:input', 'AuthorizationResource:output'])]
     private ?string $resourceIdentifier = null;
 

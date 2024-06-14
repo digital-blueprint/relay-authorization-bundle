@@ -30,7 +30,8 @@ abstract class AbstractTestCase extends WebTestCase
         $this->internalResourceActionGrantService = new InternalResourceActionGrantService(
             $this->testEntityManager->getEntityManager(), $eventDispatcher);
         $this->authorizationService = new AuthorizationService(
-            $this->internalResourceActionGrantService, new GroupService($this->testEntityManager->getEntityManager()));
+            $this->internalResourceActionGrantService, new GroupService($this->testEntityManager->getEntityManager()),
+            $this->testEntityManager->getEntityManager());
         TestAuthorizationService::setUp($this->authorizationService,
             self::CURRENT_USER_IDENTIFIER, $this->getDefaultUserAttributes());
         $this->authorizationService->setConfig($this->getTestConfig());

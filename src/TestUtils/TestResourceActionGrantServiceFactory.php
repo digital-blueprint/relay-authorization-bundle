@@ -28,7 +28,7 @@ class TestResourceActionGrantServiceFactory
         $eventDispatcher = new EventDispatcher();
         $internalResourceActionGrantService = new InternalResourceActionGrantService($entityManager, $eventDispatcher);
         $authorizationService = new AuthorizationService(
-            $internalResourceActionGrantService, new GroupService($entityManager));
+            $internalResourceActionGrantService, new GroupService($entityManager), $entityManager);
         TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier, $currentUserAttributes);
         $authorizationService->setConfig(self::getTestConfig());
 

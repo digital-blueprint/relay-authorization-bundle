@@ -16,6 +16,10 @@ use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query\Expr\Join;
+use DoctrineExtensions\Query\Mysql\Replace;
+use DoctrineExtensions\Query\Mysql\Unhex;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -42,9 +46,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const DYNAMIC_GROUP_UNDEFINED_ERROR_ID = 'authorization:dynamic-group-undefined';
 
     public const MAX_NUM_RESULTS_DEFAULT = 1024;
+    public const SEARCH_FILTER = 'search';
 
     private InternalResourceActionGrantService $resourceActionGrantService;
     private GroupService $groupService;
+    private EntityManagerInterface $entityManager;
 
     public static function getSubscribedEvents()
     {
@@ -53,12 +59,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         ];
     }
 
-    public function __construct(InternalResourceActionGrantService $resourceActionGrantService, GroupService $groupService)
+    public function __construct(InternalResourceActionGrantService $resourceActionGrantService, GroupService $groupService,
+        EntityManagerInterface $entityManager)
     {
         parent::__construct();
 
         $this->resourceActionGrantService = $resourceActionGrantService;
         $this->groupService = $groupService;
+        $this->entityManager = $entityManager;
     }
 
     public function setConfig(array $config): void
@@ -271,21 +279,37 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getGroupsCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults, array $filters = []): array
     {
-        //        $groupIdentifiers = array_map(function ($resourceAction) {
-        //            return $resourceAction->getResourceIdentifier();
-        //        }, $this->getResourceItemActionsPageForForUserInternal($this->getUserIdentifier(), self::GROUP_RESOURCE_CLASS,
-        //            [self::MANAGE_ACTION, self::READ_GROUP_ACTION], $firstResultIndex, $maxNumResults));
-        $userIdentifier = $this->getUserIdentifier();
+        $GROUP_ALIAS = 'g';
+        $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
+        /**
+         * NOTE: sqlite3, which is used as in-memory test database, does support
+         * the 'unhex' function only from version 3.41.1.
+         */
+        $this->entityManager->getConfiguration()->addCustomStringFunction('UNHEX', Unhex::class);
+        $this->entityManager->getConfiguration()->addCustomStringFunction('REPLACE', Replace::class);
 
-        $groupIdentifiers = $this->resourceActionGrantService->getGroupIdentifiersUserIsAuthorizedToRead(
+        $userIdentifier = $this->getUserIdentifier();
+        $queryBuilder = $this->resourceActionGrantService->createAuthorizationResourceQueryBuilder($GROUP_ALIAS,
+            self::GROUP_RESOURCE_CLASS, InternalResourceActionGrantService::IS_NOT_NULL,
+            [self::MANAGE_ACTION, self::READ_GROUP_ACTION],
             $userIdentifier,
             $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
-            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
-            $firstResultIndex, $maxNumResults, $filters);
-        dump($this->groupService->getGroups(0, 10));
+            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()));
 
-        return $groupIdentifiers;
-        // return $this->groupService->getGroupsByIdentifiers($groupIdentifiers, 0, $maxNumResults);
+        $queryBuilder
+            ->innerJoin(Group::class, $GROUP_ALIAS, Join::WITH,
+                "UNHEX(REPLACE($AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier, '-', '')) = $GROUP_ALIAS.identifier");
+        if ($groupNameFilter = $filters[self::SEARCH_FILTER] ?? null) {
+            $queryBuilder
+                ->andWhere($this->entityManager->getExpressionBuilder()->like("$GROUP_ALIAS.name", ':groupNameLike'))
+                ->setParameter(':groupNameLike', "%$groupNameFilter%");
+        }
+
+        return $queryBuilder
+            ->getQuery()
+            ->setFirstResult($firstResultIndex)
+            ->setMaxResults($maxNumResults)
+            ->getResult();
     }
 
     public function isCurrentUserAuthorizedToAddGroup(Group $group): bool
