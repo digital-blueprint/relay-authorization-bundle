@@ -49,7 +49,10 @@ Creates a new group.
 
 ### `GET /authorization/groups`
 
-Gets one page of groups the logged-in user is authorized to read.
+Gets one page of groups the logged-in user is authorized to read. 
+
+Filters:
+* `search`: return only those groups that contain the specified string (case-insensitive).
 
 | relay:errorId                                   | Status code | Description                        | relay:errorDetails | Example                          |
 |-------------------------------------------------|-------------|------------------------------------|--------------------|----------------------------------|
@@ -127,7 +130,10 @@ Gets the resource with the given identifier.
 
 ### `POST /authorization/resource-action-grants`
 
-Creates a new grant to perform a given action on the given resource:
+Creates a new grant to perform a given action on the given resource.
+
+Parameters:
+* `resourceClass`: Only return grant for resources from the given resource class.
 
 | relay:errorId                                                  | Status code | Description                                                             | relay:errorDetails | Example                          |
 |----------------------------------------------------------------|-------------|-------------------------------------------------------------------------|--------------------|----------------------------------|

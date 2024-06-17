@@ -8,27 +8,34 @@ Resources registered for access control are uniquely identified by
 (identified by `resourceClass` and `resourceIdentifier`). The available set of `actions` can be freely defined
 by the application, except for the **manage** action, which is predefined.
 
-### `addResource(string $resourceClass, string $resourceIdentifier): void`
+### Class `ResourceAction`
+
+References one resource item or the resource collection of a resource class and the subset of requested actions 
+that the current user is authorized to perform on the resource (collection). 
+
+### Method `registerResource`
 
 Registers a new resource for access control, usually on resource creation. The user logged-in during the 
 registration is automatically issued a **mange** grant, which entitles to issue additional grants for that resource.
 
-### `removeResource(string $resourceClass, string $resourceIdentifier): void`
+### Method `deregisterResource`
 
 De-registers a resource from access control, usually on resource deletion, and deletes all grants for the resource.
 
-### `removeResources(string $resourceClass, array $resourceIdentifiers): void`
+### Method `deregisterResources`
 
 De-registers multiple resources from access control, usually on resource deletion, and deletes all grants for the resources.
 
-### `getGrantedResourceItemActions(string $resourceClass, ?string $resourceIdentifier = null, ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array`
+### Method `getGrantedResourceItemAction`
 
-Get grants of the logged-in user to perform any of the given actions on the given resource item.
-* `resourceIdentifier` null matches any resource item of the given resource class
-* `actions` null matches any action
+Gets a `ResourceAction` object with the subset of requested `actions` that the logged-in user is authorized to perform on the given resource item
+or `null` if there are none.
 
-### `getGrantedResourceCollectionActions(string $resourceClass, ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array`
+### `getGrantedResourceItemActionsPage(string $resourceClass, ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array`
 
-Get grants of the logged-in user to perform any of the given actions on the given resource collection
-(e.g. create new resource instances).
-* `actions` null matches any action
+Gets a page `ResourceAction` objects with the subset of requested `actions` that the logged-in user is authorized to perform on the respective resource items.
+
+### Method `getGrantedResourceCollectionActions'
+
+Gets a `ResourceAction` object with the subset of requested `actions` that the logged-in user is authorized to perform on the given resource collection
+or `null` if there are none.

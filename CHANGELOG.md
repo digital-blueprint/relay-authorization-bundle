@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.2.2
+
+* REST API: Add search query parameter to GET Group collection endpoint
+
 ## v0.2.1
 
 * PHP API: Provide both getGrantedResourceItemActions (returning ?ResourceAction) and getGrantedResourceItemActionsPage (returning array) methods
