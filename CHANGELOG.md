@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.1
+
+* Replace the authorization_group_members.child_group_index unique constraint by a regular index
+
 ## v0.3.0
 
 * Re-design PHP API

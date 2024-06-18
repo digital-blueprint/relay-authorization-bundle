@@ -71,15 +71,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function setConfig(array $config): void
     {
         $policies = [];
-        $policies[self::getManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS)] = $config[Configuration::CREATE_GROUPS_POLICY];
+        $policies[self::toManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS)] = $config[Configuration::CREATE_GROUPS_POLICY];
         foreach ($config[Configuration::RESOURCE_CLASSES] ?? [] as $resourceClassConfig) {
-            $policies[self::getManageResourceCollectionPolicyName($resourceClassConfig[Configuration::IDENTIFIER])] =
+            $policies[self::toManageResourceCollectionPolicyName($resourceClassConfig[Configuration::IDENTIFIER])] =
                 $resourceClassConfig[Configuration::MANAGE_RESOURCE_COLLECTION_POLICY];
         }
 
         $attributes = [];
         foreach ($config[Configuration::DYNAMIC_GROUPS] ?? [] as $dynamicGroup) {
-            $attributes[self::getIsCurrentUserMemberOfDynamicGroupAttributeName($dynamicGroup[Configuration::IDENTIFIER])] =
+            $attributes[self::toIsCurrentUserMemberOfDynamicGroup($dynamicGroup[Configuration::IDENTIFIER])] =
                 $dynamicGroup[Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION];
         }
 
@@ -109,7 +109,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function isCurrentUserMemberOfDynamicGroup(string $dynamicGroupIdentifier): bool
     {
         try {
-            return $this->getAttribute(self::getIsCurrentUserMemberOfDynamicGroupAttributeName($dynamicGroupIdentifier));
+            return $this->getAttribute(self::toIsCurrentUserMemberOfDynamicGroup($dynamicGroupIdentifier));
         } catch (AuthorizationException $authorizationException) {
             if ($authorizationException->getCode() === AuthorizationException::ATTRIBUTE_UNDEFINED) {
                 throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
@@ -131,7 +131,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $currentUsersDynamicGroups = [];
         foreach ($this->getAttributeNames() as $attributeName) {
             if ($this->getAttribute($attributeName)) {
-                $currentUsersDynamicGroups[] = self::getDynamicGroupIdentifierFromAttributeName($attributeName);
+                $currentUsersDynamicGroups[] = self::toDynamicGroupIdentifier($attributeName);
             }
         }
 
@@ -368,14 +368,30 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         // TODO: add authorization resources for which the 'manage collection policies' from config evaluate to true for the current user
         $userIdentifier = $this->getUserIdentifier();
+        $groupIdentifiers = $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null;
+        $dynamicGroupIdentifiers = self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf());
 
         // since grants for all resource items are requested, we get the groups the user is member of beforehand
         // let the db do the pagination (probably more efficient)
         return $this->resourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
-            $resourceClass, $userIdentifier,
-            $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
-            self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
+            $resourceClass, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
             $firstResultIndex, $maxNumResults);
+        //        if (count($authorizationResources) < $maxNumResults) {
+        //            $manageCollectionPolicies = $this->getPolicyNames();
+        //            if (!empty($manageCollectionPolicies)) {
+        //                foreach ($manageCollectionPolicies as $manageCollectionPolicy) {
+        //                    $manageCollectionResourceClass = self::toResourceClass($manageCollectionPolicy);
+        //                    $resourceCollectionGrants = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier($resourceClass,
+        //                        InternalResourceActionGrantService::IS_NULL,
+        //                        $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
+        //                    if (empty(array_filter($resourceCollectionGrants, function ($resourceCollectionGrant) use ($manageCollectionResourceClass) {
+        //                        return $resourceCollectionGrant->getAuthorizationResource()->getResourceClass() === $manageCollectionResourceClass;
+        //                    }))) {
+        //
+        //                    }
+        //                }
+        //            }
+        //        }
     }
 
     /**
@@ -395,17 +411,22 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $firstResultIndex, $maxNumResults);
     }
 
-    private static function getManageResourceCollectionPolicyName(string $resourceClass): string
+    private static function toManageResourceCollectionPolicyName(string $resourceClass): string
     {
         return $resourceClass;
     }
 
-    private static function getIsCurrentUserMemberOfDynamicGroupAttributeName(string $dynamicGroupIdentifier): string
+    private static function toResourceClass(string $manageResourceCollectionPolicy): string
+    {
+        return $manageResourceCollectionPolicy;
+    }
+
+    private static function toIsCurrentUserMemberOfDynamicGroup(string $dynamicGroupIdentifier): string
     {
         return $dynamicGroupIdentifier;
     }
 
-    private static function getDynamicGroupIdentifierFromAttributeName(string $attributeName): string
+    private static function toDynamicGroupIdentifier(string $attributeName): string
     {
         return $attributeName;
     }
@@ -458,7 +479,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         // then add a manage resource collection grant to the list of grants (if not yet present)
         if (!in_array(self::MANAGE_ACTION, $resourceCollectionActions, true)) {
             try {
-                $policyName = self::getManageResourceCollectionPolicyName($resourceClass);
+                $policyName = self::toManageResourceCollectionPolicyName($resourceClass);
                 if ($this->isPolicyDefined($policyName) && $this->isGranted($policyName)) {
                     $resourceCollectionActions[] = self::MANAGE_ACTION;
                 }
