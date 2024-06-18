@@ -39,12 +39,10 @@ class ResourceActionGrantProcessor extends AbstractDataProcessor
     {
         assert($item instanceof ResourceActionGrant);
 
-        switch ($operation) {
-            case self::REMOVE_ITEM_OPERATION:
-                return $this->authorizationService->isCurrentUserAuthorizedToRemoveGrant($item);
-        }
-
-        return false;
+        return match ($operation) {
+            self::REMOVE_ITEM_OPERATION => $this->authorizationService->isCurrentUserAuthorizedToRemoveGrant($item),
+            default => false,
+        };
     }
 
     protected function addItem($data, array $filters)

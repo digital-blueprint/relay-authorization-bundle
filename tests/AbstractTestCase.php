@@ -45,9 +45,9 @@ abstract class AbstractTestCase extends WebTestCase
             $userAttributes ?? $this->getDefaultUserAttributes());
     }
 
-    protected function selectWhere(array $results, callable $where): array
+    protected function selectWhere(array $results, callable $where, bool $passInKeyToo = false): array
     {
-        return array_filter($results, $where);
+        return array_filter($results, $where, $passInKeyToo ? ARRAY_FILTER_USE_BOTH : 0);
     }
 
     protected function containsResource(array $resources, mixed $resource): bool

@@ -8,11 +8,6 @@ Resources registered for access control are uniquely identified by
 (identified by `resourceClass` and `resourceIdentifier`). The available set of `actions` can be freely defined
 by the application, except for the **manage** action, which is predefined.
 
-### Class `ResourceAction`
-
-References one resource item or the resource collection of a resource class and the subset of requested actions 
-that the current user is authorized to perform on the resource (collection). 
-
 ### Method `registerResource`
 
 Registers a new resource for access control, usually on resource creation. The user logged-in during the 
@@ -26,16 +21,29 @@ De-registers a resource from access control, usually on resource deletion, and d
 
 De-registers multiple resources from access control, usually on resource deletion, and deletes all grants for the resources.
 
-### Method `getGrantedResourceItemAction`
+### Method `getGrantedItemActionsForCurrentUser`
 
-Gets a `ResourceAction` object with the subset of requested `actions` that the logged-in user is authorized to perform on the given resource item
-or `null` if there are none.
+Gets the item actions that the current user is authorized to perform on the given resource item, e.g.:
+```php
+['read']
+```
 
-### `getGrantedResourceItemActionsPage(string $resourceClass, ?array $actions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array`
+### Method `getGrantedItemActionsPageForCurrentUser`
 
-Gets a page `ResourceAction` objects with the subset of requested `actions` that the logged-in user is authorized to perform on the respective resource items.
+Gets a page (=subset) of all resource item actions that the current user is authorized to perform and 
+that contain at least one of the given item actions.
 
-### Method `getGrantedResourceCollectionActions'
+The result is a associative array mapping the resource identifiers to the granted actions:
+```php
+[
+   '01902a56-4cc7-71ba-aa71-72a27f1ba9b6' => ['manage', 'read'],
+   '01902a56-b7f2-78f0-a46a-a886b02291a2' => ['write'],
+]
+```
 
-Gets a `ResourceAction` object with the subset of requested `actions` that the logged-in user is authorized to perform on the given resource collection
-or `null` if there are none.
+### Method `getGrantedCollectionActionsForCurrentUser`
+
+Gets the collection actions that the current user is authorized to perform on the given resource collection, e.g.:
+```php
+['manage', 'create']
+```

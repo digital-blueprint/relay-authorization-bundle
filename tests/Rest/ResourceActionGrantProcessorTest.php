@@ -91,7 +91,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
     {
         // only the resource manager is authorized to delete grants for a resource
         $manageResourceGrant = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier',
-            self::CURRENT_USER_IDENTIFIER.'_2');
+            self::ANOTHER_USER_IDENTIFIER);
         $resourceActionGrant = $this->addGrant($manageResourceGrant->getAuthorizationResource(),
             'read', self::CURRENT_USER_IDENTIFIER);
 

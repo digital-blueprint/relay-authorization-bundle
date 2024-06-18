@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* Re-design PHP API
+* PHP API: Return all resource actions of the user for a returned resource (instead of only the requested once). The actions parameter now works as 
+filter for returned resources: Only return actions for resources where the actions contain at least one of the given actions.
+
 ## v0.2.2
 
 * REST API: Add search query parameter to GET Group collection endpoint
