@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.3.0
+
 * Re-design PHP API
 * PHP API: Return all resource actions of the user for a returned resource (instead of only the requested once). The actions parameter now works as 
 filter for returned resources: Only return actions for resources where the actions contain at least one of the given actions.
