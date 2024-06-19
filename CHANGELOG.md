@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.3
+
+* Disallowed child groups now include groups that are already a member of a group 
+
 ## v0.3.2
 
 * Add query parameter 'getChildGroupCandidatesForGroupIdentifier' to GET group collection endpoint

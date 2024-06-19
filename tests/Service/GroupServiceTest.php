@@ -289,6 +289,28 @@ class GroupServiceTest extends AbstractTestCase
         $this->groupService->addGroupMember($groupMember);
     }
 
+    /**
+     * Matching parent and child group would cause and endless loop.
+     */
+    public function testAddGroupMemberInvalidChildGroupAlreadyAdded(): void
+    {
+        $group = $this->testEntityManager->addGroup();
+        $childGroup = $this->testEntityManager->addGroup();
+
+        $this->testEntityManager->addGroupMember($group, null, $childGroup);
+
+        $groupMember = new GroupMember();
+        $groupMember->setGroup($group);
+        $groupMember->setChildGroup($childGroup);
+        try {
+            $this->groupService->addGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(GroupService::GROUP_MEMBER_INVALID_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
     public function testAddGroupMemberInvalidBothUserAndChildGroupSet(): void
     {
         $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
@@ -496,6 +518,7 @@ class GroupServiceTest extends AbstractTestCase
 
     public function testGetDisallowedChildGroupIdentifiersFor(): void
     {
+        // all ancestors of the group, all child groups, and the group itself are disallowed group members
         $group0 = $this->testEntityManager->addGroup();
         $group1 = $this->testEntityManager->addGroup();
         $group2 = $this->testEntityManager->addGroup();
@@ -507,16 +530,16 @@ class GroupServiceTest extends AbstractTestCase
         $this->testEntityManager->addGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
 
         $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
-            [$group0->getIdentifier()]),
-            $this->groupService->getDisallowedChildGroupIdentifiersFor($group0->getIdentifier()));
+            [$group0->getIdentifier(), $group2->getIdentifier()]),
+            $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group0->getIdentifier()));
         $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
-            [$group1->getIdentifier()]),
-            $this->groupService->getDisallowedChildGroupIdentifiersFor($group1->getIdentifier()));
-        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
-            [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier()]),
-            $this->groupService->getDisallowedChildGroupIdentifiersFor($group2->getIdentifier()));
+            [$group1->getIdentifier(), $group2->getIdentifier()]),
+            $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group1->getIdentifier()));
         $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
             [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()]),
-            $this->groupService->getDisallowedChildGroupIdentifiersFor($group3->getIdentifier()));
+            $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group2->getIdentifier()));
+        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+            [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()]),
+            $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group3->getIdentifier()));
     }
 }

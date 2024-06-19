@@ -329,25 +329,27 @@ class GroupService
     /**
      * @return string[] The array of **binary** group identifiers
      */
-    public function getDisallowedChildGroupIdentifiersFor(string $groupIdentifier): array
+    public function getDisallowedChildGroupIdentifiersBinaryFor(string $groupIdentifier): array
     {
-        return $this->getDisallowedChildGroupIdentifiersForInternal($this->getGroup($groupIdentifier));
+        return $this->getDisallowedChildGroupIdentifiersBinaryInternal($this->getGroup($groupIdentifier));
     }
 
-    private function isAllowedChildGroupOf(Group $childGropuCandidate, Group $group): bool
+    private function isAllowedChildGroupOf(Group $childGroupCandidate, Group $group): bool
     {
         return in_array(
-            AuthorizationUuidBinaryType::toBinaryUuid($childGropuCandidate->getIdentifier()),
-            $this->getDisallowedChildGroupIdentifiersForInternal($group), true);
+            AuthorizationUuidBinaryType::toBinaryUuid($childGroupCandidate->getIdentifier()),
+            $this->getDisallowedChildGroupIdentifiersBinaryInternal($group), true);
     }
 
     /**
      * @return string[]
      */
-    private function getDisallowedChildGroupIdentifiersForInternal(Group $group): array
+    private function getDisallowedChildGroupIdentifiersBinaryInternal(Group $group): array
     {
-        // all ancestors of the group and the group itself are forbidden
-        $forbiddenChildGroupIdentifiers = $this->getAncestorGroupIdentifiersOfInternal($group);
+        // all ancestors of the group, all child groups, and the group itself are forbidden
+        $forbiddenChildGroupIdentifiers = array_merge(
+            $this->getAncestorGroupIdentifiersBinaryInternal($group),
+            $this->getChildGroupIdentifiersBinary($group));
         $forbiddenChildGroupIdentifiers[] = AuthorizationUuidBinaryType::toBinaryUuid($group->getIdentifier());
 
         return $forbiddenChildGroupIdentifiers;
@@ -356,7 +358,24 @@ class GroupService
     /**
      * @return string[]
      */
-    private function getAncestorGroupIdentifiersOfInternal(Group $group): array
+    private function getChildGroupIdentifiersBinary(Group $group): array
+    {
+        $GROUP_MEMBER_ALIAS = 'gm';
+
+        return $this->entityManager->createQueryBuilder()
+            ->select("IDENTITY($GROUP_MEMBER_ALIAS.childGroup)")
+            ->from(GroupMember::class, $GROUP_MEMBER_ALIAS)
+            ->where($this->entityManager->getExpressionBuilder()->eq("$GROUP_MEMBER_ALIAS.group", ':group'))
+            ->andWhere($this->entityManager->getExpressionBuilder()->isNotNull("$GROUP_MEMBER_ALIAS.childGroup"))
+            ->setParameter(':group', $group->getIdentifier(), AuthorizationUuidBinaryType::NAME)
+            ->getQuery()
+            ->getSingleColumnResult();
+    }
+
+    /**
+     * @return string[]
+     */
+    private function getAncestorGroupIdentifiersBinaryInternal(Group $group): array
     {
         $sql = 'with recursive cte as (
              select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier

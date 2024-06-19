@@ -282,7 +282,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         }
         if ($getChildGroupCandidatesForGroupIdentifierFilter =
             $filters[self::GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER] ?? null) {
-            $binaryChildGroupCandidateIdentifiers = $this->groupService->getDisallowedChildGroupIdentifiersFor(
+            $binaryChildGroupCandidateIdentifiers = $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor(
                 $getChildGroupCandidatesForGroupIdentifierFilter);
             $queryBuilder
                 ->andWhere($this->entityManager->getExpressionBuilder()->notIn(
