@@ -15,6 +15,7 @@ use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use DoctrineExtensions\Query\Mysql\Replace;
@@ -46,6 +47,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public const MAX_NUM_RESULTS_DEFAULT = 1024;
     public const SEARCH_FILTER = 'search';
+    public const GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER = 'getChildGroupCandidatesForGroupIdentifier';
 
     private InternalResourceActionGrantService $resourceActionGrantService;
     private GroupService $groupService;
@@ -278,6 +280,17 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 ->andWhere($this->entityManager->getExpressionBuilder()->like("$GROUP_ALIAS.name", ':groupNameLike'))
                 ->setParameter(':groupNameLike', "%$groupNameFilter%");
         }
+        if ($getChildGroupCandidatesForGroupIdentifierFilter =
+            $filters[self::GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER] ?? null) {
+            $binaryChildGroupCandidateIdentifiers = $this->groupService->getDisallowedChildGroupIdentifiersFor(
+                $getChildGroupCandidatesForGroupIdentifierFilter);
+            $queryBuilder
+                ->andWhere($this->entityManager->getExpressionBuilder()->notIn(
+                    "$GROUP_ALIAS.identifier", ':getChildGroupCandidatesForGroupIdentifierFilter'))
+                ->setParameter(':getChildGroupCandidatesForGroupIdentifierFilter',
+                    $binaryChildGroupCandidateIdentifiers,
+                    ArrayParameterType::BINARY);
+        }
 
         return $queryBuilder
             ->getQuery()
@@ -351,7 +364,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getResourceClassesCurrentUserIsAuthorizedToRead(mixed $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        // TODO: add resource classes for which the 'manage collection policies' from config evaluate to true for the current user
         $userIdentifier = $this->getUserIdentifier();
 
         // we get the groups the user is member of beforehand and let the db do the pagination (probably more efficient)
@@ -359,6 +371,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
             self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
             $firstResultIndex, $maxNumResults);
+        // TODO: add resource classes for which the 'manage collection policies' from config evaluate to true for the current user
     }
 
     /**
@@ -366,7 +379,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getAuthorizationResourcesCurrentUserIsAuthorizedToRead(?string $resourceClass, int $firstResultIndex, int $maxNumResults): array
     {
-        // TODO: add authorization resources for which the 'manage collection policies' from config evaluate to true for the current user
         $userIdentifier = $this->getUserIdentifier();
         $groupIdentifiers = $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null;
         $dynamicGroupIdentifiers = self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf());
@@ -376,6 +388,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->resourceActionGrantService->getAuthorizationResourcesUserIsAuthorizedToRead(
             $resourceClass, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
             $firstResultIndex, $maxNumResults);
+        // TODO: add authorization resources for which the 'manage collection policies' from config evaluate to true for the current user
         //        if (count($authorizationResources) < $maxNumResults) {
         //            $manageCollectionPolicies = $this->getPolicyNames();
         //            if (!empty($manageCollectionPolicies)) {

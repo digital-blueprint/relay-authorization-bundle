@@ -61,6 +61,12 @@ abstract class AbstractTestCase extends WebTestCase
         return false;
     }
 
+    protected function assertIsPermutationOf(array $array1, array $array2): void
+    {
+        $this->assertTrue(count($array1) === count($array2)
+            && count($array1) === count(array_intersect($array1, $array2)), 'arrays are no permutations of each other');
+    }
+
     protected function getTestConfig(): array
     {
         return [

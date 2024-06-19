@@ -22,6 +22,11 @@ resources:
               description: 'A substring to search for in the group name'
               type: string
               required: false
+            - name: getChildGroupCandidatesForGroupIdentifier
+              in: query
+              description: 'Only return groups that can be members (child groups) of the given group'
+              type: string
+              required: false
       ApiPlatform\Metadata\Post:
         processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
         uriTemplate: "/authorization/groups"

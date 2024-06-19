@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
+use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
@@ -101,7 +102,7 @@ class GroupServiceTest extends AbstractTestCase
     {
         $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
 
-        $groupPersistence = $this->groupService->getGroup($group->getIdentifier());
+        $groupPersistence = $this->groupService->tryGetGroup($group->getIdentifier());
         $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
         $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
         $this->assertEmpty($group->getMembers());
@@ -109,12 +110,12 @@ class GroupServiceTest extends AbstractTestCase
 
     public function testGetGroupItemNotFound(): void
     {
-        $this->assertNull($this->groupService->getGroup(Uuid::uuid7()->toString()));
+        $this->assertNull($this->groupService->tryGetGroup(Uuid::uuid7()->toString()));
     }
 
     public function testGetGroupItemNotFoundInvalidId(): void
     {
-        $this->assertNull($this->groupService->getGroup('404'));
+        $this->assertNull($this->groupService->tryGetGroup('404'));
     }
 
     public function testGetGroupsByIdentifiers(): void
@@ -491,5 +492,31 @@ class GroupServiceTest extends AbstractTestCase
 
         $groups = $this->groupService->getGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER.'_5');
         $this->assertCount(0, $groups);
+    }
+
+    public function testGetDisallowedChildGroupIdentifiersFor(): void
+    {
+        $group0 = $this->testEntityManager->addGroup();
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+        $group3 = $this->testEntityManager->addGroup();
+
+        $this->testEntityManager->addGroupMember($group0, null, $group2);
+        $this->testEntityManager->addGroupMember($group1, null, $group2);
+        $this->testEntityManager->addGroupMember($group2, null, $group3);
+        $this->testEntityManager->addGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+            [$group0->getIdentifier()]),
+            $this->groupService->getDisallowedChildGroupIdentifiersFor($group0->getIdentifier()));
+        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+            [$group1->getIdentifier()]),
+            $this->groupService->getDisallowedChildGroupIdentifiersFor($group1->getIdentifier()));
+        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+            [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier()]),
+            $this->groupService->getDisallowedChildGroupIdentifiersFor($group2->getIdentifier()));
+        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+            [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()]),
+            $this->groupService->getDisallowedChildGroupIdentifiersFor($group3->getIdentifier()));
     }
 }

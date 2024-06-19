@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.2
+
+* Add query parameter 'getChildGroupCandidatesForGroupIdentifier' to GET group collection endpoint
+
 ## v0.3.1
 
 * Replace the authorization_group_members.child_group_index unique constraint by a regular index

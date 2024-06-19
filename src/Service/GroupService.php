@@ -22,6 +22,7 @@ class GroupService
     private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-group-failed';
     private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-group-failed';
     private const GROUP_INVALID_ERROR_ID = 'authorization:group-invalid';
+    private const GROUP_NOT_FOUND_ERROR_ID = 'authorization:group-not-found';
     private const GETTING_GROUP_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-group-collection-failed';
     private const GETTING_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-group-item-failed';
     private const REMOVING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-group-member-failed';
@@ -98,18 +99,23 @@ class GroupService
     /**
      * @throws ApiError
      */
-    public function getGroup(string $identifier): ?Group
+    public function tryGetGroup(string $identifier): ?Group
     {
-        try {
-            return Uuid::isValid($identifier) ?
-                $this->entityManager
-                    ->getRepository(Group::class)
-                    ->find($identifier) : null;
-        } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group item!',
-                self::GETTING_GROUP_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
+        return $this->tryGetGroupInternal($identifier);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function getGroup(string $identifier): Group
+    {
+        $group = $this->tryGetGroupInternal($identifier);
+        if ($group === null) {
+            throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'Group not found', self::GROUP_NOT_FOUND_ERROR_ID,
+                ['identifier' => $identifier]);
         }
+
+        return $group;
     }
 
     /**
@@ -271,6 +277,20 @@ class GroupService
         }
     }
 
+    private function tryGetGroupInternal(string $identifier): ?Group
+    {
+        try {
+            return Uuid::isValid($identifier) ?
+                $this->entityManager
+                    ->getRepository(Group::class)
+                    ->find($identifier) : null;
+        } catch (\Exception $e) {
+            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group item!',
+                self::GETTING_GROUP_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+            throw $apiError;
+        }
+    }
+
     /**
      * @throws ApiError
      */
@@ -293,8 +313,7 @@ class GroupService
         }
         // Matching parent and child group would cause and endless loop
         if ($groupMember->getChildGroup() !== null
-            && ($groupMember->getGroup() === $groupMember->getChildGroup()
-                || $this->isGroupAncestorOf($groupMember->getChildGroup(), $groupMember->getGroup()))) {
+            && $this->isAllowedChildGroupOf($groupMember->getChildGroup(), $groupMember->getGroup())) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'group member is invalid:  \'childGroup\' must not be the same or an ancestor of \'group\' (causes infinite loop)',
                 self::GROUP_MEMBER_INVALID_ERROR_ID, ['childGroup']);
@@ -307,7 +326,37 @@ class GroupService
         }
     }
 
-    private function isGroupAncestorOf(Group $testAncestor, Group $testDescendant): bool
+    /**
+     * @return string[] The array of **binary** group identifiers
+     */
+    public function getDisallowedChildGroupIdentifiersFor(string $groupIdentifier): array
+    {
+        return $this->getDisallowedChildGroupIdentifiersForInternal($this->getGroup($groupIdentifier));
+    }
+
+    private function isAllowedChildGroupOf(Group $childGropuCandidate, Group $group): bool
+    {
+        return in_array(
+            AuthorizationUuidBinaryType::toBinaryUuid($childGropuCandidate->getIdentifier()),
+            $this->getDisallowedChildGroupIdentifiersForInternal($group), true);
+    }
+
+    /**
+     * @return string[]
+     */
+    private function getDisallowedChildGroupIdentifiersForInternal(Group $group): array
+    {
+        // all ancestors of the group and the group itself are forbidden
+        $forbiddenChildGroupIdentifiers = $this->getAncestorGroupIdentifiersOfInternal($group);
+        $forbiddenChildGroupIdentifiers[] = AuthorizationUuidBinaryType::toBinaryUuid($group->getIdentifier());
+
+        return $forbiddenChildGroupIdentifiers;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function getAncestorGroupIdentifiersOfInternal(Group $group): array
     {
         $sql = 'with recursive cte as (
              select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
@@ -318,19 +367,17 @@ class GroupService
                  from       authorization_group_members agm_2
                  inner join cte
                  on agm_2.child_group_identifier = cte.parent_group_identifier)
-             select parent_group_identifier from cte where parent_group_identifier = :parentGroupIdentifier;';
+             select parent_group_identifier from cte;';
 
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
             $sqlStatement->bindValue(':childGroupIdentifier',
-                AuthorizationUuidBinaryType::toBinaryUuid($testDescendant->getIdentifier()), ParameterType::BINARY);
-            $sqlStatement->bindValue(':parentGroupIdentifier',
-                AuthorizationUuidBinaryType::toBinaryUuid($testAncestor->getIdentifier()), ParameterType::BINARY);
+                AuthorizationUuidBinaryType::toBinaryUuid($group->getIdentifier()), ParameterType::BINARY);
 
-            return $sqlStatement->executeQuery()->fetchOne() !== false;
+            return $sqlStatement->executeQuery()->fetchFirstColumn();
         } catch (\Exception $exception) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'testing if group is ancestor failed: '.$exception->getMessage());
+                'gettting group ancestors failed: '.$exception->getMessage());
         }
     }
 }

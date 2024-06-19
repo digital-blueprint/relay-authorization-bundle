@@ -45,7 +45,7 @@ class GroupMemberProvider extends AbstractDataProvider
                 Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::GROUP_IDENTIFIER_QUERY_PARAMETER]);
         }
 
-        $group = $this->groupService->getGroup($groupIdentifier);
+        $group = $this->groupService->tryGetGroup($groupIdentifier);
         if ($group === null) {
             throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
                 "Group with ID '$groupIdentifier' not found", self::GROUP_NOT_FOUND_ERROR_ID, [$groupIdentifier]);
