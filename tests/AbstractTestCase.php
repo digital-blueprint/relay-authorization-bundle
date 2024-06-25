@@ -52,8 +52,8 @@ abstract class AbstractTestCase extends WebTestCase
 
     protected function containsResource(array $resources, mixed $resource): bool
     {
-        foreach ($resources as $resource) {
-            if ($resource->getIdentifier() === $resource->getIdentifier()) {
+        foreach ($resources as $res) {
+            if ($resource->getIdentifier() === $res->getIdentifier()) {
                 return true;
             }
         }

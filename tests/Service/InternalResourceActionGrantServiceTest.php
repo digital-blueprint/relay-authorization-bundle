@@ -210,7 +210,7 @@ class InternalResourceActionGrantServiceTest extends AbstractTestCase
         $this->assertTrue($this->containsResource($resourceActionGrants, $resourceActionGrant2_2));
         $this->assertTrue($this->containsResource($resourceActionGrants, $resourceActionGrantCollection_1));
         $this->assertTrue($this->containsResource($resourceActionGrants, $resourceActionGrantCollection_2));
-        $this->assertTrue($this->containsResource($resourceActionGrants, $resourceClass2Resource));
+        $this->assertTrue($this->containsResource($resourceActionGrants, $resourceClass2ResourceActionGrant));
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             'resourceClass');
@@ -225,7 +225,7 @@ class InternalResourceActionGrantServiceTest extends AbstractTestCase
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             'resourceClass_2');
         $this->assertCount(1, $resourceActionGrants);
-        $this->assertTrue($this->containsResource($resourceActionGrants, $resourceClass2Resource));
+        $this->assertTrue($this->containsResource($resourceActionGrants, $resourceClass2ResourceActionGrant));
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             'resourceClass_3');
