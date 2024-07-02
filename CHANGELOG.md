@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v0.3.4
+
+* Automatically add/update/delete authorization resources and grants in the DB for the manage resource collection policies 
+configured in the bundle config after app cache clear. 
+
 ## v0.3.3
 
 * Disallowed child groups now include groups that are already a member of a group 

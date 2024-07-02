@@ -11,7 +11,7 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupProviderTest extends AbstractGroupControllerTestCase
+class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestCase
 {
     private DataProviderTester $groupProviderTester;
 
@@ -68,7 +68,7 @@ class GroupProviderTest extends AbstractGroupControllerTestCase
      * This test is excluded because sqlite3, which is used as in-memory test database, does support
      * the 'unhex' function required for string-binary UUID comparison only from version 3.41.1.
      */
-    public function _testGetGroupCollection(): void
+    public function ___testGetGroupCollection(): void
     {
         // current user has manage grants for groups 1 and 2, a read grant for group 3, and a write grant for group 5
         $this->login(self::CURRENT_USER_IDENTIFIER);
@@ -132,7 +132,7 @@ class GroupProviderTest extends AbstractGroupControllerTestCase
      * This test is excluded because sqlite3, which is used as in-memory test database, does support
      * the 'unhex' function required for string-binary UUID comparison only from version 3.41.1.
      */
-    public function _testGetGroupCollectionWithSearchParameter(): void
+    public function ___testGetGroupCollectionWithSearchParameter(): void
     {
         // current user has manage grants for groups 1 and 2, a read grant for group 3, and a write grant for group 5
         $this->login(self::CURRENT_USER_IDENTIFIER);

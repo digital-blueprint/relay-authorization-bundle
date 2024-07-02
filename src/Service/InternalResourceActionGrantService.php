@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
@@ -33,7 +34,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const ITEM_ACTIONS_TYPE = 'ia';
     public const COLLECTION_ACTIONS_TYPE = 'ca';
 
-    public const ONLY_GET_UNIQUE_RESOURCE_ACTIONS_OPTION = 'only_get_unique_resource_actions';
+    public const GROUP_BY_AUTHORIZATION_RESOURCE_OPTION = 'group_by_authorization_resource';
     public const ORDER_BY_AUTHORIZATION_RESOURCE_OPTION = 'order_by_authorization_resource';
 
     private const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
@@ -81,10 +82,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         try {
             $this->entityManager->persist($resourceActionGrant);
             $this->entityManager->flush();
-        } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
+        } catch (ApiError $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
                 self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
 
         return $resourceActionGrant;
@@ -105,12 +105,31 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
+    public function addAuthorizationResource(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
+    {
+        try {
+            $resource = new AuthorizationResource();
+            $resource->setIdentifier(Uuid::uuid7()->toString());
+            $resource->setResourceClass($resourceClass);
+            $resource->setResourceIdentifier($resourceIdentifier);
+
+            $this->entityManager->persist($resource);
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
+                self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+        }
+
+        return $resource;
+    }
+
     /**
      * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
      *
      * @throws ApiError
      */
-    public function addResourceAndManageResourceGrantForUser(string $resourceClass, ?string $resourceIdentifier, string $userIdentifier): ResourceActionGrant
+    public function addResourceAndManageResourceGrantFor(string $resourceClass, ?string $resourceIdentifier,
+        ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         try {
             $resource = new AuthorizationResource();
@@ -127,6 +146,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $resourceActionGrant->setAuthorizationResource($resource);
             $resourceActionGrant->setAction(AuthorizationService::MANAGE_ACTION);
             $resourceActionGrant->setUserIdentifier($userIdentifier);
+            $resourceActionGrant->setGroup($group);
+            $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
             $this->addResourceActionGrant($resourceActionGrant);
 
             $this->entityManager->getConnection()->commit();
@@ -143,7 +164,22 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function removeAuthorizationResource(string $resourceClass, string $resourceIdentifier): void
+    public function removeAuthorizationResource(AuthorizationResource $authorizationResource): void
+    {
+        try {
+            $this->entityManager->remove($authorizationResource);
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Authorization resource could not be removed!',
+                self::REMOVING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+            throw $apiError;
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function removeAuthorizationResourceByResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier): void
     {
         $this->removeResourcesInternal($resourceClass, $resourceIdentifier);
     }
@@ -153,7 +189,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function removeAuthorizationResources(string $resourceClass, array $resourceIdentifiers): void
+    public function removeAuthorizationResourcesByResourceClassAndIdentifier(string $resourceClass, array $resourceIdentifiers): void
     {
         $this->removeResourcesInternal($resourceClass, $resourceIdentifiers);
     }
@@ -164,6 +200,21 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             return $this->entityManager
                 ->getRepository(AuthorizationResource::class)
                 ->find($identifier);
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get resource item!',
+                self::GETTING_RESOURCE_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+        }
+    }
+
+    public function getAuthorizationResourceByResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier): ?AuthorizationResource
+    {
+        try {
+            return $this->entityManager
+                ->getRepository(AuthorizationResource::class)
+                ->findOneBy([
+                    'resourceClass' => $resourceClass,
+                    'resourceIdentifier' => $resourceIdentifier,
+                ]);
         } catch (\Exception $e) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get resource item!',
                 self::GETTING_RESOURCE_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
@@ -252,7 +303,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicGroupIdentifiers
      *
-     * @return ResourceActionGrant[]|AuthorizationResource[]
+     * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
@@ -414,9 +465,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier,
                 null, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
 
-            if ($options[self::ONLY_GET_UNIQUE_RESOURCE_ACTIONS_OPTION] ?? false) {
+            if ($options[self::GROUP_BY_AUTHORIZATION_RESOURCE_OPTION] ?? false) {
                 $queryBuilder
-                    ->addGroupBy("$RESOURCE_ACTION_GRANT_ALIAS.action")
                     ->addGroupBy("$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource");
             }
             if ($options[self::ORDER_BY_AUTHORIZATION_RESOURCE_OPTION] ?? false) {
@@ -512,7 +562,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         } else {
             $actionsToCheck = &$collectionActions;
         }
-        if (!in_array($action, $actionsToCheck, true)) {
+
+        if (!in_array($action, $actionsToCheck ?? [], true)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 "resource action is invalid: action '$action' is not defined for this resource class", self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [$action]);
         }
@@ -549,7 +600,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
-     * @param string|array $resourceIdentifiers
+     * @param string|array|null $resourceIdentifiers
      */
     private function removeResourcesInternal(string $resourceClass, mixed $resourceIdentifiers): void
     {
@@ -565,10 +616,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->in("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifiers'))
                     ->setParameter(':resourceIdentifiers', $resourceIdentifiers);
-            } else {
+            } elseif (is_string($resourceIdentifiers)) {
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
                     ->setParameter(':resourceIdentifier', $resourceIdentifiers);
+            } else {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->isNull("$RESOURCE_ALIAS.resourceIdentifier"));
             }
             $queryBuilder->getQuery()->execute();
         } catch (\Exception $e) {

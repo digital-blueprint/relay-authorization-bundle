@@ -6,37 +6,30 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
-use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
-use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
-abstract class AbstractTestCase extends WebTestCase
+abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalResourceActionGrantServiceTestCase
 {
-    protected const CURRENT_USER_IDENTIFIER = 'userIdentifier';
-    protected const ANOTHER_USER_IDENTIFIER = 'anotherUserIdentifier';
-
-    protected TestEntityManager $testEntityManager;
     protected AuthorizationService $authorizationService;
-    protected InternalResourceActionGrantService $internalResourceActionGrantService;
+    protected ?ArrayAdapter $cachePool = null;
 
     protected function setUp(): void
     {
-        $this->testEntityManager = new TestEntityManager(self::bootKernel());
+        parent::setUp();
 
-        $eventDispatcher = new EventDispatcher();
-        $this->internalResourceActionGrantService = new InternalResourceActionGrantService(
-            $this->testEntityManager->getEntityManager(), $eventDispatcher);
         $this->authorizationService = new AuthorizationService(
-            $this->internalResourceActionGrantService, new GroupService($this->testEntityManager->getEntityManager()),
+            $this->internalResourceActionGrantService,
+            new GroupService($this->testEntityManager->getEntityManager()),
             $this->testEntityManager->getEntityManager());
+
+        $this->eventDispatcher->addSubscriber($this->authorizationService);
+
+        $this->authorizationService->setConfig($this->getTestConfig());
+        $this->authorizationService->setCache($this->cachePool = new ArrayAdapter());
+
         TestAuthorizationService::setUp($this->authorizationService,
             self::CURRENT_USER_IDENTIFIER, $this->getDefaultUserAttributes());
-        $this->authorizationService->setConfig($this->getTestConfig());
-        $eventDispatcher->addSubscriber(new TestGetAvailableResourceClassActionsEventSubscriber());
-        $eventDispatcher->addSubscriber($this->authorizationService);
     }
 
     protected function login(string $userIdentifier, ?array $userAttributes = null): void

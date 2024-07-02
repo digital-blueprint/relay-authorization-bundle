@@ -151,6 +151,26 @@ class TestEntityManager
         }
     }
 
+    /**
+     * @return ResourceActionGrant[]
+     */
+    public function getResourceActionGrants(string $authorizationResourceIdentifier, ?string $action = null): array
+    {
+        try {
+            $criteria = [
+                'authorizationResource' => $authorizationResourceIdentifier,
+            ];
+            if ($action !== null) {
+                $criteria['action'] = $action;
+            }
+
+            return $this->entityManager->getRepository(ResourceActionGrant::class)
+                ->findBy($criteria);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
     public function getAuthorizationResourceByIdentifier(string $identifier): ?AuthorizationResource
     {
         try {
@@ -161,22 +181,29 @@ class TestEntityManager
         }
     }
 
-    public function getAuthorizationResourceByClassAndIdentifier(string $resourceClass, string $resourceIdentifier): ?AuthorizationResource
+    public function getAuthorizationResourceByResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier): ?AuthorizationResource
     {
         $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
         $expressionBuilder = $this->entityManager->getExpressionBuilder();
         try {
-            $results = $this->entityManager->createQueryBuilder()
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
                 ->select($AUTHORIZATION_RESOURCE_ALIAS)
                 ->from(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS)
                 ->where($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass", ':resourceClass'))
-                ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
-                ->setParameter(':resourceClass', $resourceClass)
-                ->setParameter(':resourceIdentifier', $resourceIdentifier)
-                ->getQuery()
-                ->getResult();
+                ->setParameter(':resourceClass', $resourceClass);
+            if ($resourceIdentifier === null) {
+                $queryBuilder
+                    ->andWhere($expressionBuilder->isNull("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier"));
+            } else {
+                $queryBuilder
+                    ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
+                    ->setParameter(':resourceIdentifier', $resourceIdentifier);
+            }
 
-            return $results[0] ?? null;
+            return $queryBuilder
+                ->getQuery()
+                ->getResult()[0] ?? null;
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }

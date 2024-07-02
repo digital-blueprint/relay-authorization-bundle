@@ -8,13 +8,13 @@ use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupServiceTest extends AbstractTestCase
+class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
     private const TEST_GROUP_NAME = 'test_group';
 

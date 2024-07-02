@@ -10,7 +10,7 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Symfony\Component\HttpFoundation\Response;
 
-class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantControllerTestCase
+class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
 {
     private DataProcessorTester $resourceActionGrantProcessorTester;
 

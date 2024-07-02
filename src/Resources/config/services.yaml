@@ -12,6 +12,8 @@ services:
   Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService:
     autowire: true
     autoconfigure: true
+    calls:
+      - setCache: [ '@dbp.relay.authorization.cache.authorization_service' ]
 
   Dbp\Relay\AuthorizationBundle\Service\GroupService:
     autowire: true
@@ -28,3 +30,8 @@ services:
   Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService:
     autowire: true
     autoconfigure: true
+
+  dbp.relay.authorization.cache.authorization_service:
+    parent: cache.app
+    tags:
+      - { name: 'cache.pool', default_lifetime: 360 }

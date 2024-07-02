@@ -7,10 +7,10 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\DynamicGroup;
 use Dbp\Relay\AuthorizationBundle\Rest\DynamicGroupProvider;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 
-class DynamicGroupProviderTest extends AbstractTestCase
+class DynamicGroupProviderAuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
     private DataProviderTester $dynamicGroupProviderTester;
 

@@ -41,7 +41,7 @@ class AddTestResourceCommand extends Command
         $resourceIdentifier = $input->getArgument('resourceIdentifier');
         $userIdentifier = $input->getArgument('userIdentifier');
 
-        $this->resourceActionGrantService->addResourceAndManageResourceGrantForUser(
+        $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
             $resourceClass, $resourceIdentifier, $userIdentifier);
 
         return 0;

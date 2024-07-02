@@ -2,16 +2,46 @@
 
 declare(strict_types=1);
 
-namespace Authorization;
+namespace Dbp\Relay\AuthorizationBundle\Tests\Authorization;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 
-class AuthorizationServiceTest extends AbstractTestCase
+class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
-    private const TEST_RESOURCE_CLASS = 'Vendor/Package/TestResource';
+    private ?array $testConfig = null;
+
+    protected function setUp(): void
+    {
+        if ($this->testConfig === null) {
+            $this->testConfig = [];
+            $this->testConfig[Configuration::RESOURCE_CLASSES] = [
+                [
+                    Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS,
+                    Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+                ],
+            ];
+            $this->testConfig[Configuration::DYNAMIC_GROUPS] = [
+                [
+                    Configuration::IDENTIFIER => 'students',
+                    Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION => 'user.get("IS_STUDENT")',
+                ],
+                [
+                    Configuration::IDENTIFIER => 'employees',
+                    Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION => 'user.get("IS_EMPLOYEE")',
+                ],
+            ];
+        }
+
+        parent::setUp();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->testConfig = null;
+    }
 
     public function testIsCurrentUserAuthorizedToReadResource(): void
     {
@@ -37,6 +67,15 @@ class AuthorizationServiceTest extends AbstractTestCase
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
             self::TEST_RESOURCE_CLASS);
         $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceCollectionActions);
+
+        $collectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null);
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            'read', self::CURRENT_USER_IDENTIFIER);
+
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION, 'read'], $resourceCollectionActions);
     }
 
     public function testIsCurrentUserMemberOfDynamicGroup(): void
@@ -617,6 +656,46 @@ class AuthorizationServiceTest extends AbstractTestCase
         $this->assertContains('delete', $resourceCollectionActions);
     }
 
+    public function testGetGroupCollectionActionGrants(): void
+    {
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            AuthorizationService::GROUP_RESOURCE_CLASS);
+        $this->assertEmpty($resourceCollectionActions);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['MAY_CREATE_GROUPS'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            AuthorizationService::GROUP_RESOURCE_CLASS);
+        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceCollectionActions);
+
+        $groupCollectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            AuthorizationService::GROUP_RESOURCE_CLASS, null);
+
+        $this->testEntityManager->addResourceActionGrant($groupCollectionResource,
+            'create', self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($groupCollectionResource,
+            'read', self::ANOTHER_USER_IDENTIFIER);
+
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            AuthorizationService::GROUP_RESOURCE_CLASS);
+        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION, 'create'], $resourceCollectionActions);
+
+        // ----------------------------------------------------------------
+        // another user:
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            AuthorizationService::GROUP_RESOURCE_CLASS);
+        $this->assertEquals(['read'], $resourceCollectionActions);
+
+        // ----------------------------------------------------------------
+        // user 3:
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_3');
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            AuthorizationService::GROUP_RESOURCE_CLASS);
+        $this->assertEmpty($resourceCollectionActions);
+    }
+
     public function testGetDynamicGroupsCurrentUserIsAuthorizedToRead(): void
     {
         $dynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsAuthorizedToRead();
@@ -702,27 +781,195 @@ class AuthorizationServiceTest extends AbstractTestCase
         $this->assertCount(0, $resourceClasses);
     }
 
-    protected function getTestConfig(): array
+    public function testUpdateManageResourceCollectionPolicyGrantsA(): void
     {
-        $config = parent::getTestConfig();
-        $config[Configuration::RESOURCE_CLASSES] = [
+        $this->assertNotNull($collectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null
+        ));
+
+        $this->assertCount(1, $this->testEntityManager->getResourceActionGrants(
+            $collectionResource->getIdentifier(), AuthorizationService::MANAGE_ACTION));
+
+        // test path (A): resource class was removed from config, no other grants
+        $this->testConfig[Configuration::RESOURCE_CLASSES] = [];
+        $this->setUp();
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null
+        ));
+        $this->assertCount(0, $this->testEntityManager->getResourceActionGrants(
+            $collectionResource->getIdentifier(), AuthorizationService::MANAGE_ACTION));
+    }
+
+    public function testUpdateManageResourceCollectionPolicyGrantsB(): void
+    {
+        // test path (B): resource class was removed from config, other grants exist -> collection resource mustn't be deleted
+        $this->assertNotNull($collectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null));
+
+        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($collectionResource,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+
+        $this->testConfig[Configuration::RESOURCE_CLASSES] = [];
+        $this->setUp();
+
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null));
+
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $collectionResource->getIdentifier());
+        $this->assertCount(1, $resourceActionGrants);
+        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
+    }
+
+    public function testUpdateManageResourceCollectionPolicyGrantsC(): void
+    {
+        // test path (C): resource class is still in config -> nothing to do
+        $this->assertNotNull($collectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null));
+
+        // add some noise
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(self::TEST_RESOURCE_CLASS_2, null,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $collectionResource->getIdentifier());
+        $this->assertCount(1, $resourceActionGrants);
+        $resourceActionGrant = $resourceActionGrants[0];
+
+        $this->setUp();
+
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null));
+
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $collectionResource->getIdentifier());
+        $this->assertCount(1, $resourceActionGrants);
+        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
+    }
+
+    public function testUpdateManageResourceCollectionPolicyGrantsD(): void
+    {
+        // test path (D) the manage resource collection policy is present in config,
+        // the resource collection resource is present in DB, but the policy grant is missing in DB -> auto-add the policy grant to DB
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $testResource2CollectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS_2, null);
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $this->testEntityManager->addResourceActionGrant($testResource2CollectionResource,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $this->assertCount(1,
+            $this->testEntityManager->getResourceActionGrants($testResource2CollectionResource->getIdentifier()));
+
+        $this->testConfig[Configuration::RESOURCE_CLASSES][] =
             [
-                Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS,
+                Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
+                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+            ];
+
+        $this->setUp();
+
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $testResource2CollectionResource->getIdentifier());
+        $this->assertCount(2, $resourceActionGrants);
+    }
+
+    public function testUpdateManageResourceCollectionPolicyGrantsX(): void
+    {
+        // test path (D) the manage resource collection policy is present in config,
+        // the resource collection resource is present in DB, but the policy grant is missing in DB -> auto-add the policy grant to DB
+        $this->assertNotNull($testResourceCollectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $this->assertCount(1,
+            $this->testEntityManager->getResourceActionGrants($testResourceCollectionResource->getIdentifier()));
+
+        $this->testConfig[Configuration::RESOURCE_CLASSES] = [
+            [
+                Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
                 Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
             ],
         ];
-        $config[Configuration::DYNAMIC_GROUPS] = [
-            [
-                Configuration::IDENTIFIER => 'students',
-                Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION => 'user.get("IS_STUDENT")',
-            ],
-            [
-                Configuration::IDENTIFIER => 'employees',
-                Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION => 'user.get("IS_EMPLOYEE")',
-            ],
-        ];
 
-        return $config;
+        $this->setUp();
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null));
+        $this->assertNotNull($testResource2CollectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $testResourceCollectionResource->getIdentifier());
+        $this->assertCount(0, $resourceActionGrants);
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $testResource2CollectionResource->getIdentifier());
+        $this->assertCount(1, $resourceActionGrants);
+    }
+
+    public function testUpdateManageResourceCollectionPolicyGrantsE(): void
+    {
+        // test path (E) the resource collection policy was added to config and the collection resource is not yet present in the DB
+        // -> auto-add collection resource and manage collection grant
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $this->testConfig[Configuration::RESOURCE_CLASSES][] =
+            [
+                Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
+                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+            ];
+        $this->setUp();
+
+        $this->assertNotNull($testResource2CollectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $testResource2CollectionResource->getIdentifier());
+        $this->assertCount(1, $resourceActionGrants);
+        $this->assertEquals($testResource2CollectionResource->getIdentifier(), $resourceActionGrants[0]->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals(AuthorizationService::MANAGE_ACTION, $resourceActionGrants[0]->getAction());
+        $this->assertEquals(AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS_2, $resourceActionGrants[0]->getDynamicGroupIdentifier());
+    }
+
+    public function testUpdateManageResourceCollectionPolicyGrantsF(): void
+    {
+        // test path (F) the resource collection policy was added to config and a childless collection resource is present in the DB
+        // -> auto-add the manage collection grant only
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS_2, null);
+
+        $this->testConfig[Configuration::RESOURCE_CLASSES][] =
+            [
+                Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
+                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+            ];
+        $this->setUp();
+
+        $this->assertNotNull($testResource2CollectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, null));
+
+        $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
+            $testResource2CollectionResource->getIdentifier());
+        $this->assertCount(1, $resourceActionGrants);
+        $this->assertEquals($testResource2CollectionResource->getIdentifier(), $resourceActionGrants[0]->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals(AuthorizationService::MANAGE_ACTION, $resourceActionGrants[0]->getAction());
+        $this->assertEquals(AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS_2,
+            $resourceActionGrants[0]->getDynamicGroupIdentifier());
+    }
+
+    protected function getTestConfig(): array
+    {
+        return array_merge(parent::getTestConfig(), $this->testConfig);
     }
 
     protected function getDefaultUserAttributes(): array

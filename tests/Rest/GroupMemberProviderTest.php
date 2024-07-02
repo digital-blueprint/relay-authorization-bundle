@@ -12,7 +12,7 @@ use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Proxies\__CG__\Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupMemberProviderTest extends AbstractGroupControllerTestCase
+class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServiceTestCase
 {
     private DataProviderTester $groupMemberProviderTester;
 

@@ -11,7 +11,7 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupProcessorTest extends AbstractGroupControllerTestCase
+class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTestCase
 {
     private DataProcessorTester $groupProcessorTester;
 
@@ -27,7 +27,7 @@ class GroupProcessorTest extends AbstractGroupControllerTestCase
     public function testCreateGroupItemWithManageGrant(): void
     {
         // add a manage group resource collection grant for the current user
-        $this->internalResourceActionGrantService->addResourceAndManageResourceGrantForUser(
+        $this->internalResourceActionGrantService->addResourceAndManageResourceGrantFor(
             AuthorizationService::GROUP_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
 
         $group = new Group();
@@ -43,7 +43,7 @@ class GroupProcessorTest extends AbstractGroupControllerTestCase
     public function testCreateGroupItemWithCreateGrant(): void
     {
         // add a manage group resource collection grant for the current user
-        $manageGrant = $this->internalResourceActionGrantService->addResourceAndManageResourceGrantForUser(
+        $manageGrant = $this->internalResourceActionGrantService->addResourceAndManageResourceGrantFor(
             AuthorizationService::GROUP_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(), AuthorizationService::CREATE_GROUPS_ACTION, self::ANOTHER_USER_IDENTIFIER);

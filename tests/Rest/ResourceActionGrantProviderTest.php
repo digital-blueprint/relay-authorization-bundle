@@ -11,7 +11,7 @@ use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
-class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControllerTestCase
+class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
 {
     private DataProviderTester $resourceActionGrantProviderTester;
 

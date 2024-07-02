@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\API;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 
-class ResourceActionGrantServiceTest extends AbstractTestCase
+class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCase
 {
     private ResourceActionGrantService $resourceActionGrantService;
 
@@ -25,7 +25,7 @@ class ResourceActionGrantServiceTest extends AbstractTestCase
         $this->resourceActionGrantService->registerResource(
             'resourceClass', 'resourceIdentifier');
 
-        $resourcePersistence = $this->testEntityManager->getAuthorizationResourceByClassAndIdentifier(
+        $resourcePersistence = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
             'resourceClass', 'resourceIdentifier');
         $this->assertEquals($resourcePersistence->getIdentifier(), $resourcePersistence->getIdentifier());
         $this->assertEquals('resourceIdentifier', $resourcePersistence->getResourceIdentifier());

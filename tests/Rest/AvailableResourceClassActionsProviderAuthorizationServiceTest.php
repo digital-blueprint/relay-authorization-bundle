@@ -8,11 +8,11 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
 use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider;
-use Dbp\Relay\AuthorizationBundle\Tests\AbstractTestCase;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 
-class AvailableResourceClassActionsProviderTest extends AbstractTestCase
+class AvailableResourceClassActionsProviderAuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
     private DataProviderTester $availableResourceClassActionsProviderTester;
 
