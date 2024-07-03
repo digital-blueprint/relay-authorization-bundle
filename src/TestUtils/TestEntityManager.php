@@ -24,7 +24,7 @@ class TestEntityManager
     public function __construct(KernelInterface $kernel)
     {
         if ('test' !== $kernel->getEnvironment()) {
-            throw new \RuntimeException('Execution only in Test environment possible!');
+            throw new \RuntimeException('The TestEntityManager mustn\'t be used outside of the test environment');
         }
 
         try {
@@ -45,6 +45,11 @@ class TestEntityManager
         $this->entityManager = $entityManager;
     }
 
+    /**
+     * @internal
+     *
+     * For testing only
+     */
     public function getEntityManager(): EntityManager
     {
         return $this->entityManager;

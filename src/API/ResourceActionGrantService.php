@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\API;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Doctrine\ORM\EntityManagerInterface;
 
 class ResourceActionGrantService
 {
@@ -18,6 +19,26 @@ class ResourceActionGrantService
     public function __construct(AuthorizationService $authorizationService)
     {
         $this->authorizationService = $authorizationService;
+    }
+
+    /**
+     * @internal
+     *
+     * For testing only
+     */
+    public function setEntityManager(EntityManagerInterface $entityManager): void
+    {
+        $this->authorizationService->setEntityManager($entityManager);
+    }
+
+    /**
+     * @internal
+     *
+     * For testing only
+     */
+    public function getAuthorizationService(): AuthorizationService
+    {
+        return $this->authorizationService;
     }
 
     /**

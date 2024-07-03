@@ -10,7 +10,9 @@ use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 
@@ -26,18 +28,36 @@ class TestResourceActionGrantServiceFactory
         ?EventSubscriberInterface $eventSubscriber = null): ResourceActionGrantService
     {
         $eventDispatcher = new EventDispatcher();
-        $internalResourceActionGrantService = new InternalResourceActionGrantService($entityManager, $eventDispatcher);
-        $authorizationService = new AuthorizationService(
-            $internalResourceActionGrantService, new GroupService($entityManager), $entityManager);
-        TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier, $currentUserAttributes);
-        $authorizationService->setConfig(self::getTestConfig());
-
         if ($eventSubscriber !== null) {
             $eventDispatcher->addSubscriber($eventSubscriber);
         }
-        $eventDispatcher->addSubscriber($authorizationService);
 
-        return new ResourceActionGrantService($authorizationService);
+        return new ResourceActionGrantService(self::createTestAuthorizationService(
+            $entityManager, $eventDispatcher, null, null,
+            $currentUserIdentifier, $currentUserAttributes));
+    }
+
+    public static function login(ResourceActionGrantService $resourceActionGrantService,
+        string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = []): void
+    {
+        TestAuthorizationService::setUp($resourceActionGrantService->getAuthorizationService(),
+            $currentUserIdentifier, $currentUserAttributes);
+    }
+
+    public static function createTestAuthorizationService(
+        EntityManagerInterface $entityManager, EventDispatcherInterface $eventDispatcher,
+        ?InternalResourceActionGrantService $internalResourceActionGrantService = null, ?array $testConfig = null,
+        string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = []): AuthorizationService
+    {
+        $internalResourceActionGrantService ??= new InternalResourceActionGrantService($entityManager, $eventDispatcher);
+        $authorizationService = new AuthorizationService(
+            $internalResourceActionGrantService, new GroupService($entityManager), $entityManager);
+        TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier, $currentUserAttributes);
+        $eventDispatcher->addSubscriber($authorizationService); // before setConfig/setCache!
+        $authorizationService->setConfig($testConfig ?? self::getTestConfig());
+        $authorizationService->setCache(new ArrayAdapter());
+
+        return $authorizationService;
     }
 
     private static function getTestConfig(): array

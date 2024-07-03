@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Service\GroupService;
+use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 
@@ -18,18 +18,15 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
     {
         parent::setUp();
 
-        $this->authorizationService = new AuthorizationService(
+        $this->authorizationService = TestResourceActionGrantServiceFactory::createTestAuthorizationService(
+            $this->testEntityManager->getEntityManager(),
+            $this->eventDispatcher,
             $this->internalResourceActionGrantService,
-            new GroupService($this->testEntityManager->getEntityManager()),
-            $this->testEntityManager->getEntityManager());
+            $this->getTestConfig(),
+            self::CURRENT_USER_IDENTIFIER,
+            $this->getDefaultUserAttributes());
 
-        $this->eventDispatcher->addSubscriber($this->authorizationService);
-
-        $this->authorizationService->setConfig($this->getTestConfig());
-        $this->authorizationService->setCache($this->cachePool = new ArrayAdapter());
-
-        TestAuthorizationService::setUp($this->authorizationService,
-            self::CURRENT_USER_IDENTIFIER, $this->getDefaultUserAttributes());
+        $this->cachePool = $this->authorizationService->getCache();
     }
 
     protected function login(string $userIdentifier, ?array $userAttributes = null): void

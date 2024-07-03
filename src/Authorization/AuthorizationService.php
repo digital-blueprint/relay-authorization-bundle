@@ -77,6 +77,16 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $this->entityManager = $entityManager;
     }
 
+    /**
+     * @internal
+     *
+     * For testing only
+     */
+    public function setEntityManager(EntityManagerInterface $entityManager)
+    {
+        $this->entityManager = $entityManager;
+    }
+
     public function setConfig(array $config): void
     {
         $this->config = $config;
@@ -87,6 +97,16 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $this->cachePool = $cachePool;
         $this->tryConfigure();
+    }
+
+    /**
+     * @internal
+     *
+     * For testing only
+     */
+    public function getCache(): ?CacheItemPoolInterface
+    {
+        return $this->cachePool;
     }
 
     public function onGetAvailableResourceClassActionsEvent(GetAvailableResourceClassActionsEvent $event): void
