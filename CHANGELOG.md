@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.5
+
+* Extend/unify test utilities
+
 ## v0.3.4
 
 * Automatically add/update/delete authorization resources and grants in the DB for the manage resource collection policies 

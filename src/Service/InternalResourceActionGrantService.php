@@ -550,7 +550,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private function validateResourceActionGrant(ResourceActionGrant $resourceActionGrant): void
     {
         $action = $resourceActionGrant->getAction();
-        if ($action === null) {
+        if ($action === null || $action === '') {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'resource action grant is invalid: \'action\' is required', self::RESOURCE_ACTION_GRANT_INVALID_ACTION_MISSING_ERROR_ID, ['action']);
         }
