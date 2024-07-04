@@ -82,13 +82,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * For testing only
      */
-    public function setEntityManager(EntityManagerInterface $entityManager)
+    public function setEntityManager(EntityManagerInterface $entityManager): void
     {
         $this->entityManager = $entityManager;
     }
 
     public function setConfig(array $config): void
     {
+        parent::setConfig($config);
+
         $this->config = $config;
         $this->tryConfigure();
     }
