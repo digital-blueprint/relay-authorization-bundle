@@ -27,6 +27,9 @@ class AuthorizationResource
     #[Groups(['AuthorizationResource:input', 'AuthorizationResource:output'])]
     private ?string $resourceIdentifier = null;
 
+    #[Groups(['AuthorizationResource:output'])]
+    private bool $writable = false;
+
     public function getIdentifier(): ?string
     {
         return $this->identifier;
@@ -55,5 +58,15 @@ class AuthorizationResource
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
+    }
+
+    public function getWritable(): bool
+    {
+        return $this->writable;
+    }
+
+    public function setWritable(bool $writable): void
+    {
+        $this->writable = $writable;
     }
 }

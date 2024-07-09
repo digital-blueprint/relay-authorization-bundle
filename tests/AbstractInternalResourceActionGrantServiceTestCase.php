@@ -55,6 +55,24 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
         return false;
     }
 
+    protected function assertContainsResource(mixed $resource, array $resources): void
+    {
+        $this->assertTrue($this->containsResource($resources, $resource), 'resource array does not contain given resource');
+    }
+
+    protected function assertContainsResourceWhere(mixed $resource, array $resources, callable $criteria): void
+    {
+        foreach ($resources as $res) {
+            if ($resource->getIdentifier() === $res->getIdentifier()) {
+                $this->assertTrue($criteria($resource), 'resource does not match given criteria');
+
+                return;
+            }
+        }
+
+        $this->fail('resource array does not contain given resource');
+    }
+
     protected function assertIsPermutationOf(array $array1, array $array2): void
     {
         $this->assertTrue(count($array1) === count($array2)

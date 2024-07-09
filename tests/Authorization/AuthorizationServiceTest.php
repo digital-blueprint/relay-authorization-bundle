@@ -48,6 +48,8 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $resource = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
         $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadResource($resource));
 
+        $this->authorizationService->clearRequestCache();
+
         $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier()));
@@ -702,6 +704,252 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $dynamicGroups);
         $this->assertContains('students', $dynamicGroups);
         $this->assertContains('employees', $dynamicGroups);
+    }
+
+    public function testGetAuthorizationResourcesCurrentUserIsAuthorizedToRead(): void
+    {
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+
+        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
+
+        $resource1 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
+        $resource2 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier2');
+        $resource3 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier');
+        $resource4 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier3');
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource('resourceClass_3', null);
+
+        $this->testEntityManager->addResourceActionGrant($resource1,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, null, $group2);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            'write', null, null, 'students');
+        $this->testEntityManager->addResourceActionGrant($resource3,
+            AuthorizationService::MANAGE_ACTION, null, null, 'employees');
+        $this->testEntityManager->addResourceActionGrant($resource3,
+            'delete', null, $group1);
+        $this->testEntityManager->addResourceActionGrant($resource4,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            AuthorizationService::MANAGE_ACTION, null, $group1);
+        $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            'create', self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            'create', null, null, 'students');
+
+        $isWritable = function ($authorizationResource) {
+            return $authorizationResource->getWritable();
+        };
+        $isNotWritable = function ($authorizationResource) {
+            return $authorizationResource->getWritable() === false;
+        };
+
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(3, $authorizationResources);
+        $this->assertContainsResourceWhere($resource1, $authorizationResources, $isWritable);
+        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isNotWritable);
+        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isWritable);
+
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass');
+        $this->assertCount(1, $authorizationResources);
+        $this->assertContainsResourceWhere($resource1, $authorizationResources, $isWritable);
+
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass_2');
+        $this->assertCount(1, $authorizationResources);
+        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isNotWritable);
+
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass_3');
+        $this->assertCount(1, $authorizationResources);
+        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isWritable);
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(2, $authorizationResources);
+        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isWritable);
+        $this->assertContainsResourceWhere($resource4, $authorizationResources, $isWritable);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(2, $authorizationResources);
+        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isWritable);
+        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isWritable);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_3', $userAttributes);
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(2, $authorizationResources);
+        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isNotWritable);
+        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isNotWritable);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_4', $userAttributes);
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(3, $authorizationResources);
+        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isNotWritable);
+        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isWritable);
+        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isNotWritable);
+
+        // ----------------------------------------------------------------
+        // test pagination:
+        $authorizationResourcePage1 = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(
+            null, 0, 2);
+        $this->assertCount(2, $authorizationResourcePage1);
+        $authorizationResourcePage2 = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(
+            null, 2, 2);
+        $this->assertCount(1, $authorizationResourcePage2);
+
+        $authorizationResources = array_merge($authorizationResourcePage1, $authorizationResourcePage2);
+        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isNotWritable);
+        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isWritable);
+        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isNotWritable);
+        // ----------------------------------------------------------------
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(0, $authorizationResources);
+    }
+
+    public function testGetResourceActionGrantsUserIsAuthorizedToRead(): void
+    {
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+
+        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
+
+        $resource1 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
+        $resource2 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier2');
+        $resource3 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier');
+        $resource4 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier3');
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource('resourceClass_2', null);
+
+        $r1ManageCU = $this->testEntityManager->addResourceActionGrant($resource1,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $r1ReadAU3 = $this->testEntityManager->addResourceActionGrant($resource1,
+            'read', self::ANOTHER_USER_IDENTIFIER.'_3');
+        $r2ManageG2 = $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, null, $group2);
+        $r2WriteStudents = $this->testEntityManager->addResourceActionGrant($resource2,
+            'write', null, null, 'students');
+        $r3ManageEmployees = $this->testEntityManager->addResourceActionGrant($resource3,
+            AuthorizationService::MANAGE_ACTION, null, null, 'employees');
+        $r3DeleteG1 = $this->testEntityManager->addResourceActionGrant($resource3,
+            'delete', null, $group1);
+        $r4ManageAU = $this->testEntityManager->addResourceActionGrant($resource4,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $r4UpdateG2 = $this->testEntityManager->addResourceActionGrant($resource4,
+            'update', null, $group2);
+        $rcManageG1 = $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            AuthorizationService::MANAGE_ACTION, null, $group1);
+        $rcCreateCU = $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            'create', self::CURRENT_USER_IDENTIFIER);
+        $rcCreateStudents = $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            'create', null, null, 'students');
+
+        // -------------------------------------------------------------------------------------------
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(6, $resourceActionsGrants);
+        $this->assertContainsResource($r1ManageCU, $resourceActionsGrants);
+        $this->assertContainsResource($r1ReadAU3, $resourceActionsGrants);
+        $this->assertContainsResource($r3DeleteG1, $resourceActionsGrants);
+        $this->assertContainsResource($rcManageG1, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateCU, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
+
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead('resourceClass');
+        $this->assertCount(2, $resourceActionsGrants);
+        $this->assertContainsResource($r1ManageCU, $resourceActionsGrants);
+        $this->assertContainsResource($r1ReadAU3, $resourceActionsGrants);
+
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead('resourceClass_2');
+        $this->assertCount(4, $resourceActionsGrants);
+        $this->assertContainsResource($r3DeleteG1, $resourceActionsGrants);
+        $this->assertContainsResource($rcManageG1, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateCU, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
+
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            'resourceClass', 'resourceIdentifier');
+        $this->assertCount(2, $resourceActionsGrants);
+        $this->assertContainsResource($r1ManageCU, $resourceActionsGrants);
+        $this->assertContainsResource($r1ReadAU3, $resourceActionsGrants);
+
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            'resourceClass_2', 'resourceIdentifier');
+        $this->assertCount(1, $resourceActionsGrants);
+        $this->assertContainsResource($r3DeleteG1, $resourceActionsGrants);
+
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            'resourceClass_2', AuthorizationService::IS_NULL);
+        $this->assertCount(3, $resourceActionsGrants);
+        $this->assertContainsResource($rcManageG1, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateCU, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
+
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            'resourceClass', 'resourceIdentifier2');
+        $this->assertCount(0, $resourceActionsGrants);
+
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            'resourceClass_foo');
+        $this->assertCount(0, $resourceActionsGrants);
+
+        // -------------------------------------------------------------------------------------------
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(4, $resourceActionsGrants);
+        $this->assertContainsResource($r2ManageG2, $resourceActionsGrants);
+        $this->assertContainsResource($r2WriteStudents, $resourceActionsGrants);
+        $this->assertContainsResource($r4ManageAU, $resourceActionsGrants);
+        $this->assertContainsResource($r4UpdateG2, $resourceActionsGrants);
+
+        // -------------------------------------------------------------------------------------------
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(5, $resourceActionsGrants);
+        $this->assertContainsResource($r2ManageG2, $resourceActionsGrants);
+        $this->assertContainsResource($r2WriteStudents, $resourceActionsGrants);
+        $this->assertContainsResource($r3ManageEmployees, $resourceActionsGrants);
+        $this->assertContainsResource($r3DeleteG1, $resourceActionsGrants);
+        $this->assertContainsResource($r4UpdateG2, $resourceActionsGrants);
+
+        // -------------------------------------------------------------------------------------------
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_3', $userAttributes);
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(3, $resourceActionsGrants);
+        $this->assertContainsResource($r1ReadAU3, $resourceActionsGrants);
+        $this->assertContainsResource($r2WriteStudents, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
+
+        // -------------------------------------------------------------------------------------------
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_4', $userAttributes);
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(4, $resourceActionsGrants);
+        $this->assertContainsResource($r2WriteStudents, $resourceActionsGrants);
+        $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
+        $this->assertContainsResource($r3ManageEmployees, $resourceActionsGrants);
+        $this->assertContainsResource($r3DeleteG1, $resourceActionsGrants);
+
+        // -------------------------------------------------------------------------------------------
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(0, $resourceActionsGrants);
     }
 
     public function testGetResourceClassesCurrentUserIsAuthorizedToRead(): void

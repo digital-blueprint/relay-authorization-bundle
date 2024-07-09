@@ -17,13 +17,13 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
     }
 
     protected function addResource(string $resourceClass = 'resourceClass',
-        string $resourceIdentifier = 'resourceIdentifier'): AuthorizationResource
+        ?string $resourceIdentifier = 'resourceIdentifier'): AuthorizationResource
     {
         return $this->testEntityManager->addAuthorizationResource($resourceClass, $resourceIdentifier);
     }
 
     protected function addResourceAndManageGrant(string $resourceClass = 'resourceClass',
-        string $resourceIdentifier = 'resourceIdentifier',
+        ?string $resourceIdentifier = 'resourceIdentifier',
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addResourceAndGrant($resourceClass, $resourceIdentifier,
@@ -31,7 +31,7 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
     }
 
     protected function addResourceAndGrant(string $resourceClass = 'resourceClass',
-        string $resourceIdentifier = 'resourceIdentifier',
+        ?string $resourceIdentifier = 'resourceIdentifier',
         string $action = 'action',
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {

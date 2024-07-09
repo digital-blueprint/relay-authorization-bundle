@@ -147,6 +147,8 @@ resources:
         iri: 'https://schema.org/additionalProperty'
       resourceIdentifier:
         iri: 'https://schema.org/identifier'
+      writable:
+        iri: 'https://schema.org/additionalProperty'
 
   Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant:
     shortName: "AuthorizationResourceActionGrant"
@@ -169,6 +171,11 @@ resources:
             - name: resourceClass
               in: query
               description: 'The resource class to get grants for'
+              type: string
+              required: false
+            - name: resourceIdentifier
+              in: query
+              description: 'The resource identifier to get grants for'
               type: string
               required: false
       ApiPlatform\Metadata\Post:
