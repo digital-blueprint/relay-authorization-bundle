@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## v0.3.6
+## v0.3.7
 
 * Add property "writable" to AuthorizationResource entity. True if the requesting user is authorized to add/delete grants 
 to/from this authorization resource
