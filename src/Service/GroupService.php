@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 class GroupService
 {
     private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-group-failed';
+    private const UPDATING_GROUP_FAILED_ERROR_ID = 'authorization:updating-group-failed';
     private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-group-failed';
     private const GROUP_INVALID_ERROR_ID = 'authorization:group-invalid';
     private const GROUP_NOT_FOUND_ERROR_ID = 'authorization:group-not-found';
@@ -140,9 +141,8 @@ class GroupService
                 ->setMaxResults($maxNumResults)
                 ->getResult();
         } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group collection!',
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group collection',
                 self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
     }
 
@@ -168,8 +168,9 @@ class GroupService
                 ->setMaxResults($maxNumResults)
                 ->getResult();
         } catch (\Exception $exception) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, $exception->getMessage(),
-                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Failed to get group collection',
+                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID, ['message' => $exception->getMessage()]);
         }
     }
 
@@ -185,8 +186,26 @@ class GroupService
             $this->entityManager->persist($group);
             $this->entityManager->flush();
         } catch (\Exception $e) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action could not be added!',
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be added',
                 self::ADDING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+        }
+
+        return $group;
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function updateGroup(Group $group): Group
+    {
+        $this->validateGroup($group);
+
+        try {
+            $this->entityManager->persist($group);
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be updated',
+                self::UPDATING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
 
         return $group;
@@ -201,9 +220,8 @@ class GroupService
             $this->entityManager->remove($group);
             $this->entityManager->flush();
         } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be removed!',
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be removed',
                 self::REMOVING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
     }
 
@@ -219,9 +237,8 @@ class GroupService
             $this->entityManager->persist($groupMember);
             $this->entityManager->flush();
         } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be added!',
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be added',
                 self::ADDING_GROUP_MEMBER_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
 
         return $groupMember;
@@ -236,7 +253,7 @@ class GroupService
             $this->entityManager->remove($groupMember);
             $this->entityManager->flush();
         } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be removed!',
+            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be removed',
                 self::REMOVING_GROUP_MEMBER_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
             throw $apiError;
         }
@@ -252,9 +269,8 @@ class GroupService
                 ->getRepository(GroupMember::class)
                 ->find($identifier) : null;
         } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member item!',
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member',
                 self::GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
     }
 
@@ -271,9 +287,8 @@ class GroupService
                 ->findBy(['group' => $groupIdentifier], null, $maxNumResults,
                     $firstResultIndex) : [];
         } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection!',
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection',
                 self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
         }
     }
 
@@ -285,7 +300,7 @@ class GroupService
                     ->getRepository(Group::class)
                     ->find($identifier) : null;
         } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group item!',
+            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group',
                 self::GETTING_GROUP_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
             throw $apiError;
         }

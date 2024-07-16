@@ -36,14 +36,18 @@ class GroupProcessor extends AbstractDataProcessor implements LoggerAwareInterfa
     {
         assert($item instanceof Group);
 
-        return $this->authorizationService->isCurrentUserAuthorizedToAddGroup($item);
+        return $this->authorizationService->isCurrentUserAuthorizedToAddGroups();
     }
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
     {
         assert($item instanceof Group);
 
-        return $this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($item);
+        return match ($operation) {
+            self::UPDATE_ITEM_OPERATION => $this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($item),
+            self::REMOVE_ITEM_OPERATION => $this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($item),
+            default => false,
+        };
     }
 
     protected function addItem($data, array $filters)
@@ -62,6 +66,14 @@ class GroupProcessor extends AbstractDataProcessor implements LoggerAwareInterfa
         }
 
         return $group;
+    }
+
+    protected function updateItem($identifier, $data, $previousData, array $filters)
+    {
+        assert($data instanceof Group);
+        $group = $data;
+
+        return $this->groupService->updateGroup($group);
     }
 
     protected function removeItem($identifier, $data, array $filters): void

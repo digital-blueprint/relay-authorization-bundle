@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
+use Proxies\__CG__\Dbp\Relay\AuthorizationBundle\Entity\Group;
 
 class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
@@ -1213,6 +1214,110 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertEquals(AuthorizationService::MANAGE_ACTION, $resourceActionGrants[0]->getAction());
         $this->assertEquals(AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS_2,
             $resourceActionGrants[0]->getDynamicGroupIdentifier());
+    }
+
+    public function testAddGroup(): void
+    {
+        $group = $this->testEntityManager->addGroup('Testgroup');
+        $manageGroupGrant = $this->authorizationService->addGroup($group->getIdentifier());
+
+        $manageGroupGrantPersistence = $this->testEntityManager->getResourceActionGrantByIdentifier(
+            $manageGroupGrant->getIdentifier());
+        $this->assertEquals($manageGroupGrant->getIdentifier(), $manageGroupGrantPersistence->getIdentifier());
+        $this->assertEquals(AuthorizationService::MANAGE_ACTION, $manageGroupGrantPersistence->getAction());
+        $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $manageGroupGrantPersistence->getUserIdentifier());
+
+        $authorizationResource = $this->testEntityManager->getAuthorizationResourceByIdentifier(
+            $manageGroupGrant->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals($manageGroupGrant->getAuthorizationResource()->getIdentifier(),
+            $authorizationResource->getIdentifier());
+        $this->assertEquals($group->getIdentifier(), $authorizationResource->getResourceIdentifier());
+        $this->assertEquals(AuthorizationService::GROUP_RESOURCE_CLASS, $authorizationResource->getResourceClass());
+    }
+
+    public function testRemoveGroup(): void
+    {
+        [$group, $manageGroupGrant] = $this->addGroupAndManageGroupGrantForCurrentUser();
+
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier(
+            $manageGroupGrant->getAuthorizationResource()->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($manageGroupGrant->getIdentifier()));
+
+        $this->authorizationService->removeGroup($group->getIdentifier());
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier(
+            $manageGroupGrant->getAuthorizationResource()->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($manageGroupGrant->getIdentifier()));
+    }
+
+    public function testIsCurrentUserAuthorizedToAddGroups(): void
+    {
+        $manageGroupCollectionGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            AuthorizationService::GROUP_RESOURCE_CLASS, null,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($manageGroupCollectionGrant->getAuthorizationResource(),
+            AuthorizationService::CREATE_GROUPS_ACTION, self::ANOTHER_USER_IDENTIFIER);
+
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToAddGroups());
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToAddGroups());
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToAddGroups());
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['MAY_CREATE_GROUPS'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToAddGroups());
+    }
+
+    public function testIsCurrentUserAuthorizedToUpdateGroup(): void
+    {
+        [$group, $manageGroupGrant] = $this->addGroupAndManageGroupGrantForCurrentUser();
+
+        $this->testEntityManager->addResourceActionGrant($manageGroupGrant->getAuthorizationResource(),
+            AuthorizationService::UPDATE_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
+
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($group));
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($group));
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($group));
+    }
+
+    public function testIsCurrentUserAuthorizedToRemoveGroup(): void
+    {
+        [$group, $manageGroupGrant] = $this->addGroupAndManageGroupGrantForCurrentUser();
+
+        $this->testEntityManager->addResourceActionGrant($manageGroupGrant->getAuthorizationResource(),
+            AuthorizationService::DELETE_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
+
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($group));
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($group));
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($group));
+    }
+
+    public function testIsCurrentUserAuthorizedToReadGroup(): void
+    {
+        [$group, $manageGroupGrant] = $this->addGroupAndManageGroupGrantForCurrentUser();
+
+        $this->testEntityManager->addResourceActionGrant($manageGroupGrant->getAuthorizationResource(),
+            AuthorizationService::READ_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
+
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToReadGroup($group));
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToReadGroup($group));
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadGroup($group));
     }
 
     protected function getTestConfig(): array

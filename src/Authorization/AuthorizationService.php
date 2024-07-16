@@ -39,6 +39,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const CREATE_GROUPS_ACTION = 'create';
 
     public const READ_GROUP_ACTION = 'read';
+    public const UPDATE_GROUP_ACTION = 'update';
     public const DELETE_GROUP_ACTION = 'delete';
     public const ADD_GROUP_MEMBERS_GROUP_ACTION = 'add_members';
     public const DELETE_GROUP_MEMBERS_GROUP_ACTION = 'delete_members';
@@ -346,7 +347,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             ->getResult();
     }
 
-    public function isCurrentUserAuthorizedToAddGroup(Group $group): bool
+    public function isCurrentUserAuthorizedToAddGroups(): bool
     {
         return $this->doesCurrentUserHaveAGrantForResourceCollectionToManageOr(self::CREATE_GROUPS_ACTION,
             self::GROUP_RESOURCE_CLASS);
@@ -355,6 +356,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function isCurrentUserAuthorizedToRemoveGroup(Group $group): bool
     {
         return $this->doesCurrentUserHaveAGrantForResourceItemToManageOr(self::DELETE_GROUP_ACTION,
+            self::GROUP_RESOURCE_CLASS, $group->getIdentifier());
+    }
+
+    public function isCurrentUserAuthorizedToUpdateGroup(Group $group): bool
+    {
+        return $this->doesCurrentUserHaveAGrantForResourceItemToManageOr(self::UPDATE_GROUP_ACTION,
             self::GROUP_RESOURCE_CLASS, $group->getIdentifier());
     }
 

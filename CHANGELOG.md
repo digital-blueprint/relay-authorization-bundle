@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.8
+
+* Add group patch operation
+
 ## v0.3.7
 
 * Add property "writable" to AuthorizationResource entity. True if the requesting user is authorized to add/delete grants 

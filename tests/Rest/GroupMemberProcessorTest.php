@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProcessor;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
-use Proxies\__CG__\Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Symfony\Component\HttpFoundation\Response;
 
 class GroupMemberProcessorTest extends AbstractGroupControllerAuthorizationServiceTestCase

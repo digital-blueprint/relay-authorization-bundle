@@ -7,12 +7,12 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Psr\Cache\CacheItemPoolInterface;
 
 abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalResourceActionGrantServiceTestCase
 {
     protected AuthorizationService $authorizationService;
-    protected ?ArrayAdapter $cachePool = null;
+    protected ?CacheItemPoolInterface $cachePool = null;
 
     protected function setUp(): void
     {
@@ -69,5 +69,15 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         return [
             'MAY_CREATE_GROUPS' => false,
         ];
+    }
+
+    protected function addGroupAndManageGroupGrantForCurrentUser(string $groupName = 'Testgroup'): array
+    {
+        $group = $this->testEntityManager->addGroup($groupName);
+        $manageGroupGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            AuthorizationService::GROUP_RESOURCE_CLASS, $group->getIdentifier(),
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        return [$group, $manageGroupGrant];
     }
 }

@@ -45,6 +45,25 @@ resources:
                 example:
                   name: "Example Group Name"
 
+      ApiPlatform\Metadata\Patch:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GroupProvider
+        processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
+        uriTemplate: "/authorization/groups/{identifier}"
+        inputFormats:
+          json: [ 'application/merge-patch+json' ]
+        openapiContext:
+          tags: [ "Authorization" ]
+          requestBody:
+            content:
+              application/merge-patch+json:
+                schema:
+                  type: "object"
+                  properties:
+                    name:
+                      type: "string"
+                example:
+                  name: "Example Group Name"
+
       ApiPlatform\Metadata\Delete:
         provider: Dbp\Relay\AuthorizationBundle\Rest\GroupProvider
         processor: Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor
