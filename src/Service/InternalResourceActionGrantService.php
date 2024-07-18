@@ -197,9 +197,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getAuthorizationResource(string $identifier)
     {
         try {
-            return $this->entityManager
+            return Uuid::isValid($identifier) ? $this->entityManager
                 ->getRepository(AuthorizationResource::class)
-                ->find($identifier);
+                ->find($identifier) : null;
         } catch (\Exception $e) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get resource item!',
                 self::GETTING_RESOURCE_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
@@ -227,9 +227,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrant(string $identifier): ?ResourceActionGrant
     {
         try {
-            return $this->entityManager
+            return Uuid::isValid($identifier) ? $this->entityManager
                 ->getRepository(ResourceActionGrant::class)
-                ->find($identifier);
+                ->find($identifier) : null;
         } catch (\Exception $e) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get resource action item!',
                 self::GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);

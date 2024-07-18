@@ -23,11 +23,6 @@ class GroupMemberProcessor extends AbstractDataProcessor
         $this->authorizationService = $authorizationService;
     }
 
-    protected function isUserGrantedOperationAccess(int $operation): bool
-    {
-        return $this->isAuthenticated();
-    }
-
     protected function isCurrentUserAuthorizedToAddItem($item, array $filters): bool
     {
         assert($item instanceof GroupMember);

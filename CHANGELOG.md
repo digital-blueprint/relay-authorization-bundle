@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v0.3.9
+
+* Update core bundle
+* Add API tests
+* Enhance test utilities
+
 ## v0.3.8
 
 * Add group patch operation

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Psr\Cache\CacheItemPoolInterface;
@@ -60,7 +61,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
     protected function getTestConfig(): array
     {
         return [
-            'create_groups_policy' => 'user.get("MAY_CREATE_GROUPS")',
+            Configuration::CREATE_GROUPS_POLICY => 'user.get("MAY_CREATE_GROUPS")',
         ];
     }
 

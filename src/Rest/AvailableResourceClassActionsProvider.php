@@ -45,11 +45,6 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
         return $availableResourceClassActions;
     }
 
-    protected function isUserGrantedOperationAccess(int $operation): bool
-    {
-        return $this->isAuthenticated();
-    }
-
     private function getAvailableResourceClassActions(string $resourceClass): AvailableResourceClassActions
     {
         [$itemActions, $collectionActions] =

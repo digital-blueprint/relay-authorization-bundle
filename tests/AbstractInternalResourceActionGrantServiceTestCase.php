@@ -25,7 +25,7 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
     protected function setUp(): void
     {
         // allow database data re-use when calling setUp multiple times
-        $this->testEntityManager = $this->testEntityManager ?: new TestEntityManager(self::bootKernel());
+        $this->testEntityManager = $this->testEntityManager ?: new TestEntityManager(self::bootKernel()->getContainer());
 
         $this->eventDispatcher = new EventDispatcher();
         $this->eventDispatcher->addSubscriber(new TestGetAvailableResourceClassActionsEventSubscriber());

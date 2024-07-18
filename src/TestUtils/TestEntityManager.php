@@ -12,7 +12,7 @@ use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Tools\SchemaTool;
 use Ramsey\Uuid\Uuid;
-use Symfony\Component\HttpKernel\KernelInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class TestEntityManager
 {
@@ -21,14 +21,15 @@ class TestEntityManager
 
     private EntityManager $entityManager;
 
-    public function __construct(KernelInterface $kernel)
+    public function __construct(ContainerInterface $container)
     {
-        if ('test' !== $kernel->getEnvironment()) {
-            throw new \RuntimeException('The TestEntityManager mustn\'t be used outside of the test environment');
-        }
+        $this->entityManager = self::setUpEntityManager($container);
+    }
 
+    public static function setUpEntityManager(ContainerInterface $container): EntityManager
+    {
         try {
-            $entityManager = $kernel->getContainer()->get('doctrine')->getManager('dbp_relay_authorization_bundle');
+            $entityManager = $container->get('doctrine')->getManager('dbp_relay_authorization_bundle');
             assert($entityManager instanceof EntityManager);
 
             // enable foreign key and 'ON DELETE CASCADE' support
@@ -42,7 +43,7 @@ class TestEntityManager
             throw new \RuntimeException($exception->getMessage());
         }
 
-        $this->entityManager = $entityManager;
+        return $entityManager;
     }
 
     /**

@@ -8,7 +8,6 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
-use Proxies\__CG__\Dbp\Relay\AuthorizationBundle\Entity\Group;
 
 class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {

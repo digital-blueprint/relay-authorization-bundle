@@ -43,9 +43,4 @@ class DynamicGroupProvider extends AbstractDataProvider
 
         return $dynamicGroups;
     }
-
-    protected function isUserGrantedOperationAccess(int $operation): bool
-    {
-        return $this->isAuthenticated();
-    }
 }
