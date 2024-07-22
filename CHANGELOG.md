@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.9
+
+* Update core and adapt
+
 ## v0.3.8
 
 * Update core bundle

@@ -38,7 +38,7 @@ class AuthorizationResourceProvider extends AbstractDataProvider
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
     }
 
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
+    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
     {
         assert($item instanceof AuthorizationResource);
 

@@ -34,7 +34,7 @@ class GroupProcessor extends AbstractDataProcessor implements LoggerAwareInterfa
         return $this->authorizationService->isCurrentUserAuthorizedToAddGroups();
     }
 
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
+    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
     {
         assert($item instanceof Group);
 
@@ -45,7 +45,7 @@ class GroupProcessor extends AbstractDataProcessor implements LoggerAwareInterfa
         };
     }
 
-    protected function addItem($data, array $filters)
+    protected function addItem(mixed $data, array $filters): Group
     {
         assert($data instanceof Group);
         $group = $data;
@@ -63,7 +63,7 @@ class GroupProcessor extends AbstractDataProcessor implements LoggerAwareInterfa
         return $group;
     }
 
-    protected function updateItem($identifier, $data, $previousData, array $filters)
+    protected function updateItem(mixed $identifier, mixed $data, $previousData, array $filters): Group
     {
         assert($data instanceof Group);
         $group = $data;
@@ -71,7 +71,7 @@ class GroupProcessor extends AbstractDataProcessor implements LoggerAwareInterfa
         return $this->groupService->updateGroup($group);
     }
 
-    protected function removeItem($identifier, $data, array $filters): void
+    protected function removeItem(mixed $identifier, mixed $data, array $filters): void
     {
         assert($data instanceof Group);
         $group = $data;

@@ -30,7 +30,7 @@ class ResourceActionGrantProcessor extends AbstractDataProcessor
         return $this->authorizationService->isCurrentUserAuthorizedToAddGrant($item);
     }
 
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
+    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
     {
         assert($item instanceof ResourceActionGrant);
 
@@ -40,14 +40,14 @@ class ResourceActionGrantProcessor extends AbstractDataProcessor
         };
     }
 
-    protected function addItem($data, array $filters)
+    protected function addItem(mixed $data, array $filters): ResourceActionGrant
     {
         assert($data instanceof ResourceActionGrant);
 
         return $this->resourceActionGrantService->addResourceActionGrant($data);
     }
 
-    protected function removeItem($identifier, $data, array $filters): void
+    protected function removeItem(mixed $identifier, mixed $data, array $filters): void
     {
         assert($data instanceof ResourceActionGrant);
 

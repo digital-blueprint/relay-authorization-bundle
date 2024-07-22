@@ -19,6 +19,8 @@ class GroupMemberProcessor extends AbstractDataProcessor
 
     public function __construct(GroupService $groupService, AuthorizationService $authorizationService)
     {
+        parent::__construct();
+
         $this->groupService = $groupService;
         $this->authorizationService = $authorizationService;
     }
@@ -30,21 +32,21 @@ class GroupMemberProcessor extends AbstractDataProcessor
         return $this->authorizationService->isCurrentUserAuthorizedToAddGroupMember($item);
     }
 
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
+    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
     {
         assert($item instanceof GroupMember);
 
         return $this->authorizationService->isCurrentUserAuthorizedToRemoveGroupMember($item);
     }
 
-    protected function addItem($data, array $filters)
+    protected function addItem(mixed $data, array $filters): GroupMember
     {
         assert($data instanceof GroupMember);
 
         return $this->groupService->addGroupMember($data);
     }
 
-    protected function removeItem($identifier, $data, array $filters): void
+    protected function removeItem(mixed $identifier, mixed $data, array $filters): void
     {
         assert($data instanceof GroupMember);
 

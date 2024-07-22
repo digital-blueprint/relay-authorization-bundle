@@ -58,7 +58,7 @@ class GroupMemberProvider extends AbstractDataProvider
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage, $groupIdentifier);
     }
 
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, $item, array $filters): bool
+    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
     {
         assert($item instanceof GroupMember);
 
