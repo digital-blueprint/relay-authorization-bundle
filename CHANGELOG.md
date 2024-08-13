@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.10
+
+* Fix DB exception on container load without DB available
+
 ## v0.3.9
 
 * Update core and adapt

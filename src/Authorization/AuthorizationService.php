@@ -750,9 +750,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
             $cacheItem = $this->cachePool->getItem(self::WERE_MANAGE_COLLECTION_GRANTS_WRITTEN_TO_DB_CACHE_KEY);
             if (!$cacheItem->isHit()) {
-                $this->updateManageResourceCollectionPolicyGrants($manageResourceCollectionPolicyNames);
-                $cacheItem->set(true);
-                $this->cachePool->save($cacheItem);
+                try {
+                    $this->updateManageResourceCollectionPolicyGrants($manageResourceCollectionPolicyNames);
+                    $cacheItem->set(true);
+                    $this->cachePool->save($cacheItem);
+                } catch (\Exception) {
+                    // ignore db errors which may occur, when setConfig is when there is no database available
+                    // e.g. calling Symfony commands locally
+                }
             }
         }
     }
