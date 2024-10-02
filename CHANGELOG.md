@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Drop support for api-platform 2.7
+* Add support for newer doctrine versions
 
 ## v0.3.10
 
