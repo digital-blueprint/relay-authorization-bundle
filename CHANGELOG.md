@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Drop support for api-platform 2.7
+
 ## v0.3.10
 
 * Fix DB exception on container load without DB available
