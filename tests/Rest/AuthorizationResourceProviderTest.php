@@ -19,8 +19,7 @@ class AuthorizationResourceProviderTest extends AbstractResourceActionGrantContr
     {
         parent::setUp();
 
-        $resourceProvider = new AuthorizationResourceProvider(
-            $this->internalResourceActionGrantService, $this->authorizationService);
+        $resourceProvider = new AuthorizationResourceProvider($this->authorizationService);
         $this->resourceProviderTester = DataProviderTester::create($resourceProvider, AuthorizationResource::class);
     }
 

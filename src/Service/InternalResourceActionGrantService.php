@@ -53,7 +53,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
     private const GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-collection-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
-    private const RESOURCE_INVALID_ERROR_ID = 'authorization:resource-invalid';
 
     private const AUTHORIZATION_RESOURCE_IDENTIFIER_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS.'.identifier';
 
@@ -484,17 +483,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         return [$itemActions, $collectionActions];
-    }
-
-    /**
-     * @throws ApiError
-     */
-    private function validateResource(AuthorizationResource $resource): void
-    {
-        if ($resource->getResourceClass() === null) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'resource action invalid: \'resourceClass\' is required', self::RESOURCE_INVALID_ERROR_ID, ['resourceClass']);
-        }
     }
 
     /**

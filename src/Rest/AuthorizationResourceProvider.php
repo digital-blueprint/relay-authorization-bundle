@@ -6,7 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
@@ -17,12 +16,10 @@ use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
  */
 class AuthorizationResourceProvider extends AbstractDataProvider
 {
-    private InternalResourceActionGrantService $resourceActionGrantService;
     private AuthorizationService $authorizationService;
 
-    public function __construct(InternalResourceActionGrantService $resourceActionService, AuthorizationService $authorizationService)
+    public function __construct(AuthorizationService $authorizationService)
     {
-        $this->resourceActionGrantService = $resourceActionService;
         $this->authorizationService = $authorizationService;
     }
 
