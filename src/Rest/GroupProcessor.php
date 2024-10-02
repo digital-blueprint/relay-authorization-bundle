@@ -56,7 +56,7 @@ class GroupProcessor extends AbstractDataProcessor implements LoggerAwareInterfa
             $this->authorizationService->addGroup($group->getIdentifier());
         } catch (\Exception $e) {
             // remove inaccessible group
-            $this->groupService->removeGroup($group->getIdentifier());
+            $this->groupService->removeGroup($group);
             throw $e;
         }
 
