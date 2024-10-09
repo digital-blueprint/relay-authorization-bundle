@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Only return available resource class items if the current user has read permissions to at least one resource of the 
+requested resource class (otherwise returning 404), to be in line with the collection endpoint
 * Drop support for api-platform 2.7
 * Add support for newer doctrine versions
 

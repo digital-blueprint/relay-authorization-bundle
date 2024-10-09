@@ -31,7 +31,14 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->getAvailableResourceClassActions($id);
+        $resourceClass = $id;
+
+        if (empty($this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(
+            $resourceClass, 0, 1))) {
+            return null;
+        }
+
+        return $this->getAvailableResourceClassActions($resourceClass);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array

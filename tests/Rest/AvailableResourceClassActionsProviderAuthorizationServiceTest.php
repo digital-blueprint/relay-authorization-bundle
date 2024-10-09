@@ -29,6 +29,11 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
 
     public function testGetAvailableResourceClassActionsItem(): void
     {
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS, 'resourceIdentifier');
+        $this->testEntityManager->addResourceActionGrant($resource1,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
         $availableResourceClassActions =
             $this->availableResourceClassActionsProviderTester->getItem(
                 TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS);
@@ -47,14 +52,12 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $this->assertEquals($expectedCollectionActions, $availableResourceClassActions->getCollectionActions());
     }
 
-    public function testGetAvailableResourceClassActionsItemNoSubscribers(): void
+    public function testGetAvailableResourceClassActionsItemNotFound(): void
     {
         $availableResourceClassActions =
-            $this->availableResourceClassActionsProviderTester->getItem('NoSubscribersResourceClass');
+            $this->availableResourceClassActionsProviderTester->getItem('404');
 
-        $this->assertEquals('NoSubscribersResourceClass', $availableResourceClassActions->getIdentifier());
-        $this->assertEquals(null, $availableResourceClassActions->getItemActions());
-        $this->assertEquals(null, $availableResourceClassActions->getCollectionActions());
+        $this->assertNull($availableResourceClassActions);
     }
 
     public function testGetAvailableResourceClassActionsCollection(): void
