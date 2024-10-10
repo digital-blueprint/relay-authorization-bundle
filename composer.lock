@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a8e936b30493ea5bb9baea18dff7d133",
+    "content-hash": "36802ebd871146e9a366bc5e4bc19543",
     "packages": [
         {
             "name": "api-platform/core",
@@ -351,16 +351,16 @@
         },
         {
             "name": "dbp/relay-core-bundle",
-            "version": "v0.1.183",
+            "version": "v0.1.185",
             "source": {
                 "type": "git",
                 "url": "https://github.com/digital-blueprint/relay-core-bundle.git",
-                "reference": "d7d803578a3b4a2bef1114d1cbbe245e98708995"
+                "reference": "f8f13b82967845ce15e869ca7cbd3abf49969364"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/d7d803578a3b4a2bef1114d1cbbe245e98708995",
-                "reference": "d7d803578a3b4a2bef1114d1cbbe245e98708995",
+                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/f8f13b82967845ce15e869ca7cbd3abf49969364",
+                "reference": "f8f13b82967845ce15e869ca7cbd3abf49969364",
                 "shasum": ""
             },
             "require": {
@@ -401,9 +401,11 @@
                 "symfony/security-core": "^5.4 || ^6.4",
                 "symfony/security-http": "^5.4 || ^6.4",
                 "symfony/serializer": "^5.4 || ^6.4",
+                "symfony/service-contracts": "^2.5 || ^3",
                 "symfony/twig-bundle": "^5.4 || ^6.4",
                 "symfony/uid": "^5.4 || ^6.4",
                 "symfony/validator": "^5.4 || ^6.4",
+                "symfony/web-link": "^6.4",
                 "symfony/yaml": "^5.4 || ^6.4"
             },
             "conflict": {
@@ -446,9 +448,9 @@
             "description": "The core bundle of the Relay API gateway",
             "support": {
                 "issues": "https://github.com/digital-blueprint/relay-core-bundle/issues",
-                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/v0.1.183"
+                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/v0.1.185"
             },
-            "time": "2024-10-02T11:39:19+00:00"
+            "time": "2024-10-08T10:16:31+00:00"
         },
         {
             "name": "doctrine/annotations",
@@ -11999,14 +12001,14 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
         "php": ">=8.1",
         "ext-json": "*"
     },
-    "platform-dev": {},
+    "platform-dev": [],
     "platform-overrides": {
         "php": "8.1"
     },
