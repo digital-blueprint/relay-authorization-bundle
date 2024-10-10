@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\DependencyInjection;
 
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -67,6 +68,12 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode(self::IDENTIFIER)
                                 ->cannotBeEmpty()
                                 ->isRequired()
+                                ->validate()
+                                ->ifTrue(function ($value) {
+                                    return str_contains($value, GrantedActions::ID_SEPARATOR);
+                                })
+                                ->thenInvalid('Resource class identifiers must not contain reserved separator character \''.GrantedActions::ID_SEPARATOR.'\'')
+                                ->end()
                                 ->info('The resource class identifier')
                             ->end()
                             ->scalarNode(self::MANAGE_RESOURCE_COLLECTION_POLICY)

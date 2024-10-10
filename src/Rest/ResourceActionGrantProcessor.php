@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
 
 /**
@@ -14,18 +15,20 @@ use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
  */
 class ResourceActionGrantProcessor extends AbstractDataProcessor
 {
-    private InternalResourceActionGrantService $resourceActionGrantService;
-    private AuthorizationService $authorizationService;
-
-    public function __construct(InternalResourceActionGrantService $resourceActionService, AuthorizationService $authorizationService)
+    public function __construct(
+        private readonly InternalResourceActionGrantService $resourceActionGrantService,
+        private readonly AuthorizationService $authorizationService)
     {
-        $this->resourceActionGrantService = $resourceActionService;
-        $this->authorizationService = $authorizationService;
+        parent::__construct();
     }
 
+    /**
+     * @throws ApiError
+     */
     protected function isCurrentUserAuthorizedToAddItem($item, array $filters): bool
     {
         assert($item instanceof ResourceActionGrant);
+        $this->resourceActionGrantService->ensureAuthorizationResource($item);
 
         return $this->authorizationService->isCurrentUserAuthorizedToAddGrant($item);
     }
@@ -40,6 +43,9 @@ class ResourceActionGrantProcessor extends AbstractDataProcessor
         };
     }
 
+    /**
+     * @throws ApiError
+     */
     protected function addItem(mixed $data, array $filters): ResourceActionGrant
     {
         assert($data instanceof ResourceActionGrant);
@@ -47,6 +53,9 @@ class ResourceActionGrantProcessor extends AbstractDataProcessor
         return $this->resourceActionGrantService->addResourceActionGrant($data);
     }
 
+    /**
+     * @throws ApiError
+     */
     protected function removeItem(mixed $identifier, mixed $data, array $filters): void
     {
         assert($data instanceof ResourceActionGrant);

@@ -6,6 +6,8 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,6 +41,60 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
+    }
+
+    public function testCreateResourceActionGrantWithResourceClassAndIdentifierItem(): void
+    {
+        $this->addResourceAndManageGrant();
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
+        $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+        $resourceActionGrant->setAction('read');
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        $resourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+        $resourceActionGrantItem = $this->getResourceActionGrant($resourceActionGrant->getIdentifier());
+
+        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
+        $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
+    }
+
+    public function testCreateResourceActionGrantWithResourceClassAndIdentifierCollection(): void
+    {
+        $this->addResourceAndManageGrant(TestEntityManager::DEFAULT_RESOURCE_CLASS, null);
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
+        $resourceActionGrant->setAction('create');
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        $resourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+        $resourceActionGrantItem = $this->getResourceActionGrant($resourceActionGrant->getIdentifier());
+
+        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
+        $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
+    }
+
+    public function testCreateResourceActionGrantAuthorizationResourceMissing(): void
+    {
+        $this->addResourceAndManageGrant();
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+        $resourceActionGrant->setAction('read');
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        try {
+            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+            $this->fail('ApiError not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(
+                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING,
+                $apiError->getErrorId());
+        }
     }
 
     public function testCreateResourceActionGrantItemForbidden1(): void

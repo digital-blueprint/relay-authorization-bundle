@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
+use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 
 abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase extends AbstractAuthorizationServiceTestCase
 {
@@ -16,22 +17,22 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
         return $this->testEntityManager->getResourceActionGrantByIdentifier($identifier);
     }
 
-    protected function addResource(string $resourceClass = 'resourceClass',
-        ?string $resourceIdentifier = 'resourceIdentifier'): AuthorizationResource
+    protected function addResource(string $resourceClass = TestEntityManager::DEFAULT_RESOURCE_CLASS,
+        ?string $resourceIdentifier = TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER): AuthorizationResource
     {
         return $this->testEntityManager->addAuthorizationResource($resourceClass, $resourceIdentifier);
     }
 
-    protected function addResourceAndManageGrant(string $resourceClass = 'resourceClass',
-        ?string $resourceIdentifier = 'resourceIdentifier',
+    protected function addResourceAndManageGrant(string $resourceClass = TestEntityManager::DEFAULT_RESOURCE_CLASS,
+        ?string $resourceIdentifier = TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER,
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addResourceAndGrant($resourceClass, $resourceIdentifier,
             AuthorizationService::MANAGE_ACTION, $userIdentifier);
     }
 
-    protected function addResourceAndGrant(string $resourceClass = 'resourceClass',
-        ?string $resourceIdentifier = 'resourceIdentifier',
+    protected function addResourceAndGrant(string $resourceClass = TestEntityManager::DEFAULT_RESOURCE_CLASS,
+        ?string $resourceIdentifier = TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER,
         string $action = 'action',
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {

@@ -17,13 +17,11 @@ use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
  */
 class ResourceActionGrantProvider extends AbstractDataProvider
 {
-    private InternalResourceActionGrantService $resourceActionGrantService;
-    private AuthorizationService $authorizationService;
-
-    public function __construct(InternalResourceActionGrantService $resourceActionService, AuthorizationService $authorizationService)
+    public function __construct(
+        private readonly InternalResourceActionGrantService $resourceActionGrantService,
+        private readonly AuthorizationService $authorizationService)
     {
-        $this->resourceActionGrantService = $resourceActionService;
-        $this->authorizationService = $authorizationService;
+        parent::__construct();
     }
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object

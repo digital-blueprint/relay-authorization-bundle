@@ -70,11 +70,6 @@ resources:
         uriTemplate: "/authorization/groups/{identifier}"
         openapiContext:
           tags: ["Authorization"]
-    properties:
-      identifier:
-        identifier: true
-      name:
-        iri: 'https://schema.org/name'
 
   Dbp\Relay\AuthorizationBundle\Entity\GroupMember:
     shortName: "AuthorizationGroupMember"
@@ -130,13 +125,6 @@ resources:
         uriTemplate: "/authorization/group-members/{identifier}"
         openapiContext:
           tags: [ "Authorization" ]
-    properties:
-      identifier:
-        identifier: true
-      group:
-        iri: 'https://schema.org/additionalProperty'
-      childGroup:
-        iri: 'https://schema.org/additionalProperty'
 
   Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource:
     shortName: "AuthorizationResource"
@@ -159,15 +147,6 @@ resources:
               description: 'The resource class to get grants for'
               type: string
               required: false
-    properties:
-      identifier:
-        identifier: true
-      resourceClass:
-        iri: 'https://schema.org/additionalProperty'
-      resourceIdentifier:
-        iri: 'https://schema.org/identifier'
-      writable:
-        iri: 'https://schema.org/additionalProperty'
 
   Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant:
     shortName: "AuthorizationResourceActionGrant"
@@ -230,20 +209,6 @@ resources:
         openapiContext:
           tags: [ "Authorization" ]
 
-    properties:
-      identifier:
-        identifier: true
-      authorizationResource:
-        iri: 'https://schema.org/identifier'
-      action:
-        iri: 'https://schema.org/Action'
-      userIdentifier:
-        iri: 'https://schema.org/identifier'
-      groupIdentifier:
-        iri: 'https://schema.org/identifier'
-      dynamicGroupIdentifier:
-        iri: 'https://schema.org/identifier'
-
   Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions:
     shortName: "AuthorizationAvailableResourceClassActions"
     normalizationContext:
@@ -259,14 +224,6 @@ resources:
         uriTemplate: "/authorization/available-resource-class-actions"
         openapiContext:
           tags: [ "Authorization" ]
-    properties:
-      identifier:
-        identifier: true
-        iri: 'https://schema.org/identifier'
-      itemActions:
-        iri: 'https://schema.org/additionalProperty'
-      collectionActions:
-        iri: 'https://schema.org/additionalProperty'
 
   Dbp\Relay\AuthorizationBundle\Entity\DynamicGroup:
     shortName: "AuthorizationDynamicGroup"
@@ -283,7 +240,16 @@ resources:
         uriTemplate: "/authorization/dynamic-groups"
         openapiContext:
           tags: [ "Authorization" ]
-    properties:
-      identifier:
-        identifier: true
-        iri: 'https://schema.org/identifier'
+
+  Dbp\Relay\AuthorizationBundle\Entity\GrantedActions:
+    shortName: "AuthorizationGrantedActions"
+    normalizationContext:
+      groups: ['AuthorizationGrantedActions:output']
+    denormalizationContext:
+      groups: ['AuthorizationGrantedActions:input']
+    operations:
+      ApiPlatform\Metadata\Get:
+        provider: Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider
+        uriTemplate: "/authorization/granted-actions/{identifier}"
+        openapiContext:
+          tags: [ "Authorization" ]

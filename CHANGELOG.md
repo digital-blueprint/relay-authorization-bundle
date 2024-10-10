@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* On adding new resource action grants, allow the authorization resource to be specified by 
+resource class and identifier (for cases where the authorization resource identifier is not known)
+* Add /authorization/granted-actions/{resource class}:{resource identifier} endpoint, which returns the list of
+actions the current user is granted to perform on the given authorization resource (specified by resource class and identifier)
 * Only return available resource class items if the current user has read permissions to at least one resource of the 
 requested resource class (otherwise returning 404), to be in line with the collection endpoint
 * Drop support for api-platform 2.7

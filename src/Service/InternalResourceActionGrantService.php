@@ -53,16 +53,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
     private const GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-collection-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
+    private const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:authorization-resource-not-found';
+    public const RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING =
+        'authorization:resource-action-grant-invalid-authorization-resource-missing';
 
     private const AUTHORIZATION_RESOURCE_IDENTIFIER_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS.'.identifier';
 
-    private EntityManagerInterface $entityManager;
-    private EventDispatcherInterface $eventDispatcher;
-
-    public function __construct(EntityManagerInterface $entityManager, EventDispatcherInterface $eventDispatcher)
+    public function __construct(
+        private readonly EntityManagerInterface $entityManager,
+        private readonly EventDispatcherInterface $eventDispatcher)
     {
-        $this->entityManager = $entityManager;
-        $this->eventDispatcher = $eventDispatcher;
     }
 
     public function getEntityManager(): EntityManagerInterface
@@ -87,6 +87,27 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         return $resourceActionGrant;
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function ensureAuthorizationResource(ResourceActionGrant $resourceActionGrant): void
+    {
+        if ($resourceActionGrant->getAuthorizationResource() === null) {
+            if ($resourceActionGrant->getResourceClass() === null) {
+                throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                    'Either authorization resource IRI or resource class/identifier must be provided',
+                    self::RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING);
+            }
+            $authorizationResource = $this->getAuthorizationResourceByResourceClassAndIdentifier(
+                $resourceActionGrant->getResourceClass(), $resourceActionGrant->getResourceIdentifier());
+            if ($authorizationResource === null) {
+                throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
+                    'authorization resource with given resource class and identifier not found', self::AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID);
+            }
+            $resourceActionGrant->setAuthorizationResource($authorizationResource);
+        }
     }
 
     /**
@@ -446,6 +467,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     private function validateResourceActionGrant(ResourceActionGrant $resourceActionGrant): void
     {
+        if ($resourceActionGrant->getAuthorizationResource() === null) {
+            throw new \RuntimeException('resource action grant is invalid: authorization resource must not be null');
+        }
+
         $action = $resourceActionGrant->getAction();
         if ($action === null || $action === '') {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,

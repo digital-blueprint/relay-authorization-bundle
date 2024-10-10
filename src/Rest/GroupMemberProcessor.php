@@ -14,15 +14,11 @@ use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
  */
 class GroupMemberProcessor extends AbstractDataProcessor
 {
-    private GroupService $groupService;
-    private AuthorizationService $authorizationService;
-
-    public function __construct(GroupService $groupService, AuthorizationService $authorizationService)
+    public function __construct(
+        private readonly GroupService $groupService,
+        private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
-
-        $this->groupService = $groupService;
-        $this->authorizationService = $authorizationService;
     }
 
     protected function isCurrentUserAuthorizedToAddItem($item, array $filters): bool

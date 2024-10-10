@@ -50,6 +50,12 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $dynamicGroupIdentifier = null;
 
+    #[Groups(['AuthorizationResourceActionGrant:input'])]
+    private ?string $resourceClass = null;
+
+    #[Groups(['AuthorizationResourceActionGrant:input'])]
+    private ?string $resourceIdentifier = null;
+
     public function getIdentifier(): ?string
     {
         return $this->identifier;
@@ -108,5 +114,25 @@ class ResourceActionGrant
     public function setDynamicGroupIdentifier(?string $dynamicGroupIdentifier): void
     {
         $this->dynamicGroupIdentifier = $dynamicGroupIdentifier;
+    }
+
+    public function getResourceClass(): ?string
+    {
+        return $this->resourceClass;
+    }
+
+    public function setResourceClass(?string $resourceClass): void
+    {
+        $this->resourceClass = $resourceClass;
+    }
+
+    public function getResourceIdentifier(): ?string
+    {
+        return $this->resourceIdentifier;
+    }
+
+    public function setResourceIdentifier(?string $resourceIdentifier): void
+    {
+        $this->resourceIdentifier = $resourceIdentifier;
     }
 }

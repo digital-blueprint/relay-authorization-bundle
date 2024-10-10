@@ -23,13 +23,11 @@ class GroupMemberProvider extends AbstractDataProvider
 
     public const GROUP_NOT_FOUND_ERROR_ID = 'authorization:group-not-found';
 
-    private GroupService $groupService;
-    private AuthorizationService $authorizationService;
-
-    public function __construct(GroupService $groupService, AuthorizationService $authorizationService)
+    public function __construct(
+        private readonly GroupService $groupService,
+        private readonly AuthorizationService $authorizationService)
     {
-        $this->groupService = $groupService;
-        $this->authorizationService = $authorizationService;
+        parent::__construct();
     }
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
