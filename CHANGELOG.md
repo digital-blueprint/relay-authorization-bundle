@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.3.11
+
 * On adding new resource action grants, allow the authorization resource to be specified by 
 resource class and identifier (for cases where the authorization resource identifier is not known)
 * Add /authorization/granted-actions/{resource class}:{resource identifier} endpoint, which returns the list of
