@@ -54,7 +54,7 @@ class ResourceActionGrant
     #[ApiProperty(openapiContext: [
         'description' => 'The AuthorizationGroup type grant holder',
         'example' => '/authorization/groups/0193cf2d-89a8-7a9c-b317-2e5201afdd8d',
-        ])]
+    ])]
     #[ORM\JoinColumn(name: 'group_identifier', referencedColumnName: 'identifier', nullable: true, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Group::class)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
