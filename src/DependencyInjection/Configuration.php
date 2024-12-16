@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\DependencyInjection;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -51,6 +52,12 @@ class Configuration implements ConfigurationInterface
                                         return str_starts_with($value, '@');
                                     })
                                     ->thenInvalid('Dynamic group identifiers must not start with a @ character')
+                                ->end()
+                                ->validate()
+                                ->ifTrue(function ($value) {
+                                    return $value === AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY;
+                                })
+                                ->thenInvalid('Dynamic group identifier \''.AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY.'\' is reserved')
                                 ->end()
                                 ->info('The dynamic group identifier')
                             ->end()

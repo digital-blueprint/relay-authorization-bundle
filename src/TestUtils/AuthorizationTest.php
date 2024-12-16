@@ -11,7 +11,7 @@ class AuthorizationTest
 {
     public static function setUp(ContainerInterface $container): void
     {
-        TestEntityManager::setUpEntityManager($container);
+        TestEntityManager::setUpAuthorizationEntityManager($container);
     }
 
     public static function tearDown(ContainerInterface $container): void

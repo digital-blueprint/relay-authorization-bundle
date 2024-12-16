@@ -8,8 +8,6 @@ use Symfony\Contracts\EventDispatcher\Event;
 
 class GetAvailableResourceClassActionsEvent extends Event
 {
-    private string $resourceClass;
-
     /**
      * @var string[]|null
      */
@@ -20,9 +18,8 @@ class GetAvailableResourceClassActionsEvent extends Event
      */
     private ?array $collectionActions = null;
 
-    public function __construct(string $resourceClass)
+    public function __construct(private readonly string $resourceClass)
     {
-        $this->resourceClass = $resourceClass;
     }
 
     public function getResourceClass(): string

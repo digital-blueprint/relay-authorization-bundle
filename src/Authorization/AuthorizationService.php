@@ -51,7 +51,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const MAX_NUM_RESULTS_DEFAULT = 1024;
     public const SEARCH_FILTER = 'search';
     public const GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER = 'getChildGroupCandidatesForGroupIdentifier';
-
+    public const DYNAMIC_GROUP_IDENTIFIER_EVERYBODY = 'everybody';
     public const MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX = '@';
 
     public const IS_NULL = InternalResourceActionGrantService::IS_NULL;
@@ -62,9 +62,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private const GET_AUTHORIZATION_RESOURCES = 'ar';
     private const GET_RESOURCE_CLASSES = 'rc';
 
-    private InternalResourceActionGrantService $resourceActionGrantService;
-    private GroupService $groupService;
-    private EntityManagerInterface $entityManager;
     private ?CacheItemPoolInterface $cachePool = null;
     private ?array $config = null;
 
@@ -80,14 +77,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         ];
     }
 
-    public function __construct(InternalResourceActionGrantService $resourceActionGrantService, GroupService $groupService,
-        EntityManagerInterface $entityManager)
+    public function __construct(
+        private readonly InternalResourceActionGrantService $resourceActionGrantService,
+        private readonly GroupService $groupService,
+        private EntityManagerInterface $entityManager)
     {
         parent::__construct();
-
-        $this->resourceActionGrantService = $resourceActionGrantService;
-        $this->groupService = $groupService;
-        $this->entityManager = $entityManager;
     }
 
     /**
@@ -157,7 +152,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function isCurrentUserMemberOfDynamicGroup(string $dynamicGroupIdentifier): bool
     {
         try {
-            return $this->isGranted(self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicGroupIdentifier));
+            return $this->isGrantedRole(self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicGroupIdentifier));
         } catch (AuthorizationException $authorizationException) {
             if ($authorizationException->getCode() === AuthorizationException::ATTRIBUTE_UNDEFINED) {
                 throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
@@ -177,8 +172,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function getDynamicGroupsCurrentUserIsMemberOf(): array
     {
         $currentUsersDynamicGroups = [];
-        foreach ($this->getPolicyNames() as $policyName) {
-            if ($this->isGranted($policyName)) {
+        foreach ($this->getRoleNames() as $policyName) {
+            if ($this->isGrantedRole($policyName)) {
                 $currentUsersDynamicGroups[] = self::toDynamicGroupIdentifier($policyName);
             }
         }
@@ -191,7 +186,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getDynamicGroupsCurrentUserIsAuthorizedToRead(): array
     {
-        return array_filter($this->getPolicyNames(), function ($policyName) {
+        return array_filter($this->getRoleNames(), function ($policyName) {
             return self::isCurrentUserMemberOfDynamicGroupPolicyName($policyName);
         });
     }
@@ -718,6 +713,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return array_keys($resourceActions);
     }
 
+    /**
+     * @throws ApiError
+     */
     private function isUsersGrant(ResourceActionGrant $grant, ?string $userIdentifier): bool
     {
         return ($userIdentifier !== null
@@ -745,8 +743,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicGroup[Configuration::IDENTIFIER])] =
                     $dynamicGroup[Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION];
             }
+            $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName(self::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY)] = 'true';
 
-            $this->configure($policies);
+            $this->setUpAccessControlPolicies($policies);
 
             $cacheItem = $this->cachePool->getItem(self::WERE_MANAGE_COLLECTION_GRANTS_WRITTEN_TO_DB_CACHE_KEY);
             if (!$cacheItem->isHit()) {
@@ -755,7 +754,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                     $cacheItem->set(true);
                     $this->cachePool->save($cacheItem);
                 } catch (\Exception) {
-                    // ignore db errors which may occur, when setConfig is when there is no database available
+                    // ignore db errors which may occur, when setConfig is called when no database is available
                     // e.g. calling Symfony commands locally
                 }
             }

@@ -38,21 +38,22 @@ class DynamicGroupProviderAuthorizationServiceTest extends AbstractAuthorization
     public function testGetCollection(): void
     {
         $dynamicGroups = $this->dynamicGroupProviderTester->getCollection();
-        $this->assertCount(3, $dynamicGroups);
+        $this->assertCount(4, $dynamicGroups);
         $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('students')));
         $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('employees')));
         $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('researchers')));
+        $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('everybody')));
 
         // test pagination:
         $dynamicGroupPage1 = $this->dynamicGroupProviderTester->getCollection([
             'page' => 1,
-            'perPage' => 2,
+            'perPage' => 3,
         ]);
-        $this->assertCount(2, $dynamicGroupPage1);
+        $this->assertCount(3, $dynamicGroupPage1);
 
         $dynamicGroupPage2 = $this->dynamicGroupProviderTester->getCollection([
             'page' => 2,
-            'perPage' => 2,
+            'perPage' => 3,
         ]);
         $this->assertCount(1, $dynamicGroupPage2);
 
@@ -60,6 +61,7 @@ class DynamicGroupProviderAuthorizationServiceTest extends AbstractAuthorization
         $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('students')));
         $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('employees')));
         $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('researchers')));
+        $this->assertTrue($this->containsResource($dynamicGroups, new DynamicGroup('everybody')));
     }
 
     protected function getTestConfig(): array

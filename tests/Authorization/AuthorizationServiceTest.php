@@ -82,6 +82,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testIsCurrentUserMemberOfDynamicGroup(): void
     {
+        $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('everybody'));
         $this->assertFalse($this->authorizationService->isCurrentUserMemberOfDynamicGroup('students'));
         $this->assertFalse($this->authorizationService->isCurrentUserMemberOfDynamicGroup('employees'));
 
@@ -89,12 +90,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userAttributes['IS_STUDENT'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
+        $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('everybody'));
         $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('students'));
         $this->assertFalse($this->authorizationService->isCurrentUserMemberOfDynamicGroup('employees'));
 
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
+        $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('everybody'));
         $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('students'));
         $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('employees'));
     }
@@ -102,27 +105,31 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetDynamicGroupsCurrentUserIsMemberOf(): void
     {
         $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
-        $this->assertCount(0, $currentUsersDynamicGroups);
+        $this->assertCount(1, $currentUsersDynamicGroups);
+        $this->assertEquals('everybody', $currentUsersDynamicGroups[0]);
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_STUDENT'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
         $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
-        $this->assertCount(1, $currentUsersDynamicGroups);
-        $this->assertEquals('students', $currentUsersDynamicGroups[0]);
+        $this->assertCount(2, $currentUsersDynamicGroups);
+        $this->assertContains('students', $currentUsersDynamicGroups);
+        $this->assertContains('everybody', $currentUsersDynamicGroups);
 
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
         $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
-        $this->assertCount(2, $currentUsersDynamicGroups);
-        $this->assertEquals('students', $currentUsersDynamicGroups[0]);
-        $this->assertEquals('employees', $currentUsersDynamicGroups[1]);
+        $this->assertCount(3, $currentUsersDynamicGroups);
+        $this->assertContains('students', $currentUsersDynamicGroups);
+        $this->assertContains('employees', $currentUsersDynamicGroups);
+        $this->assertContains('everybody', $currentUsersDynamicGroups);
     }
 
     public function testGetResourceItemActionsForCurrentUser(): void
     {
+        // everybody has a 'get_title' grant
         // self::CURRENT_USER_IDENTIFIER has a 'manage' grant
         // self::CURRENT_USER_IDENTIFIER.'_2' has a 'read' grant
         // self::CURRENT_USER_IDENTIFIER.'_3' has a 'write' grant (as a member of group1)
@@ -156,6 +163,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addResourceActionGrant($resource, 'write', null, $group1);
         $this->testEntityManager->addResourceActionGrant($resource, 'delete', null, $group2);
         $this->testEntityManager->addResourceActionGrant($resource, 'write', null, null, 'employees');
+        $this->testEntityManager->addResourceActionGrant($resource, 'get_title', null, null, 'everybody');
 
         // add some noise:
         $resource2 = $this->testEntityManager->addAuthorizationResource();
@@ -167,33 +175,33 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER,
             [AuthorizationService::MANAGE_ACTION]);
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceItemActions);
+        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION, 'get_title'], $resourceItemActions);
 
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceItemActions);
+        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION, 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 2:
         $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, ['read']);
-        $this->assertEquals(['read'], $resourceItemActions);
+        $this->assertIsPermutationOf(['read', 'get_title'], $resourceItemActions);
 
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $this->assertEquals(['read'], $resourceItemActions);
+        $this->assertIsPermutationOf(['read', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 3:
         $this->login(self::CURRENT_USER_IDENTIFIER.'_3');
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, ['write']);
-        $this->assertEquals(['write'], $resourceItemActions);
+        $this->assertIsPermutationOf(['write', 'get_title'], $resourceItemActions);
 
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $this->assertEquals(['write'], $resourceItemActions);
+        $this->assertIsPermutationOf(['write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 4:
@@ -202,7 +210,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER.'_4', $userAttributes);
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, ['write']);
-        $this->assertEquals(['write'], $resourceItemActions);
+        $this->assertIsPermutationOf(['write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 5:
@@ -211,17 +219,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER.'_5', $userAttributes);
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $this->assertCount(3, $resourceItemActions);
-        $this->assertContains('read', $resourceItemActions);
-        $this->assertContains('delete', $resourceItemActions);
-        $this->assertContains('write', $resourceItemActions);
+        $this->assertIsPermutationOf(['read', 'delete', 'write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 6:
         $this->login(self::CURRENT_USER_IDENTIFIER.'_6');
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $this->assertEquals(['delete'], $resourceItemActions);
+        $this->assertIsPermutationOf(['delete', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 7:
@@ -230,17 +235,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER.'_7', $userAttributes);
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $this->assertCount(3, $resourceItemActions);
-        $this->assertContains('read', $resourceItemActions);
-        $this->assertContains('delete', $resourceItemActions);
-        $this->assertContains('write', $resourceItemActions);
+        $this->assertIsPermutationOf(['read', 'delete', 'write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 8:
         $this->login(self::CURRENT_USER_IDENTIFIER.'_8');
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $this->assertEmpty($resourceItemActions);
+        $this->assertEquals(['get_title'], $resourceItemActions);
     }
 
     public function testGetResourceItemActionsPageForCurrentUser(): void
@@ -701,9 +703,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetDynamicGroupsCurrentUserIsAuthorizedToRead(): void
     {
         $dynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsAuthorizedToRead();
-        $this->assertCount(2, $dynamicGroups);
+        $this->assertCount(3, $dynamicGroups);
         $this->assertContains('students', $dynamicGroups);
         $this->assertContains('employees', $dynamicGroups);
+        $this->assertContains('everybody', $dynamicGroups);
     }
 
     public function testGetAuthorizationResourcesCurrentUserIsAuthorizedToRead(): void

@@ -4,56 +4,32 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
+use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
 use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\Tools\SchemaTool;
 use Ramsey\Uuid\Uuid;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class TestEntityManager
+class TestEntityManager extends CoreTestEntityManager
 {
     public const DEFAULT_RESOURCE_CLASS = 'resourceClass';
     public const DEFAULT_RESOURCE_IDENTIFIER = 'resourceIdentifier';
 
-    private EntityManager $entityManager;
-
     public function __construct(ContainerInterface $container)
     {
-        $this->entityManager = self::setUpEntityManager($container);
+        assert($container instanceof Container);
+        parent::__construct($container, DbpRelayAuthorizationExtension::AUTHORIZATION_ENTITY_MANAGER_ID);
     }
 
-    public static function setUpEntityManager(ContainerInterface $container): EntityManager
+    public static function setUpAuthorizationEntityManager(ContainerInterface $container): EntityManager
     {
-        try {
-            $entityManager = $container->get('doctrine')->getManager('dbp_relay_authorization_bundle');
-            assert($entityManager instanceof EntityManager);
-
-            // enable foreign key and 'ON DELETE CASCADE' support
-            $sqlStatement = $entityManager->getConnection()->prepare('PRAGMA foreign_keys = ON');
-            $sqlStatement->executeQuery();
-
-            $metaData = $entityManager->getMetadataFactory()->getAllMetadata();
-            $schemaTool = new SchemaTool($entityManager);
-            $schemaTool->updateSchema($metaData);
-        } catch (\Exception $exception) {
-            throw new \RuntimeException($exception->getMessage());
-        }
-
-        return $entityManager;
-    }
-
-    /**
-     * @internal
-     *
-     * For testing only
-     */
-    public function getEntityManager(): EntityManager
-    {
-        return $this->entityManager;
+        return self::setUpEntityManager($container, DbpRelayAuthorizationExtension::AUTHORIZATION_ENTITY_MANAGER_ID);
     }
 
     public function addResourceActionGrant(AuthorizationResource $resource, string $action,

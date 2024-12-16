@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.12
+
+* Add built-in dynamic group 'everybody' which grants access to all (authenticated) users
+
 ## v0.3.11
 
 * On adding new resource action grants, allow the authorization resource to be specified by 

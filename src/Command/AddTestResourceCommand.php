@@ -15,13 +15,10 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class AddTestResourceCommand extends Command
 {
-    private InternalResourceActionGrantService $resourceActionGrantService;
-
-    public function __construct(InternalResourceActionGrantService $resourceActionGrantService)
+    public function __construct(
+        private readonly InternalResourceActionGrantService $resourceActionGrantService)
     {
         parent::__construct();
-
-        $this->resourceActionGrantService = $resourceActionGrantService;
     }
 
     protected function configure(): void

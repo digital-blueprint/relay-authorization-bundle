@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\DependencyInjection;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Dbp\Relay\CoreBundle\Doctrine\DoctrineConfiguration;
 use Dbp\Relay\CoreBundle\Extension\ExtensionTrait;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -16,6 +17,9 @@ use Symfony\Component\HttpKernel\DependencyInjection\ConfigurableExtension;
 class DbpRelayAuthorizationExtension extends ConfigurableExtension implements PrependExtensionInterface
 {
     use ExtensionTrait;
+
+    public const AUTHORIZATION_ENTITY_MANAGER_ID = 'dbp_relay_authorization_bundle';
+    public const AUTHORIZATION_DB_CONNECTION_ID = 'dbp_relay_authorization_bundle';
 
     public function loadInternal(array $mergedConfig, ContainerBuilder $container): void
     {
@@ -38,43 +42,13 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
         $configs = $container->getExtensionConfig($this->getAlias());
         $config = $this->processConfiguration(new Configuration(), $configs);
 
-        foreach (['doctrine', 'doctrine_migrations'] as $extKey) {
-            if (!$container->hasExtension($extKey)) {
-                throw new \Exception("'".$this->getAlias()."' requires the '$extKey' bundle to be loaded!");
-            }
-        }
-
-        $container->prependExtensionConfig('doctrine', [
-            'dbal' => [
-                'connections' => [
-                    'dbp_relay_authorization_bundle' => [
-                        'url' => $config[Configuration::DATABASE_URL] ?? '',
-                    ],
-                ],
-            ],
-            'orm' => [
-                'entity_managers' => [
-                    'dbp_relay_authorization_bundle' => [
-                        'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
-                        'connection' => 'dbp_relay_authorization_bundle',
-                        'mappings' => [
-                            'dbp_relay_authorization' => [
-                                'type' => 'attribute',
-                                'dir' => __DIR__.'/../Entity',
-                                'prefix' => 'Dbp\Relay\AuthorizationBundle\Entity',
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-
-        $this->registerEntityManager($container, 'dbp_relay_authorization_bundle');
-
-        $container->prependExtensionConfig('doctrine_migrations', [
-            'migrations_paths' => [
-                'Dbp\Relay\AuthorizationBundle\Migrations' => __DIR__.'/../Migrations',
-            ],
-        ]);
+        DoctrineConfiguration::prependEntityManagerConfig($container, self::AUTHORIZATION_ENTITY_MANAGER_ID,
+            $config[Configuration::DATABASE_URL] ?? '',
+            __DIR__.'/../Entity',
+            'Dbp\Relay\AuthorizationBundle\Entity',
+            self::AUTHORIZATION_DB_CONNECTION_ID);
+        DoctrineConfiguration::prependMigrationsConfig($container,
+            __DIR__.'/../Migrations',
+            'Dbp\Relay\AuthorizationBundle\Migrations');
     }
 }

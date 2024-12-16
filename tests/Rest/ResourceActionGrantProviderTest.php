@@ -37,6 +37,19 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
     }
 
+    public function testGetResourceActionGrantItemWithDynamicGroupEverybody(): void
+    {
+        $resourceActionGrant = $this->addResourceAndManageGrant();
+        $readGrant = $this->addResourceActionGrant($resourceActionGrant->getAuthorizationResource(), 'read', dynamicGroupIdentifier: 'everybody');
+        $readGrantItem = $this->resourceActionGrantProviderTester->getItem(
+            $readGrant->getIdentifier());
+
+        $this->assertEquals($readGrant->getIdentifier(), $readGrantItem->getIdentifier());
+        $this->assertEquals($readGrant->getAuthorizationResource()->getIdentifier(), $readGrantItem->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals('read', $readGrantItem->getAction());
+        $this->assertEquals('everybody', $readGrantItem->getDynamicGroupIdentifier());
+    }
+
     public function testGetResourceActionGrantItemNotFound(): void
     {
         $this->assertNull($this->resourceActionGrantProviderTester->getItem(Uuid::uuid7()->toString()));
