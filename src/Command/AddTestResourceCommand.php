@@ -23,7 +23,8 @@ class AddTestResourceCommand extends Command
 
     protected function configure(): void
     {
-        $this->setName('dbp:relay-authorization:add-resource');
+        $this->setName('dbp:relay:authorization:add-resource');
+        $this->setAliases(['dbp:relay-authorization:add-resource']);
         $this
             ->setDescription('Add a resource and a manage resource grant for testing')
             ->addArgument('resourceClass', InputArgument::REQUIRED, 'resourceClass')
