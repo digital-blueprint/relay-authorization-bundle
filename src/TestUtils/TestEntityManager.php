@@ -33,7 +33,7 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addResourceActionGrant(AuthorizationResource $resource, string $action,
-        ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
@@ -54,7 +54,7 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addAuthorizationResourceAndActionGrant(string $resourceClass, ?string $resourceIdentifier,
-        string $action, ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+        string $action, ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
 
