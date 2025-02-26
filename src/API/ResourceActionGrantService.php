@@ -42,11 +42,13 @@ class ResourceActionGrantService
     /**
      * Adds an initial resource manager grant for the given resource for the current user.
      *
+     * @param ?string $userIdentifier The user identifier of the resource manager. If not provided, the currently logged-in user is used.
+     *
      * @throws ApiError
      */
-    public function registerResource(string $resourceClass, string $resourceIdentifier): void
+    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null): void
     {
-        $this->authorizationService->registerResource($resourceClass, $resourceIdentifier);
+        $this->authorizationService->registerResource($resourceClass, $resourceIdentifier, $userIdentifier);
     }
 
     /**
@@ -71,6 +73,16 @@ class ResourceActionGrantService
         if (!empty($resourceIdentifiers)) {
             $this->authorizationService->removeResources($resourceClass, $resourceIdentifiers);
         }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
+        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
+    {
+        $this->authorizationService->addResourceActionGrant($resourceClass, $resourceIdentifier, $action,
+            $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
     }
 
     /**

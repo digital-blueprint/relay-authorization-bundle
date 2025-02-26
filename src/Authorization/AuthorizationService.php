@@ -194,12 +194,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function registerResource(string $resourceClass, string $resourceIdentifier): void
+    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
         $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
-            $resourceClass, $resourceIdentifier, $this->getCurrentUserIdentifier(true));
+            $resourceClass, $resourceIdentifier, $userIdentifier ?? $this->getCurrentUserIdentifier(true));
     }
 
     /**
@@ -843,5 +843,23 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 $this->resourceActionGrantService->addResourceActionGrant($resourceActionGrant);
             }
         }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
+        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
+    {
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceClass($resourceClass);
+        $resourceActionGrant->setResourceIdentifier($resourceIdentifier);
+        $resourceActionGrant->setAction($action);
+        $resourceActionGrant->setUserIdentifier($userIdentifier);
+        $resourceActionGrant->setGroup($groupIdentifier !== null ? $this->groupService->getGroup($groupIdentifier) : null);
+        $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
+
+        $this->resourceActionGrantService->ensureAuthorizationResource($resourceActionGrant);
+        $this->resourceActionGrantService->addResourceActionGrant($resourceActionGrant);
     }
 }
