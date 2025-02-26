@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.14
+
+* extend ResourceActionGrantService by addResourceActionGrant method and registerResource method by optional userIdentifier parameter
+
 ## v0.3.13
 
 * Update TestEntityManager interface
