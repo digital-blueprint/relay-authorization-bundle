@@ -7,7 +7,7 @@ as template for your Symfony application, then the configuration file should hav
 
 For more info on bundle configuration see <https://symfony.com/doc/current/bundles/configuration.html>.
 
-Here is the content of an exmple config file:
+Here is the content of an example config file:
 
 ```yaml
     dbp_relay_authorization:

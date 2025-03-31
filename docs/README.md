@@ -6,7 +6,7 @@ Source: https://github.com/digital-blueprint/relay-authorization-bundle
 
 * [Getting started](./getting-started.md)
 * [Setup](./setup.md)
-* [Configuration](./config.md)
+* [Configuration](./configuration.md)
 * [PHP Backend API](./php-api.md)
 * [REST Web API](./rest-api.md)
 * [Groups](./groups.md)
