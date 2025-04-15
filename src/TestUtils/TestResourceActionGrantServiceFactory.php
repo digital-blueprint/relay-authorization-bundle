@@ -38,21 +38,31 @@ class TestResourceActionGrantServiceFactory
     }
 
     public static function login(ResourceActionGrantService $resourceActionGrantService,
-        string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = []): void
+        ?string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER,
+        array $currentUserAttributes = [], bool $isServiceAccount = false): void
     {
         TestAuthorizationService::setUp($resourceActionGrantService->getAuthorizationService(),
-            $currentUserIdentifier, $currentUserAttributes);
+            $currentUserIdentifier, $currentUserAttributes, isServiceAccount: $isServiceAccount);
+    }
+
+    public static function logout(ResourceActionGrantService $resourceActionGrantService,
+        array $defaultUserAttributes = []): void
+    {
+        TestAuthorizationService::setUp($resourceActionGrantService->getAuthorizationService(),
+            null, $defaultUserAttributes, isAuthenticated: false);
     }
 
     public static function createTestAuthorizationService(
         EntityManagerInterface $entityManager, EventDispatcherInterface $eventDispatcher,
         ?InternalResourceActionGrantService $internalResourceActionGrantService = null, ?array $testConfig = null,
-        string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = []): AuthorizationService
+        ?string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER,
+        array $currentUserAttributes = [], bool $isServiceAccount = false): AuthorizationService
     {
         $internalResourceActionGrantService ??= new InternalResourceActionGrantService($entityManager, $eventDispatcher);
         $authorizationService = new AuthorizationService(
             $internalResourceActionGrantService, new GroupService($entityManager), $entityManager);
-        TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier, $currentUserAttributes);
+        TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier,
+            $currentUserAttributes, isServiceAccount: $isServiceAccount);
         $eventDispatcher->addSubscriber($authorizationService); // before setConfig/setCache!
         $authorizationService->setConfig($testConfig ?? self::getTestConfig());
         $authorizationService->setCache(new ArrayAdapter());

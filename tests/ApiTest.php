@@ -4,25 +4,18 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
-use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\AuthorizationTest;
-use Dbp\Relay\CoreBundle\TestUtils\TestClient;
-use Dbp\Relay\CoreBundle\TestUtils\UserAuthTrait;
+use Dbp\Relay\CoreBundle\TestUtils\AbstractApiTest;
 use Symfony\Component\HttpFoundation\Response;
 
-class ApiTest extends ApiTestCase
+class ApiTest extends AbstractApiTest
 {
-    use UserAuthTrait;
-
-    private TestClient $testClient;
-
     protected function setUp(): void
     {
-        $this->testClient = new TestClient(ApiTestCase::createClient());
-        $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => false]);
+        parent::setUp();
+
+        $this->testClient->setUpUser(userAttributes: ['MAY_CREATE_GROUPS' => false]);
         AuthorizationTest::setUp($this->testClient->getContainer());
-        // the following allows multiple requests in one test:
-        $this->testClient->getClient()->disableReboot();
     }
 
     protected function tearDown(): void
