@@ -115,7 +115,8 @@ class GroupMember
         description: 'The identifier of the AuthorizationGroup resource to add a member to',
         openapiContext: [
             'example' => '/authorization/groups/{identifier}',
-    ])]
+        ]
+    )]
     #[ORM\JoinColumn(name: 'parent_group_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Group::class, inversedBy: 'members')]
     #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output'])]
@@ -127,8 +128,9 @@ class GroupMember
     #[ApiProperty(
         description: 'The identifier of the user (person) to add as a member',
         openapiContext: [
-        'example' => '811EC3ACC0ADCA70',
-    ])]
+            'example' => '811EC3ACC0ADCA70',
+        ]
+    )]
     #[ORM\Column(name: 'user_identifier', type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]
     private ?string $userIdentifier = null;
@@ -139,8 +141,9 @@ class GroupMember
     #[ApiProperty(
         description: 'The identifier of the AuthorizationGroup resource to add as a member',
         openapiContext: [
-        'example' => '/authorization/groups/{identifier}',
-    ])]
+            'example' => '/authorization/groups/{identifier}',
+        ]
+    )]
     #[ORM\JoinColumn(name: 'child_group_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Group::class)]
     #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]

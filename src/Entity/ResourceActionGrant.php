@@ -154,7 +154,8 @@ class ResourceActionGrant
         description: 'The user type type grant holder',
         openapiContext: [
             'example' => '0193cf3e-21d5-72cf-9734-14ce2768f49e',
-    ])]
+        ]
+    )]
     #[ORM\Column(name: 'user_identifier', type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $userIdentifier = null;
@@ -179,8 +180,9 @@ class ResourceActionGrant
     #[ApiProperty(
         description: 'AuthorizationDynamicGroup type grant holder',
         openapiContext: [
-        'example' => 'students',
-    ])]
+            'example' => 'students',
+        ]
+    )]
     #[ORM\Column(name: 'dynamic_group_identifier', type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $dynamicGroupIdentifier = null;
