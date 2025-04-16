@@ -5,10 +5,37 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\OpenApi\Model\Operation;
+use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Serializer\Annotation\Groups;
 
+#[ApiResource(
+    shortName: 'AuthorizationGrantedActions',
+    operations: [
+        new Get(
+            uriTemplate: '/authorization/granted-actions/{identifier}',
+            openapi: new Operation(
+                tags: ['Authorization']
+            ),
+            provider: GrantedActionsProvider::class
+        ),
+        new GetCollection(
+            uriTemplate: '/authorization/granted-actions',
+            openapi: new Operation(
+                tags: ['Authorization']
+            ),
+            provider: GrantedActionsProvider::class
+        ),
+    ],
+    normalizationContext: [
+        'groups' => ['AuthorizationGrantedActions:output'],
+    ],
+)]
 class GrantedActions
 {
     public const ID_SEPARATOR = ':';
@@ -16,15 +43,12 @@ class GrantedActions
     /**
      * @var string[]|null
      */
-    #[ApiProperty(iris: ['https://schema.org/additionalProperty'])]
     #[Groups(['AuthorizationGrantedActions:output'])]
     private ?array $actions = null;
 
-    #[ApiProperty(iris: ['https://schema.org/additionalProperty'])]
     #[Groups(['AuthorizationGrantedActions:output', 'AuthorizationGrantedActions:input'])]
     private ?string $resourceClass = null;
 
-    #[ApiProperty(iris: ['https://schema.org/additionalProperty'])]
     #[Groups(['AuthorizationGrantedActions:output', 'AuthorizationGrantedActions:input'])]
     private ?string $resourceIdentifier = null;
 

@@ -5,12 +5,103 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\QueryParameter;
+use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\RequestBody;
+use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProcessor;
+use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider;
+use Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * @internal
  */
+#[ApiResource(
+    shortName: 'AuthorizationGroupMember',
+    operations: [
+        new Get(
+            uriTemplate: '/authorization/group-members/{identifier}',
+            openapi: new Operation(
+                tags: ['Authorization']
+            ),
+            provider: GroupMemberProvider::class
+        ),
+        new GetCollection(
+            uriTemplate: '/authorization/group-members',
+            openapi: new Operation(
+                tags: ['Authorization']
+            ),
+            provider: GroupMemberProvider::class,
+            parameters: [
+                'groupIdentifier' => new QueryParameter(
+                    schema: [
+                        'type' => 'string',
+                    ],
+                    description: 'The identifier of the AuthorizationGroup resource to get group members for',
+                    required: true,
+                ),
+            ]
+        ),
+        new Post(
+            uriTemplate: '/authorization/group-members',
+            openapi: new Operation(
+                tags: ['Authorization'],
+                requestBody: new RequestBody(
+                    content: new \ArrayObject([
+                        'application/ld+json' => [
+                            'schema' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'group' => [
+                                        'type' => 'string',
+                                        'description' => 'The identifier of the AuthorizationGroup resource to add a member to',
+                                        'example' => '/authorization/groups/{identifier}',
+                                    ],
+                                    'userIdentifier' => [
+                                        'type' => 'string',
+                                        'description' => 'The identifier of the user (person) to add as a member',
+                                        'example' => '811EC3ACC0ADCA70', // woody007
+                                    ],
+                                    'childGroup' => [
+                                        'type' => 'string',
+                                        'description' => 'The identifier of the AuthorizationGroup resource to add as a member',
+                                        'example' => '/authorization/group/{identifier}',
+                                    ],
+                                ],
+                                'required' => ['group'],
+                            ],
+                            'example' => [
+                                'group' => '/authorization/groups/{identifier}',
+                                'userIdentifier' => '811EC3ACC0ADCA70', // woody007
+                            ],
+                        ],
+                    ]),
+                ),
+            ),
+            processor: GroupProcessor::class
+        ),
+        new Delete(
+            uriTemplate: '/authorization/group-members/{identifier}',
+            openapi: new Operation(
+                tags: ['Authorization']
+            ),
+            provider: GroupMemberProvider::class,
+            processor: GroupMemberProcessor::class
+        ),
+    ],
+    normalizationContext: [
+        'groups' => ['AuthorizationGroupMember:output'],
+    ],
+    denormalizationContext: [
+        'groups' => ['AuthorizationGroupMember:input'],
+    ],
+)]
 #[ORM\Table(name: 'authorization_group_members')]
 #[ORM\Entity]
 class GroupMember
@@ -20,9 +111,10 @@ class GroupMember
     #[Groups(['AuthorizationGroupMember:output'])]
     private ?string $identifier = null;
 
-    #[ApiProperty(openapiContext: [
-        'description' => 'The parent AuthorizationGroup',
-        'example' => '/authorization/groups/0193cf2d-89a8-7a9c-b317-2e5201afdd8d',
+    #[ApiProperty(
+        description: 'The identifier of the AuthorizationGroup resource to add a member to',
+        openapiContext: [
+            'example' => '/authorization/groups/{identifier}',
     ])]
     #[ORM\JoinColumn(name: 'parent_group_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Group::class, inversedBy: 'members')]
@@ -32,9 +124,10 @@ class GroupMember
     /**
      * User type member.
      */
-    #[ApiProperty(openapiContext: [
-        'description' => 'The user type group member',
-        'example' => '0193cf3e-21d5-72cf-9734-14ce2768f49e',
+    #[ApiProperty(
+        description: 'The identifier of the user (person) to add as a member',
+        openapiContext: [
+        'example' => '811EC3ACC0ADCA70',
     ])]
     #[ORM\Column(name: 'user_identifier', type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationGroupMember:input', 'AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]
@@ -43,9 +136,10 @@ class GroupMember
     /**
      * Group type member.
      */
-    #[ApiProperty(openapiContext: [
-        'description' => 'The AuthorizationGroup type group member',
-        'example' => '/authorization/groups/0193cf2f-8c29-7683-80c9-b2cf1e1bd77f',
+    #[ApiProperty(
+        description: 'The identifier of the AuthorizationGroup resource to add as a member',
+        openapiContext: [
+        'example' => '/authorization/groups/{identifier}',
     ])]
     #[ORM\JoinColumn(name: 'child_group_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Group::class)]

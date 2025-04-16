@@ -35,6 +35,8 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
 
         $definition = $container->getDefinition(AuthorizationService::class);
         $definition->addMethodCall('setConfig', [$mergedConfig]);
+
+        $this->addResourceClassDirectory($container, __DIR__.'/../Entity');
     }
 
     public function prepend(ContainerBuilder $container): void
