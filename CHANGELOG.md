@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## v0.3.15
+## v0.3.16
 
 - add support for api-platform 4.1
 
