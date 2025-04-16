@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
-use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -37,7 +36,6 @@ use Symfony\Component\Serializer\Annotation\Groups;
         'groups' => ['AuthorizationDynamicGroup:output'],
     ],
 )]
-#[ORM\Embeddable]
 class DynamicGroup
 {
     #[Groups(['AuthorizationDynamicGroup:output'])]
