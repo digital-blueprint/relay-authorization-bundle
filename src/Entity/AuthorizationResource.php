@@ -7,8 +7,8 @@ namespace Dbp\Relay\AuthorizationBundle\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\Parameter;
 use Dbp\Relay\AuthorizationBundle\Rest\AuthorizationResourceProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -29,18 +29,18 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(
             uriTemplate: '/authorization/resources',
             openapi: new Operation(
-                tags: ['Authorization']
+                tags: ['Authorization'],
+                parameters: [
+                    new Parameter(
+                        name: 'resourceClass',
+                        in: 'query',
+                        description: 'The resource class to get the AuthorizationResource collection for',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                ]
             ),
             provider: AuthorizationResourceProvider::class,
-            parameters: [
-                'resourceClass' => new QueryParameter(
-                    schema: [
-                        'type' => 'string',
-                    ],
-                    description: 'The resource class to get the AuthorizationResource collection for',
-                    required: false,
-                ),
-            ]
         ),
     ],
     normalizationContext: [

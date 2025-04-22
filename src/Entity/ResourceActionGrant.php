@@ -10,8 +10,8 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
@@ -27,7 +27,23 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new Get(
             uriTemplate: '/authorization/resource-action-grants/{identifier}',
             openapi: new Operation(
-                tags: ['Authorization']
+                tags: ['Authorization'],
+                parameters: [
+                    new Parameter(
+                        name: 'resourceClass',
+                        in: 'query',
+                        description: 'The resource class to get grants for',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                    new Parameter(
+                        name: 'resourceIdentifier',
+                        in: 'query',
+                        description: 'The resource identifier to get grants for',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                ],
             ),
             provider: ResourceActionGrantProvider::class
         ),
@@ -37,22 +53,6 @@ use Symfony\Component\Serializer\Annotation\Groups;
                 tags: ['Authorization']
             ),
             provider: ResourceActionGrantProvider::class,
-            parameters: [
-                'resourceClass' => new QueryParameter(
-                    schema: [
-                        'type' => 'string',
-                    ],
-                    description: 'The resource class to get grants for',
-                    required: false,
-                ),
-                'resourceIdentifier' => new QueryParameter(
-                    schema: [
-                        'type' => 'string',
-                    ],
-                    description: 'The resource identifier to get grants for',
-                    required: false,
-                ),
-            ]
         ),
         new Post(
             uriTemplate: '/authorization/resource-action-grants',

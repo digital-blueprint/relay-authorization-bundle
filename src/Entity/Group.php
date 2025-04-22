@@ -10,8 +10,8 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupProvider;
@@ -35,25 +35,25 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(
             uriTemplate: '/authorization/groups',
             openapi: new Operation(
-                tags: ['Authorization']
+                tags: ['Authorization'],
+                parameters: [
+                    new Parameter(
+                        name: 'search',
+                        in: 'query',
+                        description: 'A substring to search for in the group name',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                    new Parameter(
+                        name: 'getChildGroupCandidatesForGroupIdentifier',
+                        in: 'query',
+                        description: 'Only return groups that can be members (child groups) of the given group',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                ]
             ),
             provider: GroupProvider::class,
-            parameters: [
-                'search' => new QueryParameter(
-                    schema: [
-                        'type' => 'string',
-                    ],
-                    description: 'A substring to search for in the group name',
-                    required: false,
-                ),
-                'getChildGroupCandidatesForGroupIdentifier' => new QueryParameter(
-                    schema: [
-                        'type' => 'string',
-                    ],
-                    description: 'Only return groups that can be members (child groups) of the given group',
-                    required: false
-                ),
-            ]
         ),
         new Post(
             uriTemplate: '/authorization/groups',

@@ -10,8 +10,8 @@ use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
-use ApiPlatform\Metadata\QueryParameter;
 use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider;
@@ -35,18 +35,18 @@ use Symfony\Component\Serializer\Annotation\Groups;
         new GetCollection(
             uriTemplate: '/authorization/group-members',
             openapi: new Operation(
-                tags: ['Authorization']
+                tags: ['Authorization'],
+                parameters: [
+                    new Parameter(
+                        name: 'groupIdentifier',
+                        in: 'query',
+                        description: 'AuthorizationGroup identifier to get members of',
+                        required: true,
+                        schema: ['type' => 'string'],
+                    ),
+                ]
             ),
             provider: GroupMemberProvider::class,
-            parameters: [
-                'groupIdentifier' => new QueryParameter(
-                    schema: [
-                        'type' => 'string',
-                    ],
-                    description: 'The identifier of the AuthorizationGroup resource to get group members for',
-                    required: true,
-                ),
-            ]
         ),
         new Post(
             uriTemplate: '/authorization/group-members',

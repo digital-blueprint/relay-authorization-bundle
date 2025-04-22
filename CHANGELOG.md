@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.17
+
+- replace api-platform QueryParameter by open-api Parameter
+
 ## v0.3.16
 
 - add support for api-platform 4.1
