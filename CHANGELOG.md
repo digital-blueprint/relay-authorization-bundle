@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.18
+
+- fix GroupMemberProcessor
+
 ## v0.3.17
 
 - replace api-platform QueryParameter by open-api Parameter
