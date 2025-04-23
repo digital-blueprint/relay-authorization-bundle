@@ -15,7 +15,6 @@ use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider;
-use Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -84,7 +83,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
                     ]),
                 ),
             ),
-            processor: GroupProcessor::class
+            processor: GroupMemberProcessor::class
         ),
         new Delete(
             uriTemplate: '/authorization/group-members/{identifier}',
