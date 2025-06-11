@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.3.19
+
 - fix dynamic groups the current user is a member of
 
 ## v0.3.18
