@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- fix dynamic groups the current user is a member of
+
 ## v0.3.18
 
 - fix GroupMemberProcessor

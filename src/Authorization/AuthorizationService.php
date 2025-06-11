@@ -173,7 +173,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $currentUsersDynamicGroups = [];
         foreach ($this->getRoleNames() as $policyName) {
-            if ($this->isGrantedRole($policyName)) {
+            if (self::isCurrentUserMemberOfDynamicGroupPolicyName($policyName)
+                && $this->isGrantedRole($policyName)) {
                 $currentUsersDynamicGroups[] = self::toDynamicGroupIdentifier($policyName);
             }
         }

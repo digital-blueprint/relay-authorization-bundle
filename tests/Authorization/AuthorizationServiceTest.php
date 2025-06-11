@@ -104,6 +104,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testGetDynamicGroupsCurrentUserIsMemberOf(): void
     {
+        // create some noise by letting manage_resource_collection_policy of self::TEST_RESOURCE_CLASS evaluate to true
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['MAY_CREATE_TEST_RESOURCES'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
+
         $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
         $this->assertCount(1, $currentUsersDynamicGroups);
         $this->assertEquals('everybody', $currentUsersDynamicGroups[0]);
