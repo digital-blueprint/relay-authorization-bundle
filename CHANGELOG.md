@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.3.20
+
 - declare custom DQL string functions (e.g., UNHEX) in doctrine config, instead of addCustomStringFunctions which proved 
 to not work reliably when multiple entity managers are defined.
 
