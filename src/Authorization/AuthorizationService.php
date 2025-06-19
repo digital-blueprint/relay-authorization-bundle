@@ -19,8 +19,6 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
-use DoctrineExtensions\Query\Mysql\Replace;
-use DoctrineExtensions\Query\Mysql\Unhex;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -301,12 +299,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $GROUP_ALIAS = 'g';
         $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
-        /**
-         * NOTE: sqlite3, which is used as in-memory test database, does support
-         * the 'unhex' function only from version 3.41.1.
-         */
-        $this->entityManager->getConfiguration()->addCustomStringFunction('UNHEX', Unhex::class);
-        $this->entityManager->getConfiguration()->addCustomStringFunction('REPLACE', Replace::class);
 
         $userIdentifier = $this->getUserIdentifier();
         $queryBuilder = $this->resourceActionGrantService->createAuthorizationResourceQueryBuilder($GROUP_ALIAS,
@@ -318,7 +310,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         $queryBuilder
             ->innerJoin(Group::class, $GROUP_ALIAS, Join::WITH,
-                "UNHEX(REPLACE($AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier, '-', '')) = $GROUP_ALIAS.identifier");
+                "unhex(replace($AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier, '-', '')) = $GROUP_ALIAS.identifier");
         if ($groupNameFilter = $filters[self::SEARCH_FILTER] ?? null) {
             $queryBuilder
                 ->andWhere($this->entityManager->getExpressionBuilder()->like("$GROUP_ALIAS.name", ':groupNameLike'))

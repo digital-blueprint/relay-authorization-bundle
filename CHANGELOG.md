@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- declare custom DQL string functions (e.g., UNHEX) in doctrine config, instead of addCustomStringFunctions which proved 
+to not work reliably when multiple entity managers are defined.
+
 ## v0.3.19
 
 - fix dynamic groups the current user is a member of

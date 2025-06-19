@@ -8,6 +8,8 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Doctrine\DoctrineConfiguration;
 use Dbp\Relay\CoreBundle\Extension\ExtensionTrait;
+use DoctrineExtensions\Query\Mysql\Replace;
+use DoctrineExtensions\Query\Mysql\Unhex;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
@@ -52,5 +54,25 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
         DoctrineConfiguration::prependMigrationsConfig($container,
             __DIR__.'/../Migrations',
             'Dbp\Relay\AuthorizationBundle\Migrations');
+
+        /**
+         * NOTE: sqlite3, which is used as in-memory test database, does support
+         * the 'unhex' function only from version 3.41.1. Should be available in PHP 8.4
+         * TODO: check and uncomment unit-tests for get group collection as soon as available.
+         */
+        $container->prependExtensionConfig('doctrine', [
+            'orm' => [
+                'entity_managers' => [
+                    self::AUTHORIZATION_ENTITY_MANAGER_ID => [
+                        'dql' => [
+                            'string_functions' => [
+                                'unhex' => Unhex::class,
+                                'replace' => Replace::class,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
     }
 }
