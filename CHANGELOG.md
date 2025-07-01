@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.3.21
+
 - add an implementation of the Dbp\Relay\CoreBundle\User\UserAttributeProviderInterface, which allows querying the 
 current user's resource action grants using user attributes
 
