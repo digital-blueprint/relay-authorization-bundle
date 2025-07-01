@@ -30,7 +30,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         $this->cachePool = $this->authorizationService->getCache();
     }
 
-    protected function login(string $userIdentifier, ?array $userAttributes = null): void
+    protected function login(?string $userIdentifier, ?array $userAttributes = null): void
     {
         TestAuthorizationService::setUp($this->authorizationService, $userIdentifier,
             $userAttributes ?? $this->getDefaultUserAttributes());

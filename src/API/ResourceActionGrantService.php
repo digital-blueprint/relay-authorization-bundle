@@ -90,18 +90,6 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function isUserGrantedAnyOfItemActions(string $userIdentifier, string $resourceClass, string $resourceIdentifier,
-        array $anyOfItemActions): bool
-    {
-        return !empty($this->authorizationService->getResourceItemActionsForUser($userIdentifier, $resourceClass,
-            $resourceIdentifier, $anyOfItemActions));
-    }
-
-    /**
-     * @param string[] $anyOfItemActions Only return true if the granted item actions contain any of the given actions
-     *
-     * @throws ApiError
-     */
     public function isCurrentUserGrantedAnyOfItemActions(string $resourceClass, string $resourceIdentifier,
         array $anyOfItemActions): bool
     {

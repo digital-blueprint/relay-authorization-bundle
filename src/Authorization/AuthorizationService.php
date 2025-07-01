@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
@@ -13,6 +14,7 @@ use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -196,9 +198,17 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
+        $this->assertDoesNotContainReservedCharacters($resourceClass);
+        $this->assertDoesNotContainReservedCharacters($resourceIdentifier);
+
+        $userIdentifier ??= $this->getUserIdentifier();
+        if ($userIdentifier === null) {
+            throw ApiError::withDetails(Response::HTTP_FORBIDDEN,
+                'a user identifier is required to register a resource. are you a system account client?');
+        }
 
         $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
-            $resourceClass, $resourceIdentifier, $userIdentifier ?? $this->getCurrentUserIdentifier(true));
+            $resourceClass, $resourceIdentifier, $userIdentifier);
     }
 
     /**
@@ -228,23 +238,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @throws ApiError
      */
-    public function getResourceItemActionsForUser(?string $userIdentifier, string $resourceClass, string $resourceIdentifier,
-        ?array $whereActionsContainAnyOf = null): array
-    {
-        return $this->getResourceItemActionsForUserInternal($userIdentifier, $resourceClass, $resourceIdentifier, $whereActionsContainAnyOf);
-    }
-
-    /**
-     * @parram string[]|null $whereActionsContainAnyOf
-     *
-     * @return string[]
-     *
-     * @throws ApiError
-     */
     public function getResourceItemActionsForCurrentUser(string $resourceClass, string $resourceIdentifier,
         ?array $whereActionsContainAnyOf = null): array
     {
-        return $this->getResourceItemActionsForUserInternal($this->getCurrentUserIdentifier(false),
+        return $this->getResourceItemActionsForCurrentUserInternal(
             $resourceClass, $resourceIdentifier, $whereActionsContainAnyOf);
     }
 
@@ -258,7 +255,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function getResourceItemActionsPageForCurrentUser(string $resourceClass,
         ?array $whereActionsContainAnyOf = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        return $this->getResourceItemActionsPageForUserInternal($this->getCurrentUserIdentifier(false),
+        return $this->getResourceItemActionsPageForCurrentUserInternal(
             $resourceClass, $whereActionsContainAnyOf, $firstResultIndex, $maxNumResults);
     }
 
@@ -271,8 +268,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getResourceCollectionActionsForCurrentUser(string $resourceClass, ?array $whereActionsContainAnyOf = null): array
     {
-        return $this->getResourceCollectionActionsForUserInternal(
-            $this->getUserIdentifier(), $resourceClass, $whereActionsContainAnyOf);
+        return $this->getResourceCollectionActionsForCurrentUserInternal($resourceClass, $whereActionsContainAnyOf);
     }
 
     /**
@@ -390,15 +386,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public function isCurrentUserAuthorizedToReadGrant(ResourceActionGrant $resourceActionGrant): bool
     {
-        return $this->isUsersGrant($resourceActionGrant, $this->getUserIdentifier())
+        return $this->isCurrentUsersGrant($resourceActionGrant)
             || $this->doesCurrentUserHaveAManageGrantForAuthorizationResource(
                 $resourceActionGrant->getAuthorizationResource()->getIdentifier());
     }
 
     public function isCurrentUserAuthorizedToReadResource(AuthorizationResource $item): bool
     {
-        return !empty($this->getResourceActionsForAuthorizationResourceForUser(
-            $this->getUserIdentifier(), $item->getIdentifier()));
+        return !empty($this->getResourceActionsForAuthorizationResourceForCurrentUser($item->getIdentifier()));
     }
 
     public function getAuthorizationResource(string $identifier): ?AuthorizationResource
@@ -555,15 +550,16 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @return string[]
      */
-    private function getResourceItemActionsForUserInternal(?string $userIdentifier, string $resourceClass, string $resourceIdentifier,
+    private function getResourceItemActionsForCurrentUserInternal(string $resourceClass, string $resourceIdentifier,
         ?array $whereActionsContainAnyOf = null): array
     {
-        $resourceItemActions = $this->getResourceActionsForUser(
-            function () use ($userIdentifier, $resourceClass, $resourceIdentifier) {
+        $resourceItemActions = $this->getResourceActionsForCurrentUser(
+            function () use ($resourceClass, $resourceIdentifier) {
                 return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-                    $resourceClass, $resourceIdentifier, $userIdentifier,
-                    InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
-            }, $userIdentifier);
+                    $resourceClass, $resourceIdentifier, $this->getUserIdentifier(),
+                    InternalResourceActionGrantService::IS_NOT_NULL,
+                    InternalResourceActionGrantService::IS_NOT_NULL);
+            });
 
         if ($whereActionsContainAnyOf !== null && empty(array_intersect($resourceItemActions, $whereActionsContainAnyOf))) {
             $resourceItemActions = [];
@@ -579,15 +575,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @throws ApiError
      */
-    private function getResourceCollectionActionsForUserInternal(?string $userIdentifier,
+    private function getResourceCollectionActionsForCurrentUserInternal(
         string $resourceClass, ?array $whereActionsContainAnyOf = null): array
     {
-        $resourceCollectionActions = $this->getResourceActionsForUser(
-            function () use ($userIdentifier, $resourceClass) {
+        $resourceCollectionActions = $this->getResourceActionsForCurrentUser(
+            function () use ($resourceClass) {
                 return $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-                    $resourceClass, InternalResourceActionGrantService::IS_NULL, $userIdentifier,
+                    $resourceClass, InternalResourceActionGrantService::IS_NULL, $this->getUserIdentifier(),
                     InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
-            }, $userIdentifier);
+            });
 
         if ($whereActionsContainAnyOf !== null && empty(array_intersect($resourceCollectionActions, $whereActionsContainAnyOf))) {
             $resourceCollectionActions = [];
@@ -601,16 +597,19 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @return string[][]
      */
-    private function getResourceItemActionsPageForUserInternal(?string $userIdentifier, string $resourceClass,
+    private function getResourceItemActionsPageForCurrentUserInternal(string $resourceClass,
         ?array $whereActionsContainAnyOf = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $resourceActions = [];
         $currentResourceIdentifier = null;
+        $currentUserIdentifier = $this->getUserIdentifier();
         // since grants for all resource items are requested, we get the groups the user is member of beforehand
         // let the db do the pagination (probably more efficient)
         foreach ($this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourcePage(
-            $resourceClass, InternalResourceActionGrantService::ITEM_ACTIONS_TYPE, $whereActionsContainAnyOf, $userIdentifier,
-            $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null,
+            $resourceClass, InternalResourceActionGrantService::ITEM_ACTIONS_TYPE, $whereActionsContainAnyOf,
+            $currentUserIdentifier,
+            $currentUserIdentifier !== null ?
+                self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($currentUserIdentifier)) : null,
             self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
             $firstResultIndex, $maxNumResults) as $resourceActionGrant) {
             // since we get grants for resource items (and not collections) we rely on the resource identifier not to be null
@@ -629,15 +628,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @return string[]
      */
-    private function getResourceActionsForAuthorizationResourceForUser(?string $userIdentifier, string $authorizationResourceIdentifier,
+    private function getResourceActionsForAuthorizationResourceForCurrentUser(string $authorizationResourceIdentifier,
         ?array $whereActionsContainAnyOf = null): array
     {
         if (($resourceItemActions = $this->grantedAuthorizationResourceActionsCache[$authorizationResourceIdentifier] ?? null) === null) {
-            $resourceItemActions = $this->getResourceActionsForUser(function () use ($userIdentifier, $authorizationResourceIdentifier) {
+            $resourceItemActions = $this->getResourceActionsForCurrentUser(function () use ($authorizationResourceIdentifier) {
                 return $this->resourceActionGrantService->getResourceActionGrantsForAuthorizationResourceIdentifier(
-                    $authorizationResourceIdentifier, $userIdentifier,
+                    $authorizationResourceIdentifier, $this->getUserIdentifier(),
                     InternalResourceActionGrantService::IS_NOT_NULL, InternalResourceActionGrantService::IS_NOT_NULL);
-            }, $userIdentifier);
+            });
 
             $this->grantedAuthorizationResourceActionsCache[$authorizationResourceIdentifier] = $resourceItemActions;
         }
@@ -652,21 +651,21 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
         string $authorizationResourceIdentifier): bool
     {
-        return !empty($this->getResourceActionsForAuthorizationResourceForUser($this->getUserIdentifier(),
+        return !empty($this->getResourceActionsForAuthorizationResourceForCurrentUser(
             $authorizationResourceIdentifier, [AuthorizationService::MANAGE_ACTION]));
     }
 
     private function doesCurrentUserHaveAGrantForResourceItemToManageOr(
         string $action, string $resourceClass, string $resourceIdentifier): bool
     {
-        return !empty($this->getResourceItemActionsForUserInternal($this->getUserIdentifier(), $resourceClass, $resourceIdentifier,
+        return !empty($this->getResourceItemActionsForCurrentUserInternal($resourceClass, $resourceIdentifier,
             [self::MANAGE_ACTION, $action]));
     }
 
     private function doesCurrentUserHaveAGrantForResourceCollectionToManageOr(
         string $action, string $resourceClass): bool
     {
-        return !empty($this->getResourceCollectionActionsForUserInternal($this->getUserIdentifier(), $resourceClass,
+        return !empty($this->getResourceCollectionActionsForCurrentUserInternal($resourceClass,
             [self::MANAGE_ACTION, $action]));
     }
 
@@ -680,25 +679,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         }
     }
 
-    private function getCurrentUserIdentifier(bool $throwIfNull): ?string
-    {
-        $currentUserIdentifier = $this->getUserIdentifier();
-        if ($currentUserIdentifier === null && $throwIfNull) {
-            throw ApiError::withDetails(Response::HTTP_FORBIDDEN,
-                'a user identifier is required for authorization. are you a system account client?');
-        }
-
-        return $currentUserIdentifier;
-    }
-
     /**
      * @return string[]
      */
-    private function getResourceActionsForUser(callable $getResourceActionGrantsCallback, ?string $userIdentifier): array
+    private function getResourceActionsForCurrentUser(callable $getResourceActionGrantsCallback): array
     {
         $resourceActions = [];
         foreach ($getResourceActionGrantsCallback() as $resourceActionGrant) {
-            if ($this->isUsersGrant($resourceActionGrant, $userIdentifier)) {
+            if ($this->isCurrentUsersGrant($resourceActionGrant)) {
                 $resourceActions[$resourceActionGrant->getAction()] = null; // deduplication
             }
         }
@@ -709,12 +697,16 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    private function isUsersGrant(ResourceActionGrant $grant, ?string $userIdentifier): bool
+    private function isCurrentUsersGrant(ResourceActionGrant $resourceActionGrant): bool
     {
+        $userIdentifier = $this->getUserIdentifier();
+
         return ($userIdentifier !== null
-            && ($grant->getUserIdentifier() === $userIdentifier
-            || ($grant->getGroup() !== null && $this->groupService->isUserMemberOfGroup($userIdentifier, $grant->getGroup()->getIdentifier()))))
-            || ($grant->getDynamicGroupIdentifier() !== null && $this->isCurrentUserMemberOfDynamicGroup($grant->getDynamicGroupIdentifier()));
+                && ($resourceActionGrant->getUserIdentifier() === $userIdentifier
+                    || ($resourceActionGrant->getGroup() !== null
+                        && $this->groupService->isUserMemberOfGroup($userIdentifier, $resourceActionGrant->getGroup()->getIdentifier()))))
+            || ($resourceActionGrant->getDynamicGroupIdentifier() !== null
+                && $this->isCurrentUserMemberOfDynamicGroup($resourceActionGrant->getDynamicGroupIdentifier()));
     }
 
     private function tryConfigure(): void
@@ -854,5 +846,19 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         $this->resourceActionGrantService->ensureAuthorizationResource($resourceActionGrant);
         $this->resourceActionGrantService->addResourceActionGrant($resourceActionGrant);
+    }
+
+    private function assertDoesNotContainReservedCharacters(string $identifier): void
+    {
+        if (str_contains($identifier, UserAttributeProvider::SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource class and identifier must not contain the reserved character '%s'",
+                    UserAttributeProvider::SEPARATOR));
+        }
+        if (str_contains($identifier, GrantedActions::ID_SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource class and identifier must not contain the reserved character '%s'",
+                    GrantedActions::ID_SEPARATOR));
+        }
     }
 }

@@ -6,8 +6,12 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Authorization;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
+use Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
+use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
@@ -20,7 +24,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             $this->testConfig[Configuration::RESOURCE_CLASSES] = [
                 [
                     Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS,
-                    Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+                    Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
                 ],
             ];
             $this->testConfig[Configuration::DYNAMIC_GROUPS] = [
@@ -41,6 +45,52 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     protected function tearDown(): void
     {
         $this->testConfig = null;
+    }
+
+    public function testRegisterResourceWithoutUserError(): void
+    {
+        $this->login(null);
+        try {
+            $this->authorizationService->registerResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
+        }
+    }
+
+    public function testRegisterResourceWithReservedCharacterError(): void
+    {
+        try {
+            $this->authorizationService->registerResource(
+                'foo'.UserAttributeProvider::SEPARATOR.'bar', self::TEST_RESOURCE_IDENTIFIER);
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+        }
+
+        try {
+            $this->authorizationService->registerResource(
+                self::TEST_RESOURCE_CLASS, 'foo'.UserAttributeProvider::SEPARATOR.'bar');
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+        }
+
+        try {
+            $this->authorizationService->registerResource(
+                'foo'.GrantedActions::ID_SEPARATOR.'bar', self::TEST_RESOURCE_IDENTIFIER);
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+        }
+
+        try {
+            $this->authorizationService->registerResource(
+                self::TEST_RESOURCE_CLASS, 'foo'.GrantedActions::ID_SEPARATOR.'bar');
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+        }
     }
 
     public function testIsCurrentUserAuthorizedToReadResource(): void
@@ -64,7 +114,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertEmpty($resourceCollectionActions);
 
         $attributes = $this->getDefaultUserAttributes();
-        $attributes['MAY_CREATE_TEST_RESOURCES'] = true;
+        $attributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $attributes);
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
             self::TEST_RESOURCE_CLASS);
@@ -106,7 +156,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     {
         // create some noise by letting manage_resource_collection_policy of self::TEST_RESOURCE_CLASS evaluate to true
         $userAttributes = $this->getDefaultUserAttributes();
-        $userAttributes['MAY_CREATE_TEST_RESOURCES'] = true;
+        $userAttributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
         $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
@@ -1123,7 +1173,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_CLASSES][] =
             [
                 Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
-                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
             ];
 
         $this->setUp();
@@ -1151,7 +1201,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_CLASSES] = [
             [
                 Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
-                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
             ],
         ];
 
@@ -1180,7 +1230,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_CLASSES][] =
             [
                 Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
-                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
             ];
         $this->setUp();
 
@@ -1207,7 +1257,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_CLASSES][] =
             [
                 Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS_2,
-                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_CREATE_TEST_RESOURCES")',
+                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
             ];
         $this->setUp();
 
@@ -1335,7 +1385,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     protected function getDefaultUserAttributes(): array
     {
         $defaultUserAttributes = parent::getDefaultUserAttributes();
-        $defaultUserAttributes['MAY_CREATE_TEST_RESOURCES'] = false;
+        $defaultUserAttributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = false;
         $defaultUserAttributes['IS_STUDENT'] = false;
         $defaultUserAttributes['IS_EMPLOYEE'] = false;
 

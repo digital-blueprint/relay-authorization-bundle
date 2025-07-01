@@ -31,6 +31,10 @@ services:
     autowire: true
     autoconfigure: true
 
+  Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider:
+    autowire: true
+    autoconfigure: true
+
   dbp.relay.authorization.cache.authorization_service:
     parent: cache.app
     tags:

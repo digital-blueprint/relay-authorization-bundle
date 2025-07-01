@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- add an implementation of the Dbp\Relay\CoreBundle\User\UserAttributeProviderInterface, which allows querying the 
+current user's resource action grants using user attributes
+
 ## v0.3.20
 
 - declare custom DQL string functions (e.g., UNHEX) in doctrine config, instead of addCustomStringFunctions which proved 

@@ -257,6 +257,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     *  NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
+     *  with an OR conjunction.
+     *
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicGroupIdentifiers
      *
@@ -275,10 +278,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
+     * with an OR conjunction.
+     *
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicGroupIdentifiers
      *
-     * @return ResourceActionGrant[]
+     * @return ResourceActionGrant[]|AuthorizationResource[]
      *
      * @throws ApiError
      */
@@ -296,6 +302,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * Gets all resource action grants for an authorization resource subset (page) defined by the first result
      * index and the maximum number of result (page) items ordered by resource.
+     *
+     *  NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
+     *  with an OR conjunction.
      *
      * @return ResourceActionGrant[]
      *
@@ -344,6 +353,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
+    /**
+     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
+     * with an OR conjunction.
+     */
     public function createResourceActionGrantQueryBuilder(string $select = self::RESOURCE_ACTION_GRANT_ALIAS,
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null): QueryBuilder
@@ -352,6 +365,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             null, $actions, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
     }
 
+    /**
+     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
+     * with an OR conjunction.
+     */
     public function createAuthorizationResourceQueryBuilder(string $select = self::AUTHORIZATION_RESOURCE_ALIAS,
         ?string $resourceClass = null, ?string $resourceIdentifier = null,
         ?array $whereAuthorizationResourceActionsContainAnyOf = null,

@@ -47,7 +47,7 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
         return $availableResourceClassActions;
     }
 
-    private function getAvailableResourceClassActions(string $resourceClass): AvailableResourceClassActions
+    public function getAvailableResourceClassActions(string $resourceClass): AvailableResourceClassActions
     {
         [$itemActions, $collectionActions] =
             $this->resourceActionGrantService->getAvailableResourceClassActions($resourceClass);
