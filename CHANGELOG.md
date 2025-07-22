@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.4.0
+
 - Remove `whereContainsAnyOfActions` from API and replace by a single action to check if granted
 - For is-granted checks: implicitly evaluate to true if an available action (like `read`) is requested and the user has 
 a manage-grant
