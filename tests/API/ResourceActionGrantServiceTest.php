@@ -229,7 +229,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         }, true));
 
         $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
-            self::TEST_RESOURCE_CLASS, [ResourceActionGrantService::MANAGE_ACTION, 'write']);
+            self::TEST_RESOURCE_CLASS, ResourceActionGrantService::MANAGE_ACTION);
         $this->assertCount(1, $resourceItemActionsPage);
         $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
             return count($resourceActions) === 2
@@ -237,9 +237,8 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
                 && in_array(ResourceActionGrantService::MANAGE_ACTION, $resourceActions, true)
                 && in_array('write', $resourceActions, true);
         }, true));
-
         $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
-            self::TEST_RESOURCE_CLASS, [ResourceActionGrantService::MANAGE_ACTION]);
+            self::TEST_RESOURCE_CLASS, 'write');
         $this->assertCount(1, $resourceItemActionsPage);
         $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
             return count($resourceActions) === 2
@@ -247,9 +246,8 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
                 && in_array(ResourceActionGrantService::MANAGE_ACTION, $resourceActions, true)
                 && in_array('write', $resourceActions, true);
         }, true));
-
         $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
-            self::TEST_RESOURCE_CLASS, ['write']);
+            self::TEST_RESOURCE_CLASS, 'delete');
         $this->assertCount(1, $resourceItemActionsPage);
         $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
             return count($resourceActions) === 2
@@ -257,10 +255,6 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
                 && in_array(ResourceActionGrantService::MANAGE_ACTION, $resourceActions, true)
                 && in_array('write', $resourceActions, true);
         }, true));
-
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
-            self::TEST_RESOURCE_CLASS, ['delete']);
-        $this->assertCount(0, $resourceItemActionsPage);
 
         $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
             'resourceClass_2');
@@ -285,34 +279,116 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         }, true));
 
         $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
-            self::TEST_RESOURCE_CLASS, [ResourceActionGrantService::MANAGE_ACTION]);
+            self::TEST_RESOURCE_CLASS, ResourceActionGrantService::MANAGE_ACTION);
         $this->assertCount(1, $resourceItemActionsPage);
         $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
             return $resourceIdentifier === $resource2->getResourceIdentifier()
                 && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
         }, true));
+
+        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, 'read');
+        $this->assertCount(2, $resourceItemActionsPage);
+        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
+            return count($resourceActions) === 1
+                && $resourceIdentifier === $resource2->getResourceIdentifier()
+                && in_array(ResourceActionGrantService::MANAGE_ACTION, $resourceActions, true);
+        }, true));
+        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
+            return count($resourceActions) === 1
+                && $resourceIdentifier === $resource1->getResourceIdentifier()
+                && in_array('read', $resourceActions, true);
+        }, true));
+
+        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, 'write');
+        $this->assertCount(1, $resourceItemActionsPage);
+        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
+            return count($resourceActions) === 1
+                && $resourceIdentifier === $resource2->getResourceIdentifier()
+                && in_array(ResourceActionGrantService::MANAGE_ACTION, $resourceActions, true);
+        }, true));
     }
 
-    public function testIsCurrentUserGrantedAnyOfItemActions(): void
+    public function testIsCurrentUserGrantedItemActionWithManageGrant(): void
     {
-        $resource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
 
-        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedAnyOfItemActions(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, [ResourceActionGrantService::MANAGE_ACTION]));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            'foo'));
 
         $this->testEntityManager->addResourceActionGrant($resource,
             ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedAnyOfItemActions(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, [ResourceActionGrantService::MANAGE_ACTION]));
-        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedAnyOfItemActions(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, ['read']));
-        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedAnyOfItemActions(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, [ResourceActionGrantService::MANAGE_ACTION, 'read']));
+        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            'foo'));
 
         $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedAnyOfItemActions(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, [ResourceActionGrantService::MANAGE_ACTION]));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            'foo'));
+    }
+
+    public function testIsCurrentUserGrantedItemActionWithReadGrant(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            'foo'));
+
+        $this->testEntityManager->addResourceActionGrant($resource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+            self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            'foo'));
+
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedItemAction(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            'foo'));
     }
 
     public function testGetGrantedResourceCollectionActions(): void
@@ -337,25 +413,79 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertEmpty($resourceCollectionActions);
     }
 
-    public function testIsCurrentUserGrantedAnyOfCollectionActions(): void
+    public function testIsCurrentUserGrantedCollectionActionWithManageGrant(): void
     {
         $resource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, null);
 
-        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedAnyOfCollectionActions(
-            self::TEST_RESOURCE_CLASS, [ResourceActionGrantService::MANAGE_ACTION]));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            'foo'));
 
         $this->testEntityManager->addResourceActionGrant($resource,
             ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedAnyOfCollectionActions(
-            self::TEST_RESOURCE_CLASS, [ResourceActionGrantService::MANAGE_ACTION]));
-        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedAnyOfCollectionActions(
-            self::TEST_RESOURCE_CLASS, ['read']));
-        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedAnyOfCollectionActions(
-            self::TEST_RESOURCE_CLASS, ['read', ResourceActionGrantService::MANAGE_ACTION]));
+        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            'foo'));
 
         $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedAnyOfCollectionActions(
-            self::TEST_RESOURCE_CLASS, ['read', ResourceActionGrantService::MANAGE_ACTION]));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            'foo'));
+    }
+
+    public function testIsCurrentUserGrantedCollectionActionWithReadGrant(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, null);
+
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS, ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS, TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS, 'foo'));
+
+        $this->testEntityManager->addResourceActionGrant($resource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+            self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertTrue($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            'foo'));
+
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            ResourceActionGrantService::MANAGE_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION));
+        $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
+            self::TEST_RESOURCE_CLASS,
+            'foo'));
     }
 }

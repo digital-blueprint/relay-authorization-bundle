@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Remove `whereContainsAnyOfActions` from API and replace by a single action to check if granted
+- For is-granted checks: implicitly evaluate to true if an available action (like `read`) is requested and the user has 
+a manage-grant
+
 ## v0.3.21
 
 - add an implementation of the Dbp\Relay\CoreBundle\User\UserAttributeProviderInterface, which allows querying the 

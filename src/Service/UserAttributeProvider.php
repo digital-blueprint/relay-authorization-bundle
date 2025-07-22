@@ -59,11 +59,8 @@ readonly class UserAttributeProvider implements UserAttributeProviderInterface
                 UserAttributeException::USER_ATTRIBUTE_UNDEFINED);
         }
 
-        return $resourceIdentifier !== null ?
-            false === empty($this->authorizationService->getResourceItemActionsForCurrentUser(
-                $resourceClass, $resourceIdentifier, [$action])) :
-            false === empty($this->authorizationService->getResourceCollectionActionsForCurrentUser(
-                $resourceClass, [$action]));
+        // a null resource identifier is used for collection actions
+        return $this->authorizationService->isCurrentUserGranted($resourceClass, $resourceIdentifier, $action);
     }
 
     private function parseAttributeName(string $name, ?string &$resourceClass, ?string &$resourceIdentifier, ?string &$action): bool

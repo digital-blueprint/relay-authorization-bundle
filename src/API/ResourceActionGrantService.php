@@ -86,15 +86,12 @@ class ResourceActionGrantService
     }
 
     /**
-     * @param string[] $anyOfItemActions Only return true if the granted item actions contain any of the given actions
-     *
      * @throws ApiError
      */
-    public function isCurrentUserGrantedAnyOfItemActions(string $resourceClass, string $resourceIdentifier,
-        array $anyOfItemActions): bool
+    public function isCurrentUserGrantedItemAction(string $resourceClass, string $resourceIdentifier,
+        string $itemAction): bool
     {
-        return !empty($this->authorizationService->getResourceItemActionsForCurrentUser($resourceClass,
-            $resourceIdentifier, $anyOfItemActions));
+        return $this->authorizationService->isCurrentUserGranted($resourceClass, $resourceIdentifier, $itemAction);
     }
 
     /**
@@ -108,28 +105,23 @@ class ResourceActionGrantService
     }
 
     /**
-     * @param string[]|null $anyOfITemActions Only return item actions of resources that contain any of the given item actions
-     *
      * @return string[][]
      *
      * @throws ApiError
      */
     public function getGrantedItemActionsPageForCurrentUser(string $resourceClass,
-        ?array $anyOfITemActions = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
+        ?string $whereIsGrantedAction = null, int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         return $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            $resourceClass, $anyOfITemActions, $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
+            $resourceClass, $whereIsGrantedAction, $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }
 
     /**
-     * @param string[] $anyOfCollectionActions Only return true if the granted collection actions contain any of the given actions
-     *
      * @throws ApiError
      */
-    public function isCurrentUserGrantedAnyOfCollectionActions(string $resourceClass, array $anyOfCollectionActions): bool
+    public function isCurrentUserGrantedCollectionAction(string $resourceClass, string $collectionAction): bool
     {
-        return !empty($this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            $resourceClass, $anyOfCollectionActions));
+        return $this->authorizationService->isCurrentUserGranted($resourceClass, null, $collectionAction);
     }
 
     /**
