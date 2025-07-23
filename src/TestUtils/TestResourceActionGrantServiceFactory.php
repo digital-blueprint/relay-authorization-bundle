@@ -14,7 +14,6 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class TestResourceActionGrantServiceFactory
 {
@@ -23,17 +22,11 @@ class TestResourceActionGrantServiceFactory
         return new TestEntityManager($container);
     }
 
-    /**
-     * @param EventSubscriberInterface[] $eventSubscribers
-     */
     public static function createTestResourceActionGrantService(EntityManagerInterface $entityManager,
         string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = [],
-        array $eventSubscribers = []): ResourceActionGrantService
+        ?EventDispatcher $eventDispatcher = null): ResourceActionGrantService
     {
-        $eventDispatcher = new EventDispatcher();
-        foreach ($eventSubscribers as $eventSubscriber) {
-            $eventDispatcher->addSubscriber($eventSubscriber);
-        }
+        $eventDispatcher ??= new EventDispatcher();
 
         return new ResourceActionGrantService(self::createTestAuthorizationService(
             $entityManager, $eventDispatcher, null, null,
