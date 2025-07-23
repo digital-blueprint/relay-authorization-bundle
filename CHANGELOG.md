@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add event `ResourceActionGrantAddedEvent` triggered when a new resource action grant is added
+- TestResourceActionGrantServiceFactory: Allow multiple event subscribers 
 
 ## v0.4.0
 

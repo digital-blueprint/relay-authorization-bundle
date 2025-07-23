@@ -23,12 +23,15 @@ class TestResourceActionGrantServiceFactory
         return new TestEntityManager($container);
     }
 
+    /**
+     * @param EventSubscriberInterface[] $eventSubscribers
+     */
     public static function createTestResourceActionGrantService(EntityManagerInterface $entityManager,
         string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = [],
-        ?EventSubscriberInterface $eventSubscriber = null): ResourceActionGrantService
+        array $eventSubscribers = []): ResourceActionGrantService
     {
         $eventDispatcher = new EventDispatcher();
-        if ($eventSubscriber !== null) {
+        foreach ($eventSubscribers as $eventSubscriber) {
             $eventDispatcher->addSubscriber($eventSubscriber);
         }
 
