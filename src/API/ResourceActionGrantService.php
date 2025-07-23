@@ -71,7 +71,7 @@ class ResourceActionGrantService
     public function deregisterResources(string $resourceClass, array $resourceIdentifiers): void
     {
         if (!empty($resourceIdentifiers)) {
-            $this->authorizationService->removeResources($resourceClass, $resourceIdentifiers);
+            $this->authorizationService->deregisterResources($resourceClass, $resourceIdentifiers);
         }
     }
 

@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
+use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestResourceActionGrantAddedEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -23,6 +24,7 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
     protected ?TestEntityManager $testEntityManager = null;
     protected InternalResourceActionGrantService $internalResourceActionGrantService;
     protected EventDispatcher $eventDispatcher;
+    protected ?TestResourceActionGrantAddedEventSubscriber $testResourceActionGrantAddedEventSubscriber = null;
 
     protected function setUp(): void
     {
@@ -31,6 +33,8 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
 
         $this->eventDispatcher = new EventDispatcher();
         $this->eventDispatcher->addSubscriber(new TestGetAvailableResourceClassActionsEventSubscriber());
+        $this->testResourceActionGrantAddedEventSubscriber = new TestResourceActionGrantAddedEventSubscriber();
+        $this->eventDispatcher->addSubscriber($this->testResourceActionGrantAddedEventSubscriber);
 
         $this->internalResourceActionGrantService = new InternalResourceActionGrantService(
             $this->testEntityManager->getEntityManager(), $this->eventDispatcher);

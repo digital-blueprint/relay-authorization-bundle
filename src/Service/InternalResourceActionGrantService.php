@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
+use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
@@ -85,6 +86,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
                 self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
+
+        $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent(
+            $resourceActionGrant->getAuthorizationResource()->getResourceClass(),
+            $resourceActionGrant->getAuthorizationResource()->getResourceIdentifier(),
+            $resourceActionGrant->getAction(),
+            $resourceActionGrant->getUserIdentifier(),
+            $resourceActionGrant->getGroup()?->getIdentifier(),
+            $resourceActionGrant->getDynamicGroupIdentifier()));
 
         return $resourceActionGrant;
     }

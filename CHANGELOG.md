@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add event `ResourceActionGrantAddedEvent` triggered when a new resource action grant is added
+
 ## v0.4.0
 
 - Remove `whereContainsAnyOfActions` from API and replace by a single action to check if granted

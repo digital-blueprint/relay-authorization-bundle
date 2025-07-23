@@ -219,7 +219,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function removeResources(string $resourceClass, array $resourceIdentifiers): void
+    public function deregisterResources(string $resourceClass, array $resourceIdentifiers): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
@@ -716,7 +716,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $this->setUpAccessControlPolicies($policies);
 
             $cacheItem = $this->cachePool->getItem(self::WERE_MANAGE_COLLECTION_GRANTS_WRITTEN_TO_DB_CACHE_KEY);
-            if (!$cacheItem->isHit()) {
+            if (false === $cacheItem->isHit()) {
                 try {
                     $this->updateManageResourceCollectionPolicyGrants($manageResourceCollectionPolicyNames);
                     $cacheItem->set(true);
