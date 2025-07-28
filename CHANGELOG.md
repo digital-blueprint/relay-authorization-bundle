@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.0
+
 - Add localized action names to `AuthorizationAvailableResourceClassActions`. Subscribers of the
 `GetAvailableResourceClassActionsEventSubscriber` should now return localized names for available actions of their resource classes.
 
