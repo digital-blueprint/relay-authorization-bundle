@@ -5,11 +5,6 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\OpenApi\Model\Operation;
-use ApiPlatform\OpenApi\Model\Parameter;
-use Dbp\Relay\AuthorizationBundle\Rest\AuthorizationResourceProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -18,31 +13,32 @@ use Symfony\Component\Serializer\Annotation\Groups;
  */
 #[ApiResource(
     shortName: 'AuthorizationResource',
-    operations: [
-        new Get(
-            uriTemplate: '/authorization/resources/{identifier}',
-            openapi: new Operation(
-                tags: ['Authorization']
-            ),
-            provider: AuthorizationResourceProvider::class
-        ),
-        new GetCollection(
-            uriTemplate: '/authorization/resources',
-            openapi: new Operation(
-                tags: ['Authorization'],
-                parameters: [
-                    new Parameter(
-                        name: 'resourceClass',
-                        in: 'query',
-                        description: 'The resource class to get the AuthorizationResource collection for',
-                        required: false,
-                        schema: ['type' => 'string'],
-                    ),
-                ]
-            ),
-            provider: AuthorizationResourceProvider::class,
-        ),
-    ],
+    operations: [],
+    //    operations: [
+    //        new Get(
+    //            uriTemplate: '/authorization/resources/{identifier}',
+    //            openapi: new Operation(
+    //                tags: ['Authorization']
+    //            ),
+    //            provider: AuthorizationResourceProvider::class
+    //        ),
+    //        new GetCollection(
+    //            uriTemplate: '/authorization/resources',
+    //            openapi: new Operation(
+    //                tags: ['Authorization'],
+    //                parameters: [
+    //                    new Parameter(
+    //                        name: 'resourceClass',
+    //                        in: 'query',
+    //                        description: 'The resource class to get the AuthorizationResource collection for',
+    //                        required: false,
+    //                        schema: ['type' => 'string'],
+    //                    ),
+    //                ]
+    //            ),
+    //            provider: AuthorizationResourceProvider::class,
+    //        ),
+    //    ],
     normalizationContext: [
         'groups' => ['AuthorizationResource:output'],
     ],

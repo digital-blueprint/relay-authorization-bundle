@@ -10,6 +10,7 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ApiResource(
     shortName: 'AuthorizationLocalizedAction',
+    operations: [],
     normalizationContext: [
         'groups' => ['AuthorizationLocalizedAction:output'],
     ],

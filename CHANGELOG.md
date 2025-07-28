@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Temporarily disable `AuthorizationResource`, and `GrantedAction` operations.
+
 ## v0.5.0
 
 - Add localized action names to `AuthorizationAvailableResourceClassActions`. Subscribers of the
