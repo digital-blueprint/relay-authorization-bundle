@@ -42,31 +42,35 @@ class ApiTest extends AbstractApiTest
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
-    public function testGetAuthorizationResourceUnauthenticated(): void
-    {
-        $response = $this->testClient->get('/authorization/resources/foo', token: null);
+    // Operation currently disabled:
+    //    public function testGetAuthorizationResourceUnauthenticated(): void
+    //    {
+    //        $response = $this->testClient->get('/authorization/resources/foo', token: null);
+    //
+    //        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+    //    }
 
-        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-    }
+    // Operation currently disabled:
+    //    public function testGetAuthorizationResourceNotFound(): void
+    //    {
+    //        $response = $this->testClient->get('/authorization/resources/foo');
+    //
+    //        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+    //    }
 
-    public function testGetAuthorizationResourceNotFound(): void
-    {
-        $response = $this->testClient->get('/authorization/resources/foo');
+    // Operation currently disabled:
+    //    public function testGetAuthorizationResourceCollection(): void
+    //    {
+    //        $response = $this->testClient->get('/authorization/resources');
+    //        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+    //    }
 
-        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-    }
-
-    public function testGetAuthorizationResourceCollection(): void
-    {
-        $response = $this->testClient->get('/authorization/resources');
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    }
-
-    public function testGetAuthorizationResourceCollectionUnauthenticated(): void
-    {
-        $response = $this->testClient->get('/authorization/resources/foo', token: null);
-        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-    }
+    // Operation currently disabled:
+    //    public function testGetAuthorizationResourceCollectionUnauthenticated(): void
+    //    {
+    //        $response = $this->testClient->get('/authorization/resources/foo', token: null);
+    //        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+    //    }
 
     public function testPostGroupUnauthenticated(): void
     {
