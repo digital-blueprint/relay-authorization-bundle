@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.4.1
+
 - Add event `ResourceActionGrantAddedEvent` triggered when a new resource action grant is added
 - TestResourceActionGrantServiceFactory: Allow passing an event dispatcher instead of the subscribers
 
