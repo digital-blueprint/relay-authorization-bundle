@@ -41,14 +41,17 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
             $availableResourceClassActions->getIdentifier());
 
         $expectedItemActions = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_ITEM_ACTIONS;
-        if (!in_array(AuthorizationService::MANAGE_ACTION, $expectedItemActions, true)) {
-            $expectedItemActions[] = AuthorizationService::MANAGE_ACTION;
-        }
+        $expectedItemActions[AuthorizationService::MANAGE_ACTION] = [
+            'en' => 'Manage',
+            'de' => 'Verwalten',
+        ];
         $this->assertEquals($expectedItemActions, $availableResourceClassActions->getItemActions());
+
         $expectedCollectionActions = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_COLLECTION_ACTIONS;
-        if (!in_array(AuthorizationService::MANAGE_ACTION, $expectedCollectionActions, true)) {
-            $expectedCollectionActions[] = AuthorizationService::MANAGE_ACTION;
-        }
+        $expectedCollectionActions[AuthorizationService::MANAGE_ACTION] = [
+            'en' => 'Manage',
+            'de' => 'Verwalten',
+        ];
         $this->assertEquals($expectedCollectionActions, $availableResourceClassActions->getCollectionActions());
     }
 

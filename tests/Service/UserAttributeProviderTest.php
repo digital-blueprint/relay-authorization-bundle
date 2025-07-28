@@ -6,7 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
-use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider;
 use Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
@@ -20,10 +19,8 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
     {
         parent::setUp();
 
-        $availableResourceClassActionsProvider = new AvailableResourceClassActionsProvider(
-            $this->internalResourceActionGrantService, $this->authorizationService);
         $this->userAttributeProvider = new UserAttributeProvider(
-            $this->authorizationService, $availableResourceClassActionsProvider);
+            $this->authorizationService, $this->internalResourceActionGrantService);
     }
 
     public function testHasAttribute(): void

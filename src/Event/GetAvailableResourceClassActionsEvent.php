@@ -9,12 +9,12 @@ use Symfony\Contracts\EventDispatcher\Event;
 class GetAvailableResourceClassActionsEvent extends Event
 {
     /**
-     * @var string[]|null
+     * @var array<string, array<string, string>>|null
      */
     private ?array $itemActions = null;
 
     /**
-     * @var string[]|null
+     * @var array<string, array<string, string>>|null
      */
     private ?array $collectionActions = null;
 
@@ -28,7 +28,7 @@ class GetAvailableResourceClassActionsEvent extends Event
     }
 
     /**
-     * @return string[]|null
+     * @return array<string, array<string, string>>|null
      */
     public function getItemActions(): ?array
     {
@@ -36,7 +36,9 @@ class GetAvailableResourceClassActionsEvent extends Event
     }
 
     /**
-     * @param string[] $itemActions
+     * @param array<string, array<string, string>> $itemActions Example: [
+     *                                                          'read' => ['en' => 'Read', 'de' => 'Lesen'],
+     *                                                          'write' => ['en' => 'Write', 'de' => 'Schreiben']]
      */
     public function setItemActions(array $itemActions): void
     {
@@ -44,7 +46,7 @@ class GetAvailableResourceClassActionsEvent extends Event
     }
 
     /**
-     * @return string[]|null
+     * @return array<string, array<string, string>>|null
      */
     public function getCollectionActions(): ?array
     {
@@ -52,7 +54,8 @@ class GetAvailableResourceClassActionsEvent extends Event
     }
 
     /**
-     * @param string[] $collectionActions
+     * @param array<string, array<string, string>> $collectionActions Examples: [
+     *                                                                'create' => ['en' => 'Create', 'de' => 'Erstellen']]
      */
     public function setCollectionActions(array $collectionActions): void
     {

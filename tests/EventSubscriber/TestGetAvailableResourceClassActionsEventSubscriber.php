@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber;
 
-use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -21,35 +20,64 @@ class TestGetAvailableResourceClassActionsEventSubscriber implements EventSubscr
     public const CREATE_ACTION = 'create';
 
     public const TEST_RESOURCE_ITEM_ACTIONS = [
-        self::READ_ACTION,
-        self::WRITE_ACTION,
-        self::UPDATE_ACTION,
-        self::DELETE_ACTION,
+        self::READ_ACTION => [
+            'en' => 'Read',
+            'de' => 'Lesen',
+        ],
+        self::WRITE_ACTION => [
+            'en' => 'Write',
+            'de' => 'Schreiben',
+        ],
+        self::UPDATE_ACTION => [
+            'en' => 'Update',
+            'de' => 'Aktualisieren',
+        ],
+        self::DELETE_ACTION => [
+            'en' => 'Delete',
+            'de' => 'Löschen',
+        ],
     ];
 
     public const TEST_RESOURCE_COLLECTION_ACTIONS = [
-        self::CREATE_ACTION,
-        AuthorizationService::MANAGE_ACTION,
+        self::CREATE_ACTION => [
+            'en' => 'Create',
+            'de' => 'Erstellen',
+        ],
     ];
 
     public const TEST_RESOURCE_2_ITEM_ACTIONS = [
-        self::UPDATE_ACTION,
+        self::UPDATE_ACTION => [
+            'en' => 'Update',
+            'de' => 'Aktualisieren',
+        ],
     ];
 
     public const TEST_RESOURCE_2_COLLECTION_ACTIONS = [
-        self::READ_ACTION,
+        self::READ_ACTION => [
+            'en' => 'Read',
+            'de' => 'Lesen',
+        ],
     ];
 
     public const TEST_RESOURCE_3_ITEM_ACTIONS = [
-        self::WRITE_ACTION,
+        self::WRITE_ACTION => [
+            'en' => 'Write',
+            'de' => 'Schreiben',
+        ],
     ];
 
     public const TEST_RESOURCE_3_COLLECTION_ACTIONS = [
-        self::READ_ACTION,
-        self::CREATE_ACTION,
+        self::READ_ACTION => [
+            'en' => 'Read',
+            'de' => 'Lesen',
+        ],
+        self::CREATE_ACTION => [
+            'en' => 'Create',
+            'de' => 'Erstellen',
+        ],
     ];
 
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             GetAvailableResourceClassActionsEvent::class => 'onGetAvailableResourceClassActionsEvent',

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add localized action names to `AuthorizationAvailableResourceClassActions`. Subscribers of the
+`GetAvailableResourceClassActionsEventSubscriber` should now return localized names for available actions of their resource classes.
+
 ## v0.4.1
 
 - Add event `ResourceActionGrantAddedEvent` triggered when a new resource action grant is added

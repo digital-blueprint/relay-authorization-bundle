@@ -61,6 +61,34 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private const GET_RESOURCE_ACTION_GRANTS = 'rag';
     private const GET_AUTHORIZATION_RESOURCES = 'ar';
     private const GET_RESOURCE_CLASSES = 'rc';
+    private const GROUP_ITEM_ACTIONS = [
+        self::READ_GROUP_ACTION => [
+            'en' => 'Read',
+            'de' => 'Lesen',
+        ],
+        self::UPDATE_GROUP_ACTION => [
+            'en' => 'Update',
+            'de' => 'Aktualisieren',
+        ],
+        self::DELETE_GROUP_ACTION => [
+            'en' => 'Delete',
+            'de' => 'Löschen',
+        ],
+        self::ADD_GROUP_MEMBERS_GROUP_ACTION => [
+            'en' => 'Add members',
+            'de' => 'Mitglieder hinzufügen',
+        ],
+        self::DELETE_GROUP_MEMBERS_GROUP_ACTION => [
+            'en' => 'Delete members',
+            'de' => 'Mitglieder löschen',
+        ],
+    ];
+    private const GROUP_COLLECTION_ACTIONS = [
+        self::CREATE_GROUPS_ACTION => [
+            'en' => 'Create',
+            'de' => 'Erstellen',
+        ],
+    ];
 
     private ?CacheItemPoolInterface $cachePool = null;
     private ?array $config = null;
@@ -127,14 +155,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         switch ($event->getResourceClass()) {
             case self::GROUP_RESOURCE_CLASS:
-                $event->setItemActions([
-                    self::READ_GROUP_ACTION,
-                    self::UPDATE_GROUP_ACTION,
-                    self::DELETE_GROUP_ACTION,
-                    self::ADD_GROUP_MEMBERS_GROUP_ACTION,
-                    self::DELETE_GROUP_MEMBERS_GROUP_ACTION,
-                ]);
-                $event->setCollectionActions([self::CREATE_GROUPS_ACTION]);
+                $event->setItemActions(self::GROUP_ITEM_ACTIONS);
+                $event->setCollectionActions(self::GROUP_COLLECTION_ACTIONS);
                 break;
             default:
                 break;
@@ -258,7 +280,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 $this->resourceActionGrantService->getAvailableResourceClassActions($resourceClass)[
                 $resourceIdentifier !== null ? 0 : 1];
 
-            return in_array($action, $availableActions, true);
+            return array_key_exists($action, $availableActions);
         }
 
         return false;
@@ -281,7 +303,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         } elseif ($whereIsGrantedAction !== null) {
             // if the requested action is not available, it can't be granted either
             $availableActions = $this->resourceActionGrantService->getAvailableResourceClassActions($resourceClass)[0];
-            if (in_array($whereIsGrantedAction, $availableActions, true)) {
+            if (array_key_exists($whereIsGrantedAction, $availableActions)) {
                 $whereActionsContainAnyOf = [$whereIsGrantedAction, self::MANAGE_ACTION];
             } else {
                 return [];

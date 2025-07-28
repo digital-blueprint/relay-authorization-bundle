@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider;
 use Dbp\Relay\CoreBundle\User\UserAttributeException;
 use Dbp\Relay\CoreBundle\User\UserAttributeProviderInterface;
 
@@ -17,7 +16,7 @@ readonly class UserAttributeProvider implements UserAttributeProviderInterface
 
     public function __construct(
         private AuthorizationService $authorizationService,
-        private AvailableResourceClassActionsProvider $availableResourceClassActionsProvider)
+        private InternalResourceActionGrantService $internalResourceActionGrantService)
     {
     }
 
@@ -35,12 +34,12 @@ readonly class UserAttributeProvider implements UserAttributeProviderInterface
         $resourceClass = $action = '';
         $resourceIdentifier = null;
         if ($this->parseAttributeName($name, $resourceClass, $resourceIdentifier, $action)) {
-            $availableResourceClassActions =
-                $this->availableResourceClassActionsProvider->getAvailableResourceClassActions($resourceClass);
+            [$availableItemActions, $availableCollectionActions] =
+                $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);
 
             return $resourceIdentifier !== null ?
-                ($itemActions = $availableResourceClassActions->getItemActions()) && in_array($action, $itemActions, true) :
-                ($collectionActions = $availableResourceClassActions->getCollectionActions()) && in_array($action, $collectionActions, true);
+                $availableItemActions && array_key_exists($action, $availableItemActions) :
+                $availableCollectionActions && array_key_exists($action, $availableCollectionActions);
         }
 
         return false;

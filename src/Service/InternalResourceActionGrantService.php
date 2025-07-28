@@ -506,12 +506,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $resourceActionGrant->getAuthorizationResource()->getResourceClass());
 
         if ($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier() !== null) {
-            $actionsToCheck = &$itemActions;
+            $actionsToCheck = array_keys($itemActions ?? []);
         } else {
-            $actionsToCheck = &$collectionActions;
+            $actionsToCheck = array_keys($collectionActions ?? []);
         }
 
-        if (!in_array($action, $actionsToCheck ?? [], true)) {
+        if (!in_array($action, $actionsToCheck, true)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 "resource action is invalid: action '$action' is not defined for this resource class", self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [$action]);
         }
@@ -523,14 +523,18 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $this->eventDispatcher->dispatch($getActionsEvent);
 
         $itemActions = $getActionsEvent->getItemActions();
-        if ($itemActions !== null
-            && !in_array(AuthorizationService::MANAGE_ACTION, $itemActions, true)) {
-            $itemActions[] = AuthorizationService::MANAGE_ACTION;
+        if ($itemActions !== null) {
+            $itemActions[AuthorizationService::MANAGE_ACTION] = [
+                'en' => 'Manage',
+                'de' => 'Verwalten',
+            ];
         }
         $collectionActions = $getActionsEvent->getCollectionActions();
-        if ($collectionActions !== null
-            && !in_array(AuthorizationService::MANAGE_ACTION, $collectionActions, true)) {
-            $collectionActions[] = AuthorizationService::MANAGE_ACTION;
+        if ($collectionActions !== null) {
+            $collectionActions[AuthorizationService::MANAGE_ACTION] = [
+                'en' => 'Manage',
+                'de' => 'Verwalten',
+            ];
         }
 
         return [$itemActions, $collectionActions];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
@@ -33,7 +34,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
         ),
     ],
     normalizationContext: [
-        'groups' => ['AuthorizationAvailableResourceClassActions:output'],
+        'groups' => [
+            'AuthorizationAvailableResourceClassActions:output',
+            'AuthorizationLocalizedAction:output',
+        ],
     ],
 )]
 class AvailableResourceClassActions
@@ -42,17 +46,33 @@ class AvailableResourceClassActions
     private ?string $identifier;
 
     /**
-     * @var string[]
+     * @var LocalizedAction[]|null
      */
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'items' => [
+            '$ref' => '#/components/schemas/AuthorizationLocalizedAction',
+        ],
+    ])]
     #[Groups(['AuthorizationAvailableResourceClassActions:output'])]
     private ?array $itemActions;
 
     /**
-     * @var string[]
+     * @var LocalizedAction[]|null
      */
+    #[ApiProperty(openapiContext: [
+        'type' => 'array',
+        'items' => [
+            '$ref' => '#/components/schemas/AuthorizationLocalizedAction',
+        ],
+    ])]
     #[Groups(['AuthorizationAvailableResourceClassActions:output'])]
     private ?array $collectionActions;
 
+    /**
+     * @param LocalizedAction[]|null $availableResourceItemActions
+     * @param LocalizedAction[]|null $availableResourceCollectionActions
+     */
     public function __construct(string $resourceClass, ?array $availableResourceItemActions, ?array $availableResourceCollectionActions)
     {
         $this->identifier = $resourceClass;
@@ -71,7 +91,7 @@ class AvailableResourceClassActions
     }
 
     /**
-     * @return string[]|null
+     * @return LocalizedAction[]|null
      */
     public function getItemActions(): ?array
     {
@@ -79,7 +99,7 @@ class AvailableResourceClassActions
     }
 
     /**
-     * @return string[]|null
+     * @return LocalizedAction[]|null
      */
     public function getCollectionActions(): ?array
     {
