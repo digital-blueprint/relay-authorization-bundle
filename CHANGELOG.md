@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.1
+
 - Temporarily disable `AuthorizationResource`, and `GrantedAction` operations.
 
 ## v0.5.0
