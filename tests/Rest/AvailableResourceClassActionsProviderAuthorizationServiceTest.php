@@ -24,7 +24,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
             $this->authorizationService);
         $this->availableResourceClassActionsProviderTester = DataProviderTester::create($provider,
             AvailableResourceClassActions::class,
-            ['AuthorizationAvailableResourceClassActions:output']);
+            ['AuthorizationAvailableResourceClassActions:output'], identifierName: 'resourceClass');
     }
 
     public function testGetAvailableResourceClassActionsItem(): void
@@ -38,7 +38,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
             $this->availableResourceClassActionsProviderTester->getItem(
                 TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS);
         $this->assertEquals(TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS,
-            $availableResourceClassActions->getIdentifier());
+            $availableResourceClassActions->getResourceClass());
 
         $expectedItemActions = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_ITEM_ACTIONS;
         $expectedItemActions[AuthorizationService::MANAGE_ACTION] = [
@@ -112,19 +112,19 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $this->assertCount(3, $availableResourceClassActionCollection);
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClassActions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS
                     && $availableResourceClassActions->getItemActions() === $testResourceClassActions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClassActions[1];
             }));
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClass2Actions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2
                     && $availableResourceClassActions->getItemActions() === $testResourceClass2Actions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClass2Actions[1];
             }));
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
                     && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
             }));
@@ -148,19 +148,19 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $this->assertCount(3, $availableResourceClassActionCollection);
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClassActions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS
                     && $availableResourceClassActions->getItemActions() === $testResourceClassActions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClassActions[1];
             }));
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClass2Actions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2
                     && $availableResourceClassActions->getItemActions() === $testResourceClass2Actions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClass2Actions[1];
             }));
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
                     && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
             }));
@@ -171,7 +171,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $this->assertCount(1, $availableResourceClassActionCollection);
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
                     && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
             }));
@@ -184,13 +184,13 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $this->assertCount(2, $availableResourceClassActionCollection);
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClass2Actions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2
                     && $availableResourceClassActions->getItemActions() === $testResourceClass2Actions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClass2Actions[1];
             }));
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getIdentifier() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
+                return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_3
                     && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
             }));

@@ -17,6 +17,8 @@ use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
  */
 class AvailableResourceClassActionsProvider extends AbstractDataProvider
 {
+    protected static string $identifierName = 'resourceClass';
+
     public function __construct(
         private readonly InternalResourceActionGrantService $resourceActionGrantService,
         private readonly AuthorizationService $authorizationService)

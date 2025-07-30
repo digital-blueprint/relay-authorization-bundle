@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Replace api-resource `AuthorizationLocalizedAction` by a OpenAPI documented array object of localized action names, e.g.:
+  ```json
+  {
+      "itemActions": {
+        "edit": {
+          "en": "Edit",
+          "de": "Editieren"
+        }
+      },
+      "collectionActions": {
+        "create": {
+          "en": "Create",
+          "de": "Erstellen"
+        }
+      }
+  }
+  ```
+
 ## v0.5.1
 
 - Temporarily disable `AuthorizationResource`, and `GrantedAction` operations.

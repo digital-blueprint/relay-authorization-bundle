@@ -15,7 +15,7 @@ class ResourceActionGrantService
     public const MAX_NUM_RESULTS_MAX = 1024;
 
     public function __construct(
-        public readonly AuthorizationService $authorizationService)
+        private readonly AuthorizationService $authorizationService)
     {
     }
 
