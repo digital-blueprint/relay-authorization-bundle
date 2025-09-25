@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.3
+
 - A test utility function
 
 ## v0.5.2
