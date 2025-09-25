@@ -35,22 +35,16 @@ class TestEntityManager extends CoreTestEntityManager
     public function addResourceActionGrant(AuthorizationResource $resource, string $action,
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
-        $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
-        $resourceActionGrant->setAuthorizationResource($resource);
-        $resourceActionGrant->setAction($action);
-        $resourceActionGrant->setUserIdentifier($userIdentifier);
-        $resourceActionGrant->setGroup($group);
-        $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
+        return $this->addResourceActionGrantInternal($resource, $action, $userIdentifier, $group, $dynamicGroupIdentifier);
+    }
 
-        try {
-            $this->entityManager->persist($resourceActionGrant);
-            $this->entityManager->flush();
-        } catch (\Exception $exception) {
-            throw new \RuntimeException($exception->getMessage());
-        }
-
-        return $resourceActionGrant;
+    public function addResourceActionGrantByResourceClassAndIdentifier(
+        string $resourceClass, ?string $resourceIdentifier, string $action,
+        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+    {
+        return $this->addResourceActionGrant(
+            $this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier),
+            $action, $userIdentifier, $group, $dynamicGroupIdentifier);
     }
 
     public function addAuthorizationResourceAndActionGrant(string $resourceClass, ?string $resourceIdentifier,
@@ -273,5 +267,26 @@ class TestEntityManager extends CoreTestEntityManager
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
+    }
+
+    private function addResourceActionGrantInternal(AuthorizationResource $resource, string $action,
+        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+    {
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
+        $resourceActionGrant->setAuthorizationResource($resource);
+        $resourceActionGrant->setAction($action);
+        $resourceActionGrant->setUserIdentifier($userIdentifier);
+        $resourceActionGrant->setGroup($group);
+        $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
+
+        try {
+            $this->entityManager->persist($resourceActionGrant);
+            $this->entityManager->flush();
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+
+        return $resourceActionGrant;
     }
 }

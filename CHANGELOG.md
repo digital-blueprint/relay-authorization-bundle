@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- A test utility function
+
 ## v0.5.2
 
 - Replace api-resource `AuthorizationLocalizedAction` by a OpenAPI documented array object of localized action names, e.g.:
