@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
@@ -26,9 +27,7 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
 
     public function testCreateGroupItemWithManageGrant(): void
     {
-        // add a manage group resource collection grant for the current user
-        $this->internalResourceActionGrantService->addResourceAndManageResourceGrantFor(
-            AuthorizationService::GROUP_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
+        $this->addManageGroupCollectionGrantForCurrentUser();
 
         $group = new Group();
         $group->setName(self::TEST_GROUP_NAME);
@@ -42,9 +41,7 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
 
     public function testCreateGroupItemWithCreateGrant(): void
     {
-        // add a manage group resource collection grant for the current user
-        $manageGrant = $this->internalResourceActionGrantService->addResourceAndManageResourceGrantFor(
-            AuthorizationService::GROUP_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
+        $manageGrant = $this->addManageGroupCollectionGrantForCurrentUser();
 
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(), AuthorizationService::CREATE_GROUPS_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->login(self::ANOTHER_USER_IDENTIFIER);
@@ -160,5 +157,21 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
         }
+    }
+
+    /**
+     * @return void
+     */
+    private function addManageGroupCollectionGrantForCurrentUser(): ResourceActionGrant
+    {
+        $groupCollection = $this->internalResourceActionGrantService->getAuthorizationResourceByResourceClassAndIdentifier(
+            AuthorizationService::GROUP_RESOURCE_CLASS, null);
+
+        $manageGroupCollectionGrant = new ResourceActionGrant();
+        $manageGroupCollectionGrant->setAuthorizationResource($groupCollection);
+        $manageGroupCollectionGrant->setAction(AuthorizationService::MANAGE_ACTION);
+        $manageGroupCollectionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        return $this->internalResourceActionGrantService->addResourceActionGrant($manageGroupCollectionGrant);
     }
 }

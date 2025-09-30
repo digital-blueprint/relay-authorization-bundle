@@ -169,22 +169,19 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
-    public function addAuthorizationResource(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
+    /**
+     * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
+     *
+     * @throws ApiError
+     */
+    public function addResource(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
     {
         try {
-            $resource = new AuthorizationResource();
-            $resource->setIdentifier(Uuid::uuid7()->toString());
-            $resource->setResourceClass($resourceClass);
-            $resource->setResourceIdentifier($resourceIdentifier);
-
-            $this->entityManager->persist($resource);
-            $this->entityManager->flush();
+            return $this->addAuthorizationResourceInternal($resourceClass, $resourceIdentifier);
         } catch (\Exception $e) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
                 self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
-
-        return $resource;
     }
 
     /**
@@ -195,16 +192,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function addResourceAndManageResourceGrantFor(string $resourceClass, ?string $resourceIdentifier,
         ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
+        $connection = $this->entityManager->getConnection();
         try {
-            $resource = new AuthorizationResource();
-            $resource->setIdentifier(Uuid::uuid7()->toString());
-            $resource->setResourceClass($resourceClass);
-            $resource->setResourceIdentifier($resourceIdentifier);
-
-            $this->entityManager->getConnection()->beginTransaction();
-
-            $this->entityManager->persist($resource);
-            $this->entityManager->flush();
+            $connection->beginTransaction();
+            $resource = $this->addAuthorizationResourceInternal($resourceClass, $resourceIdentifier);
 
             $resourceActionGrant = new ResourceActionGrant();
             $resourceActionGrant->setAuthorizationResource($resource);
@@ -214,10 +205,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
             $this->addResourceActionGrant($resourceActionGrant);
 
-            $this->entityManager->getConnection()->commit();
-        } catch (\Exception $e) {
-            $this->entityManager->getConnection()->rollback();
-
+            $connection->commit();
+        } catch (\Throwable $e) {
+            if ($connection->isTransactionActive()) {
+                $connection->rollback();
+            }
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
                 self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
@@ -686,6 +678,29 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     ->andWhere($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.action", ':action'))
                     ->setParameter(':action', $actions);
             }
+        }
+    }
+
+    private function addAuthorizationResourceInternal(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
+    {
+        try {
+            if ($this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier) !== null) {
+                throw ApiError::withDetails(Response::HTTP_CONFLICT,
+                    'Resource with given resource class and identifier already exists', self::ADDING_RESOURCE_FAILED_ERROR_ID);
+            }
+
+            $resource = new AuthorizationResource();
+            $resource->setIdentifier(Uuid::uuid7()->toString());
+            $resource->setResourceClass($resourceClass);
+            $resource->setResourceIdentifier($resourceIdentifier);
+
+            $this->entityManager->persist($resource);
+            $this->entityManager->flush();
+
+            return $resource;
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
+                self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
     }
 }

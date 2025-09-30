@@ -46,9 +46,10 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null): void
+    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null,
+        bool $addManageGrant = true): void
     {
-        $this->authorizationService->registerResource($resourceClass, $resourceIdentifier, $userIdentifier);
+        $this->authorizationService->registerResource($resourceClass, $resourceIdentifier, $userIdentifier, $addManageGrant);
     }
 
     /**

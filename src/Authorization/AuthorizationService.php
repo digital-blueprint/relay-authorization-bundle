@@ -212,7 +212,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null): void
+    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null,
+        bool $addManageGrant = true): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
         $this->assertDoesNotContainReservedCharacters($resourceClass);
@@ -224,8 +225,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 'a user identifier is required to register a resource. are you a system account client?');
         }
 
-        $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
-            $resourceClass, $resourceIdentifier, $userIdentifier);
+        if ($addManageGrant) {
+            $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
+                $resourceClass, $resourceIdentifier, $userIdentifier);
+        } else {
+            $this->resourceActionGrantService->addResource($resourceClass, $resourceIdentifier);
+        }
     }
 
     /**

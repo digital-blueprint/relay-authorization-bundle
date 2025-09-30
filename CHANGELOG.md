@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add `removeResourceActionGrants` to PHP API
+- Make creation of manager grant disable-able for `registerResource` PHP API methods
 
 ## v0.5.3
 
