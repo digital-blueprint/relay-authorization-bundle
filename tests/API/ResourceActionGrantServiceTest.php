@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\API;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
@@ -487,5 +488,46 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertFalse($this->resourceActionGrantService->isCurrentUserGrantedCollectionAction(
             self::TEST_RESOURCE_CLASS,
             'foo'));
+    }
+
+    public function testRemoveResourceActionGrants(): void
+    {
+        $authorizationResource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+
+        $this->testEntityManager->addResourceActionGrant($authorizationResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $anotherUserGrant = $this->testEntityManager->addResourceActionGrant($authorizationResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+        $updateGrant = $this->testEntityManager->addResourceActionGrant($authorizationResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->resourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER, [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION],
+            self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(2, $resourceActionGrants);
+        $this->assertCount(1, $this->selectWhere($resourceActionGrants, function (ResourceActionGrant $arg) use ($anotherUserGrant) {
+            return $arg->getIdentifier() === $anotherUserGrant->getIdentifier();
+        }));
+        $this->assertCount(1, $this->selectWhere($resourceActionGrants, function (ResourceActionGrant $arg) use ($updateGrant) {
+            return $arg->getIdentifier() === $updateGrant->getIdentifier();
+        }));
+
+        $this->resourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER, null, self::ANOTHER_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(1, $resourceActionGrants);
+        $this->assertCount(1, $this->selectWhere($resourceActionGrants, function (ResourceActionGrant $arg) use ($updateGrant) {
+            return $arg->getIdentifier() === $updateGrant->getIdentifier();
+        }));
+
+        $this->resourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER, [TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION]);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(0, $resourceActionGrants);
     }
 }

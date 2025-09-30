@@ -2,9 +2,11 @@
 
 ## Unreleased
 
+- Add `removeResourceActionGrants` to PHP API
+
 ## v0.5.3
 
-- A test utility function
+- Add test utility function
 
 ## v0.5.2
 

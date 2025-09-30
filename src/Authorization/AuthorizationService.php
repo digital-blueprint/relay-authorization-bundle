@@ -838,7 +838,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
+    public function addResourceActionGrant(string $resourceClass, ?string $resourceIdentifier, string $action,
         ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
     {
         $resourceActionGrant = new ResourceActionGrant();
@@ -851,6 +851,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         $this->resourceActionGrantService->ensureAuthorizationResource($resourceActionGrant);
         $this->resourceActionGrantService->addResourceActionGrant($resourceActionGrant);
+    }
+
+    public function removeResourceActionGrants(string $resourceClass, ?string $resourceIdentifier,
+        ?array $actions = null, ?string $userIdentifier = null, ?string $groupIdentifier = null,
+        ?string $dynamicGroupIdentifier = null): void
+    {
+        $this->resourceActionGrantService->removeResourceActionGrants(
+            $resourceClass, $resourceIdentifier, $actions, $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
     }
 
     private function assertDoesNotContainReservedCharacters(string $identifier): void

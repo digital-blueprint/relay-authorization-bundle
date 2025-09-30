@@ -78,10 +78,26 @@ class ResourceActionGrantService
     /**
      * @throws ApiError
      */
-    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
+    public function addResourceActionGrant(string $resourceClass, ?string $resourceIdentifier, string $action,
         ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
     {
         $this->authorizationService->addResourceActionGrant($resourceClass, $resourceIdentifier, $action,
+            $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
+    }
+
+    /**
+     * Parameters with null values will not be filtered on.
+     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
+     * with an OR conjunction.
+     *
+     * @param ?string[] $actions
+     *
+     * @throws ApiError
+     */
+    public function removeResourceActionGrants(string $resourceClass, ?string $resourceIdentifier, ?array $actions = null,
+        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
+    {
+        $this->authorizationService->removeResourceActionGrants($resourceClass, $resourceIdentifier, $actions,
             $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
     }
 

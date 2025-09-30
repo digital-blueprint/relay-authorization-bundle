@@ -134,6 +134,41 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
+    /**
+     * Parameters with null values will not be filtered on.
+     *
+     * @throws ApiError
+     */
+    public function removeResourceActionGrants(string $resourceClass, ?string $resourceIdentifier = null,
+        ?array $actions = null, ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
+    {
+        $innerQueryBuilder = $this->entityManager->createQueryBuilder();
+        $innerQueryBuilder->select(self::RESOURCE_ACTION_GRANT_ALIAS.'.identifier')
+            ->from(ResourceActionGrant::class, self::RESOURCE_ACTION_GRANT_ALIAS);
+        self::addAddAuthorizationResourceCriteria($innerQueryBuilder,
+            self::AUTHORIZATION_RESOURCE_ALIAS, self::RESOURCE_ACTION_GRANT_ALIAS,
+            null, $resourceClass, $resourceIdentifier);
+        self::addActionCriteria($innerQueryBuilder, self::RESOURCE_ACTION_GRANT_ALIAS, $actions);
+        self::addGrantHolderCriteria($innerQueryBuilder, self::RESOURCE_ACTION_GRANT_ALIAS,
+            $userIdentifier, $groupIdentifier === null ? null : [$groupIdentifier],
+            $dynamicGroupIdentifier === null ? null : [$dynamicGroupIdentifier]);
+        $innerQueryParameters = $innerQueryBuilder->getParameters();
+
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $queryBuilder
+            ->delete(ResourceActionGrant::class, self::RESOURCE_ACTION_GRANT_ALIAS.'_2')
+            ->where($queryBuilder->expr()->in(self::RESOURCE_ACTION_GRANT_ALIAS.'_2.identifier', $innerQueryBuilder->getDQL()));
+        $queryBuilder->setParameters($innerQueryParameters); // doctrine forgets the parameters of the inner query builder...
+
+        try {
+            $queryBuilder->getQuery()->execute();
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Resource action grants could not be removed!', self::REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID,
+                ['message' => $e->getMessage()]);
+        }
+    }
+
     public function addAuthorizationResource(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
     {
         try {
@@ -287,6 +322,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     * Parameters with null values will not be filtered on.
      * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
      * with an OR conjunction.
      *
@@ -312,8 +348,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * Gets all resource action grants for an authorization resource subset (page) defined by the first result
      * index and the maximum number of result (page) items ordered by resource.
      *
-     *  NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
-     *  with an OR conjunction.
+     * Parameters with null values will not be filtered on.
+     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
+     * with an OR conjunction.
      *
      * @return ResourceActionGrant[]
      *
@@ -363,6 +400,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     * Parameters with null values will not be filtered on.
      * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
      * with an OR conjunction.
      */
@@ -375,6 +413,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     * Parameters with null values will not be filtered on.
      * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
      * with an OR conjunction.
      */
@@ -460,29 +499,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             ->select($select)
             ->from(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS);
 
-        if ($authorizationResourceIdentifier !== null) {
-            $queryBuilder
-                ->where($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource", ':authorizationResourceIdentifier'))
-                ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
-        } elseif ($resourceClass !== null || $resourceIdentifier !== null
-            || $select === self::AUTHORIZATION_RESOURCE_ALIAS
-            || $select === self::AUTHORIZATION_RESOURCE_IDENTIFIER_ALIAS) {
-            self::addAuthorizationResourceCriteria($queryBuilder, $AUTHORIZATION_RESOURCE_ALIAS, $RESOURCE_ACTION_GRANT_ALIAS,
-                $resourceClass, $resourceIdentifier);
-        }
-
-        if ($actions !== null) {
-            if (count($actions) === 1) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.action", ':action'))
-                    ->setParameter(':action', $actions[0]);
-            } else {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.action", ':action'))
-                    ->setParameter(':action', $actions);
-            }
-        }
-
+        self::addAddAuthorizationResourceCriteria($queryBuilder, $AUTHORIZATION_RESOURCE_ALIAS, $RESOURCE_ACTION_GRANT_ALIAS,
+            $authorizationResourceIdentifier, $resourceClass, $resourceIdentifier,
+            $select === self::AUTHORIZATION_RESOURCE_ALIAS
+            || $select === self::AUTHORIZATION_RESOURCE_IDENTIFIER_ALIAS);
+        self::addActionCriteria($queryBuilder, $RESOURCE_ACTION_GRANT_ALIAS, $actions);
         self::addGrantHolderCriteria($queryBuilder, $RESOURCE_ACTION_GRANT_ALIAS, $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
 
         return $queryBuilder;
@@ -610,12 +631,26 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
-    private static function addAuthorizationResourceCriteria(QueryBuilder $queryBuilder, string $AUTHORIZATION_RESOURCE_ALIAS,
-        string $RESOURCE_ACTION_GRANT_ALIAS, ?string $resourceClass, ?string $resourceIdentifier): void
+    private static function addAddAuthorizationResourceCriteria(QueryBuilder $queryBuilder, string $AUTHORIZATION_RESOURCE_ALIAS,
+        string $RESOURCE_ACTION_GRANT_ALIAS, ?string $authorizationResourceIdentifier, ?string $resourceClass, ?string $resourceIdentifier,
+        bool $forceJoinWithAuthorizationResource = false): void
     {
-        $queryBuilder
-            ->innerJoin(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
-                "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource = $AUTHORIZATION_RESOURCE_ALIAS.identifier");
+        if ($authorizationResourceIdentifier !== null) {
+            $queryBuilder
+                ->where($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource", ':authorizationResourceIdentifier'))
+                ->setParameter(':authorizationResourceIdentifier', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
+        } elseif ($resourceClass !== null || $resourceIdentifier !== null || $forceJoinWithAuthorizationResource) {
+            $queryBuilder
+                ->innerJoin(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
+                    "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource = $AUTHORIZATION_RESOURCE_ALIAS.identifier");
+            self::addResourceClassAndIdentifierCriteria($queryBuilder, $AUTHORIZATION_RESOURCE_ALIAS,
+                $resourceClass, $resourceIdentifier);
+        }
+    }
+
+    private static function addResourceClassAndIdentifierCriteria(QueryBuilder $queryBuilder, string $AUTHORIZATION_RESOURCE_ALIAS,
+        ?string $resourceClass, ?string $resourceIdentifier): void
+    {
         if ($resourceClass !== null) {
             $queryBuilder
                 ->where($queryBuilder->expr()->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass", ':resourceClass'))
@@ -635,6 +670,21 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     $queryBuilder
                         ->andWhere($queryBuilder->expr()->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
                         ->setParameter(':resourceIdentifier', $resourceIdentifier);
+            }
+        }
+    }
+
+    private static function addActionCriteria(QueryBuilder $queryBuilder, string $RESOURCE_ACTION_GRANT_ALIAS, ?array $actions): void
+    {
+        if ($actions !== null) {
+            if (count($actions) === 1) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.action", ':action'))
+                    ->setParameter(':action', $actions[0]);
+            } else {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.action", ':action'))
+                    ->setParameter(':action', $actions);
             }
         }
     }
