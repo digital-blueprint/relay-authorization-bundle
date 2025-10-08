@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantInheritance;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
@@ -288,5 +289,15 @@ class TestEntityManager extends CoreTestEntityManager
         }
 
         return $resourceActionGrant;
+    }
+
+    public function getGrantInheritance(string $identifier): ?GrantInheritance
+    {
+        try {
+            return $this->entityManager->getRepository(GrantInheritance::class)
+                ->findOneBy(['identifier' => $identifier]);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
     }
 }

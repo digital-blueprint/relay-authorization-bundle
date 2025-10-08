@@ -591,4 +591,115 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertCount(1, $resourceActionGrantPage2);
         $this->assertEquals($dynamicGroupRsourceActionGrant->getIdentifier(), $resourceActionGrantPage2[0]->getIdentifier());
     }
+
+    public function testAddGrantInheritance(): void
+    {
+        $grantInheritance = $this->internalResourceActionGrantService->addGrantInheritance(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+
+        $this->assertTrue(Uuid::isValid($grantInheritance->getIdentifier()));
+        $this->assertTrue(Uuid::isValid($grantInheritance->getSourceAuthorizationResource()->getIdentifier()));
+        $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantInheritance->getSourceAuthorizationResource()->getResourceClass());
+        $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantInheritance->getSourceAuthorizationResource()->getResourceIdentifier());
+        $this->assertTrue(Uuid::isValid($grantInheritance->getTargetAuthorizationResource()->getIdentifier()));
+        $this->assertEquals(self::TEST_RESOURCE_CLASS_2, $grantInheritance->getTargetAuthorizationResource()->getResourceClass());
+        $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER.'_parent', $grantInheritance->getTargetAuthorizationResource()->getResourceIdentifier());
+
+        $grantInheritancePersistence = $this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier());
+        $this->assertEquals($grantInheritance->getIdentifier(), $grantInheritancePersistence->getIdentifier());
+        $this->assertEquals($grantInheritance->getSourceAuthorizationResource()->getIdentifier(),
+            $grantInheritancePersistence->getSourceAuthorizationResource()->getIdentifier());
+        $this->assertEquals($grantInheritance->getTargetAuthorizationResource()->getIdentifier(),
+            $grantInheritancePersistence->getTargetAuthorizationResource()->getIdentifier());
+
+        $sourceAuthorizationResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertEquals($grantInheritance->getSourceAuthorizationResource()->getIdentifier(),
+            $sourceAuthorizationResource->getIdentifier());
+
+        $targetAuthorizationResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+        $this->assertEquals($grantInheritance->getTargetAuthorizationResource()->getIdentifier(),
+            $targetAuthorizationResource->getIdentifier());
+    }
+
+    public function testRemoveGrantInheritance(): void
+    {
+        $grantInheritance = $this->internalResourceActionGrantService->addGrantInheritance(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+
+        $this->assertNotNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        $this->internalResourceActionGrantService->removeGrantInheritance(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+
+        $this->assertNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        // source is a collection resource
+        $grantInheritance = $this->internalResourceActionGrantService->addGrantInheritance(
+            self::TEST_RESOURCE_CLASS, null,
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+
+        $this->assertNotNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        $this->internalResourceActionGrantService->removeGrantInheritance(
+            self::TEST_RESOURCE_CLASS, null,
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+
+        $this->assertNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        // target is a collection resource
+        $grantInheritance = $this->internalResourceActionGrantService->addGrantInheritance(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            self::TEST_RESOURCE_CLASS_2, null);
+
+        $this->assertNotNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        $this->internalResourceActionGrantService->removeGrantInheritance(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            self::TEST_RESOURCE_CLASS_2, null);
+
+        $this->assertNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        // both are collection resources
+        $grantInheritance = $this->internalResourceActionGrantService->addGrantInheritance(
+            self::TEST_RESOURCE_CLASS, null,
+            self::TEST_RESOURCE_CLASS_2, null);
+
+        $this->assertNotNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        $this->internalResourceActionGrantService->removeGrantInheritance(
+            self::TEST_RESOURCE_CLASS, null,
+            self::TEST_RESOURCE_CLASS_2, null);
+
+        $this->assertNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        // same resource class
+        $grantInheritance = $this->internalResourceActionGrantService->addGrantInheritance(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+
+        $this->assertNotNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+
+        $this->internalResourceActionGrantService->removeGrantInheritance(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_parent');
+
+        $this->assertNull($this->testEntityManager->getGrantInheritance($grantInheritance->getIdentifier()));
+    }
+
+    public function testAddGrantInheritanceErrorResourcesIdentical(): void
+    {
+        try {
+            $this->internalResourceActionGrantService->addGrantInheritance(
+                self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+                self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+            $this->fail('Expected ApiError not thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(InternalResourceActionGrantService::ADDING_GRANT_INHERITANCE_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
+    }
 }

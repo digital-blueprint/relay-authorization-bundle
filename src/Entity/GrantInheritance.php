@@ -14,14 +14,26 @@ use Doctrine\ORM\Mapping as ORM;
 class GrantInheritance
 {
     #[ORM\Id]
+    #[ORM\Column(type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
+    private ?string $identifier = null;
+
     #[ORM\JoinColumn(name: 'source_authorization_resource', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
     private ?AuthorizationResource $sourceAuthorizationResource = null;
 
-    #[ORM\Id]
     #[ORM\JoinColumn(name: 'target_authorization_resource', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
     private ?AuthorizationResource $targetAuthorizationResource = null;
+
+    public function getIdentifier(): ?string
+    {
+        return $this->identifier;
+    }
+
+    public function setIdentifier(?string $identifier): void
+    {
+        $this->identifier = $identifier;
+    }
 
     public function getSourceAuthorizationResource(): ?AuthorizationResource
     {

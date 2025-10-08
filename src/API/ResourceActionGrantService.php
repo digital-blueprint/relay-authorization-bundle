@@ -92,6 +92,28 @@ class ResourceActionGrantService
     /**
      * @throws ApiError
      */
+    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): void
+    {
+        $this->authorizationService->addGrantInheritance(
+            $sourceResourceClass, $sourceResourceIdentifier,
+            $targetResourceClass, $targetResourceIdentifier);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): void
+    {
+        $this->authorizationService->removeGrantInheritance(
+            $sourceResourceClass, $sourceResourceIdentifier,
+            $targetResourceClass, $targetResourceIdentifier);
+    }
+
+    /**
+     * @throws ApiError
+     */
     public function isCurrentUserGrantedItemAction(string $resourceClass, string $resourceIdentifier,
         string $itemAction): bool
     {

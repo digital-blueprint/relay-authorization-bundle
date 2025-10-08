@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantInheritance;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
@@ -53,6 +54,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
+    public const ADDING_GRANT_INHERITANCE_FAILED_ERROR_ID = 'authorization:adding-grant-inheritance-failed';
+    private const REMOVING_GRANT_INHERITANCE_FAILED_ERROR_ID = 'authorization:removing-grant-inheritance-failed';
     private const GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-collection-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
     private const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:authorization-resource-not-found';
@@ -60,6 +63,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         'authorization:resource-action-grant-invalid-authorization-resource-missing';
 
     private const AUTHORIZATION_RESOURCE_IDENTIFIER_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS.'.identifier';
+    private const GRANT_INHERITANCE_ALIAS = 'gi';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -268,12 +272,85 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $this->removeResourcesInternal($resourceClass, $resourceIdentifiers);
     }
 
-    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier, string $targetResourceClass, ?string $targetResourceIdentifier)
+    /**
+     * @throws ApiError
+     */
+    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): GrantInheritance
     {
+        if ($sourceResourceClass === $targetResourceClass && $sourceResourceIdentifier === $targetResourceIdentifier) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST, 'Grant inheritance source and target resource must not be identical',
+                self::ADDING_GRANT_INHERITANCE_FAILED_ERROR_ID);
+        }
+
+        $grantInheritance = new GrantInheritance();
+        $grantInheritance->setIdentifier(Uuid::uuid7()->toString());
+        $grantInheritance->setSourceAuthorizationResource(
+            $this->getOrCreateAuthorizationResource($sourceResourceClass, $sourceResourceIdentifier)
+        );
+        $grantInheritance->setTargetAuthorizationResource(
+            $this->getOrCreateAuthorizationResource($targetResourceClass, $targetResourceIdentifier)
+        );
+
+        try {
+            $this->entityManager->persist($grantInheritance);
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to add grant inheritance!',
+                self::ADDING_GRANT_INHERITANCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+        }
+
+        return $grantInheritance;
     }
 
-    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier, string $targetResourceClass, ?string $targetResourceIdentifier)
+    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): void
     {
+        $GRANT_INHERITANCE_ALIAS = self::GRANT_INHERITANCE_ALIAS;
+        $SOURCE_AUTHORIZATION_RESOURCE_ALIAS = 'sar';
+        $TARGET_AUTHORIZATION_RESOURCE_ALIAS = 'tar';
+
+        $innerQueryBuilder = $this->entityManager->createQueryBuilder();
+        $innerQueryBuilder->select(self::GRANT_INHERITANCE_ALIAS.'.identifier')
+            ->from(GrantInheritance::class, self::GRANT_INHERITANCE_ALIAS)
+            ->innerJoin(AuthorizationResource::class, $SOURCE_AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
+                "$GRANT_INHERITANCE_ALIAS.sourceAuthorizationResource = $SOURCE_AUTHORIZATION_RESOURCE_ALIAS.identifier")
+            ->innerJoin(AuthorizationResource::class, $TARGET_AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
+                "$GRANT_INHERITANCE_ALIAS.targetAuthorizationResource = $TARGET_AUTHORIZATION_RESOURCE_ALIAS.identifier")
+            ->where($innerQueryBuilder->expr()->eq($SOURCE_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':sourceResourceClass'))
+            ->setParameter(':sourceResourceClass', $sourceResourceClass)
+            ->andWhere($innerQueryBuilder->expr()->eq($TARGET_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':targetResourceClass'))
+            ->setParameter(':targetResourceClass', $targetResourceClass);
+        if ($sourceResourceIdentifier !== null) {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->eq($SOURCE_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':sourceResourceIdentifier'))
+                ->setParameter(':sourceResourceIdentifier', $sourceResourceIdentifier);
+        } else {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->isNull($SOURCE_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
+        }
+        if ($targetResourceIdentifier !== null) {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->eq($TARGET_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':targetResourceIdentifier'))
+                ->setParameter(':targetResourceIdentifier', $targetResourceIdentifier);
+        } else {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->isNull($TARGET_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
+        }
+
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $queryBuilder
+            ->delete(GrantInheritance::class, self::GRANT_INHERITANCE_ALIAS.'_2')
+            ->where($queryBuilder->expr()->in(self::GRANT_INHERITANCE_ALIAS.'_2.identifier', $innerQueryBuilder->getDQL()));
+
+        $queryBuilder->setParameters($innerQueryBuilder->getParameters()); // doctrine forgets the parameters of the inner query builder...
+
+        try {
+            $queryBuilder->getQuery()->execute();
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to remove grant inheritance!',
+                self::REMOVING_GRANT_INHERITANCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+        }
     }
 
     public function getAuthorizationResource(string $identifier): ?AuthorizationResource
