@@ -4,63 +4,25 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
 
 /**
  * @internal
  */
-#[ApiResource(
-    shortName: 'AuthorizationResource',
-    operations: [],
-    //    operations: [
-    //        new Get(
-    //            uriTemplate: '/authorization/resources/{identifier}',
-    //            openapi: new Operation(
-    //                tags: ['Authorization']
-    //            ),
-    //            provider: AuthorizationResourceProvider::class
-    //        ),
-    //        new GetCollection(
-    //            uriTemplate: '/authorization/resources',
-    //            openapi: new Operation(
-    //                tags: ['Authorization'],
-    //                parameters: [
-    //                    new Parameter(
-    //                        name: 'resourceClass',
-    //                        in: 'query',
-    //                        description: 'The resource class to get the AuthorizationResource collection for',
-    //                        required: false,
-    //                        schema: ['type' => 'string'],
-    //                    ),
-    //                ]
-    //            ),
-    //            provider: AuthorizationResourceProvider::class,
-    //        ),
-    //    ],
-    normalizationContext: [
-        'groups' => ['AuthorizationResource:output'],
-    ],
-)]
 #[ORM\Table(name: 'authorization_resources')]
 #[ORM\Entity]
 class AuthorizationResource
 {
     #[ORM\Id]
     #[ORM\Column(type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
-    #[Groups(['AuthorizationResource:output'])]
     private ?string $identifier = null;
 
     #[ORM\Column(name: 'resource_class', type: 'string', length: 40)]
-    #[Groups(['AuthorizationResource:input', 'AuthorizationResource:output'])]
     private ?string $resourceClass = null;
 
     #[ORM\Column(name: 'resource_identifier', type: 'string', length: 40, nullable: true)]
-    #[Groups(['AuthorizationResource:input', 'AuthorizationResource:output'])]
     private ?string $resourceIdentifier = null;
 
-    #[Groups(['AuthorizationResource:output'])]
     private bool $writable = false;
 
     public function getIdentifier(): ?string

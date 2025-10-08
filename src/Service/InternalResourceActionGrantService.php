@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
@@ -76,26 +77,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     public function addResourceActionGrant(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
     {
-        $this->validateResourceActionGrant($resourceActionGrant);
-
-        $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
-        try {
-            $this->entityManager->persist($resourceActionGrant);
-            $this->entityManager->flush();
-        } catch (ApiError $e) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
-                self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-        }
-
-        $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent(
-            $resourceActionGrant->getAuthorizationResource()->getResourceClass(),
-            $resourceActionGrant->getAuthorizationResource()->getResourceIdentifier(),
-            $resourceActionGrant->getAction(),
-            $resourceActionGrant->getUserIdentifier(),
-            $resourceActionGrant->getGroup()?->getIdentifier(),
-            $resourceActionGrant->getDynamicGroupIdentifier()));
-
-        return $resourceActionGrant;
+        return $this->addResourceActionGrantInternal($resourceActionGrant);
     }
 
     /**
@@ -189,6 +171,42 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
+    public function addResourceActionGrantByResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier, string $action,
+        ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+    {
+        $connection = $this->entityManager->getConnection();
+        try {
+            $connection->beginTransaction();
+
+            $resourceActionGrant = new ResourceActionGrant();
+            $resourceActionGrant->setAuthorizationResource($this->getOrCreateAuthorizationResource($resourceClass, $resourceIdentifier));
+            $resourceActionGrant->setAction($action);
+            $resourceActionGrant->setUserIdentifier($userIdentifier);
+            $resourceActionGrant->setGroup($group);
+            $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
+
+            $this->addResourceActionGrantInternal($resourceActionGrant);
+
+            $connection->commit();
+        } catch (\Throwable $throwable) {
+            if ($connection->isTransactionActive()) {
+                $connection->rollback();
+            }
+            if ($throwable instanceof ApiError) {
+                throw $throwable;
+            }
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
+                self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $throwable->getMessage()]);
+        }
+
+        return $resourceActionGrant;
+    }
+
+    /**
+     * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
+     *
+     * @throws ApiError
+     */
     public function addResourceAndManageResourceGrantFor(string $resourceClass, ?string $resourceIdentifier,
         ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
@@ -250,7 +268,15 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $this->removeResourcesInternal($resourceClass, $resourceIdentifiers);
     }
 
-    public function getAuthorizationResource(string $identifier)
+    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier, string $targetResourceClass, ?string $targetResourceIdentifier)
+    {
+    }
+
+    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier, string $targetResourceClass, ?string $targetResourceIdentifier)
+    {
+    }
+
+    public function getAuthorizationResource(string $identifier): ?AuthorizationResource
     {
         try {
             return Uuid::isValid($identifier) ? $this->entityManager
@@ -702,5 +728,80 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
                 self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
+    }
+
+    private function getOrCreateAuthorizationResource(string $resourceClass, ?string $resourceIdentifier): AuthorizationResource
+    {
+        if (($authorizationResource = $this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier)) === null) {
+            $this->validateResourceClassAndIdentifier($resourceClass, $resourceIdentifier);
+            try {
+                $authorizationResource = new AuthorizationResource();
+                $authorizationResource->setIdentifier(Uuid::uuid7()->toString());
+                $authorizationResource->setResourceClass($resourceClass);
+                $authorizationResource->setResourceIdentifier($resourceIdentifier);
+
+                $this->entityManager->persist($authorizationResource);
+                $this->entityManager->flush();
+
+                return $authorizationResource;
+            } catch (\Exception $e) {
+                throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
+                    self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+            }
+        }
+
+        return $authorizationResource;
+    }
+
+    private function validateResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier): void
+    {
+        if (str_contains($resourceClass, UserAttributeProvider::SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource class must not contain the reserved character '%s'",
+                    UserAttributeProvider::SEPARATOR));
+        }
+        if (str_contains($resourceClass, GrantedActions::ID_SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource class must not contain the reserved character '%s'",
+                    GrantedActions::ID_SEPARATOR));
+        }
+
+        if ($resourceIdentifier && str_contains($resourceIdentifier, UserAttributeProvider::SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource identifier must not contain the reserved character '%s'",
+                    UserAttributeProvider::SEPARATOR));
+        }
+        if ($resourceIdentifier && str_contains($resourceIdentifier, GrantedActions::ID_SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource identifier must not contain the reserved character '%s'",
+                    GrantedActions::ID_SEPARATOR));
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    private function addResourceActionGrantInternal(ResourceActionGrant $resourceActionGrant)
+    {
+        $this->validateResourceActionGrant($resourceActionGrant);
+
+        $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
+        try {
+            $this->entityManager->persist($resourceActionGrant);
+            $this->entityManager->flush();
+        } catch (ApiError $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
+                self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+        }
+
+        $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent(
+            $resourceActionGrant->getAuthorizationResource()->getResourceClass(),
+            $resourceActionGrant->getAuthorizationResource()->getResourceIdentifier(),
+            $resourceActionGrant->getAction(),
+            $resourceActionGrant->getUserIdentifier(),
+            $resourceActionGrant->getGroup()?->getIdentifier(),
+            $resourceActionGrant->getDynamicGroupIdentifier()));
+
+        return $resourceActionGrant;
     }
 }

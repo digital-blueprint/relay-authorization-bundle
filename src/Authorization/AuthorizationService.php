@@ -6,7 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
-use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
@@ -14,7 +13,6 @@ use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
-use Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -212,31 +210,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null,
-        bool $addManageGrant = true): void
-    {
-        $this->assertResourceClassNotReserved($resourceClass);
-        $this->assertDoesNotContainReservedCharacters($resourceClass);
-        $this->assertDoesNotContainReservedCharacters($resourceIdentifier);
-
-        $userIdentifier ??= $this->getUserIdentifier();
-        if ($userIdentifier === null) {
-            throw ApiError::withDetails(Response::HTTP_FORBIDDEN,
-                'a user identifier is required to register a resource. are you a system account client?');
-        }
-
-        if ($addManageGrant) {
-            $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
-                $resourceClass, $resourceIdentifier, $userIdentifier);
-        } else {
-            $this->resourceActionGrantService->addResource($resourceClass, $resourceIdentifier);
-        }
-    }
-
-    /**
-     * @throws ApiError
-     */
-    public function deregisterResource(string $resourceClass, string $resourceIdentifier): void
+    public function removeGrantsForResource(string $resourceClass, string $resourceIdentifier): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
@@ -246,11 +220,27 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function deregisterResources(string $resourceClass, array $resourceIdentifiers): void
+    public function removeGrantsForResources(string $resourceClass, array $resourceIdentifiers): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
         $this->resourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier($resourceClass, $resourceIdentifiers);
+    }
+
+    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): void
+    {
+        $this->resourceActionGrantService->addGrantInheritance(
+            $sourceResourceClass, $sourceResourceIdentifier,
+            $targetResourceClass, $targetResourceIdentifier);
+    }
+
+    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): void
+    {
+        $this->resourceActionGrantService->removeGrantInheritance(
+            $sourceResourceClass, $sourceResourceIdentifier,
+            $targetResourceClass, $targetResourceIdentifier);
     }
 
     /**
@@ -350,8 +340,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function addGroup(string $groupIdentifier): ResourceActionGrant
     {
-        return $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
-            self::GROUP_RESOURCE_CLASS, $groupIdentifier, $this->getUserIdentifier());
+        return $this->resourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+            self::GROUP_RESOURCE_CLASS, $groupIdentifier, self::MANAGE_ACTION, $this->getUserIdentifier());
     }
 
     /**
@@ -811,32 +801,19 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 // the policy grant is not present in DB (however the authorization resource is)
                 if ($isPolicyPresentInConfig) {
                     // (D) the manage resource collection policy is present in config -> auto-add the policy grant to DB
-                    $authorizationResource = $this->resourceActionGrantService->getAuthorizationResource($resourceClassGrants['other_grants'][0]->getAuthorizationResource()->getIdentifier());
-                    $resourceActionGrant = new ResourceActionGrant();
-                    $resourceActionGrant->setAuthorizationResource($authorizationResource);
-                    $resourceActionGrant->setAction(self::MANAGE_ACTION);
-                    $resourceActionGrant->setDynamicGroupIdentifier($manageResourceCollectionPolicyName);
-                    $this->resourceActionGrantService->addResourceActionGrant($resourceActionGrant);
+                    $authorizationResource = $resourceClassGrants['other_grants'][0]->getAuthorizationResource();
+                    $this->resourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier($authorizationResource->getResourceClass(),
+                        $authorizationResource->getResourceIdentifier(), self::MANAGE_ACTION,
+                        null, null, $manageResourceCollectionPolicyName);
                 } // the manage resource collection policy is not present in config -> nothing to do
             }
         }
 
         // remaining policies, i.e. policies of resource classes for which no collection grants are present in DB
         foreach ($manageResourceCollectionPolicyNames as $manageResourceCollectionPolicyName) {
-            $resourceClass = self::toResourceClass($manageResourceCollectionPolicyName);
-            $authorizationResource = $this->resourceActionGrantService->getAuthorizationResourceByResourceClassAndIdentifier(
-                $resourceClass, null);
-            if ($authorizationResource === null) {
-                // no authorization resource is present in DB (as expected) -> auto-add authorization resource and policy grant to DB
-                $this->resourceActionGrantService->addResourceAndManageResourceGrantFor($resourceClass, null, null, null, $manageResourceCollectionPolicyName);
-            } else {
-                // orphan authorization resource is already present in DB -> auto-add the policy grant to DB
-                $resourceActionGrant = new ResourceActionGrant();
-                $resourceActionGrant->setAuthorizationResource($authorizationResource);
-                $resourceActionGrant->setAction(self::MANAGE_ACTION);
-                $resourceActionGrant->setDynamicGroupIdentifier($manageResourceCollectionPolicyName);
-                $this->resourceActionGrantService->addResourceActionGrant($resourceActionGrant);
-            }
+            $this->resourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+                self::toResourceClass($manageResourceCollectionPolicyName), null,
+                self::MANAGE_ACTION, null, null, $manageResourceCollectionPolicyName);
         }
     }
 
@@ -846,16 +823,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function addResourceActionGrant(string $resourceClass, ?string $resourceIdentifier, string $action,
         ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
     {
-        $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setResourceClass($resourceClass);
-        $resourceActionGrant->setResourceIdentifier($resourceIdentifier);
-        $resourceActionGrant->setAction($action);
-        $resourceActionGrant->setUserIdentifier($userIdentifier);
-        $resourceActionGrant->setGroup($groupIdentifier !== null ? $this->groupService->getGroup($groupIdentifier) : null);
-        $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
+        $this->assertResourceClassNotReserved($resourceClass);
 
-        $this->resourceActionGrantService->ensureAuthorizationResource($resourceActionGrant);
-        $this->resourceActionGrantService->addResourceActionGrant($resourceActionGrant);
+        $this->resourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+            $resourceClass, $resourceIdentifier, $action, $userIdentifier,
+            $groupIdentifier !== null ? $this->groupService->getGroup($groupIdentifier) : null,
+            $dynamicGroupIdentifier);
     }
 
     public function removeResourceActionGrants(string $resourceClass, ?string $resourceIdentifier,
@@ -864,19 +837,5 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $this->resourceActionGrantService->removeResourceActionGrants(
             $resourceClass, $resourceIdentifier, $actions, $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
-    }
-
-    private function assertDoesNotContainReservedCharacters(string $identifier): void
-    {
-        if (str_contains($identifier, UserAttributeProvider::SEPARATOR)) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                sprintf("resource class and identifier must not contain the reserved character '%s'",
-                    UserAttributeProvider::SEPARATOR));
-        }
-        if (str_contains($identifier, GrantedActions::ID_SEPARATOR)) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                sprintf("resource class and identifier must not contain the reserved character '%s'",
-                    GrantedActions::ID_SEPARATOR));
-        }
     }
 }

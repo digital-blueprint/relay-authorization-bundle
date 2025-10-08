@@ -47,46 +47,39 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig = null;
     }
 
-    public function testRegisterResourceWithoutUserError(): void
-    {
-        $this->login(null);
-        try {
-            $this->authorizationService->registerResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
-            $this->fail('Expected ApiError to be thrown');
-        } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
-        }
-    }
-
     public function testRegisterResourceWithReservedCharacterError(): void
     {
         try {
-            $this->authorizationService->registerResource(
-                'foo'.UserAttributeProvider::SEPARATOR.'bar', self::TEST_RESOURCE_IDENTIFIER);
+            $this->authorizationService->addResourceActionGrant(
+                'foo'.UserAttributeProvider::SEPARATOR.'bar', self::TEST_RESOURCE_IDENTIFIER,
+                AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
             $this->fail('Expected ApiError to be thrown');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
         }
 
         try {
-            $this->authorizationService->registerResource(
-                self::TEST_RESOURCE_CLASS, 'foo'.UserAttributeProvider::SEPARATOR.'bar');
+            $this->authorizationService->addResourceActionGrant(
+                self::TEST_RESOURCE_CLASS, 'foo'.UserAttributeProvider::SEPARATOR.'bar',
+                AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
             $this->fail('Expected ApiError to be thrown');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
         }
 
         try {
-            $this->authorizationService->registerResource(
-                'foo'.GrantedActions::ID_SEPARATOR.'bar', self::TEST_RESOURCE_IDENTIFIER);
+            $this->authorizationService->addResourceActionGrant(
+                'foo'.GrantedActions::ID_SEPARATOR.'bar', self::TEST_RESOURCE_IDENTIFIER,
+                AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
             $this->fail('Expected ApiError to be thrown');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
         }
 
         try {
-            $this->authorizationService->registerResource(
-                self::TEST_RESOURCE_CLASS, 'foo'.GrantedActions::ID_SEPARATOR.'bar');
+            $this->authorizationService->addResourceActionGrant(
+                self::TEST_RESOURCE_CLASS, 'foo'.GrantedActions::ID_SEPARATOR.'bar',
+                AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
             $this->fail('Expected ApiError to be thrown');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());

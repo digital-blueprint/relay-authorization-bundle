@@ -40,26 +40,13 @@ class ResourceActionGrantService
     }
 
     /**
-     * Adds an initial resource manager grant for the given resource for the current user.
-     *
-     * @param ?string $userIdentifier The user identifier of the resource manager. If not provided, the currently logged-in user is used.
-     *
-     * @throws ApiError
-     */
-    public function registerResource(string $resourceClass, string $resourceIdentifier, ?string $userIdentifier = null,
-        bool $addManageGrant = true): void
-    {
-        $this->authorizationService->registerResource($resourceClass, $resourceIdentifier, $userIdentifier, $addManageGrant);
-    }
-
-    /**
      * Deletes all resource action grants for the given resource.
      *
      * @throws ApiError
      */
-    public function deregisterResource(string $resourceClass, string $resourceIdentifier): void
+    public function removeGrantsForResource(string $resourceClass, string $resourceIdentifier): void
     {
-        $this->authorizationService->deregisterResource($resourceClass, $resourceIdentifier);
+        $this->authorizationService->removeGrantsForResource($resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -69,10 +56,10 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function deregisterResources(string $resourceClass, array $resourceIdentifiers): void
+    public function removeGrantsForResources(string $resourceClass, array $resourceIdentifiers): void
     {
         if (!empty($resourceIdentifiers)) {
-            $this->authorizationService->deregisterResources($resourceClass, $resourceIdentifiers);
+            $this->authorizationService->removeGrantsForResources($resourceClass, $resourceIdentifiers);
         }
     }
 

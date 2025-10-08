@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Command;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -39,8 +40,8 @@ class AddTestResourceCommand extends Command
         $resourceIdentifier = $input->getArgument('resourceIdentifier');
         $userIdentifier = $input->getArgument('userIdentifier');
 
-        $this->resourceActionGrantService->addResourceAndManageResourceGrantFor(
-            $resourceClass, $resourceIdentifier, $userIdentifier);
+        $this->resourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+            $resourceClass, $resourceIdentifier, AuthorizationService::MANAGE_ACTION, $userIdentifier);
 
         return 0;
     }

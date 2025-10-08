@@ -64,11 +64,6 @@ use Symfony\Component\Serializer\Annotation\Groups;
                             'schema' => [
                                 'type' => 'object',
                                 'properties' => [
-                                    'authorizationResource' => [
-                                        'type' => 'string',
-                                        'description' => 'The AuthorizationResource to grant the action on',
-                                        'example' => '/authorization/resources/{identifier}',
-                                    ],
                                     'resourceClass' => [
                                         'type' => 'string',
                                         'description' => 'The resource class to grant the action on (to be used in combination with resourceIdentifier, in case authorizationResource is not set)',
@@ -140,7 +135,6 @@ class ResourceActionGrant
 
     #[ORM\JoinColumn(name: 'authorization_resource_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
-    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?AuthorizationResource $authorizationResource = null;
 
     #[ORM\Column(name: 'action', type: 'string', length: 40)]
@@ -255,7 +249,7 @@ class ResourceActionGrant
 
     public function getResourceClass(): ?string
     {
-        return $this->resourceClass;
+        return $this->authorizationResource?->getResourceClass() ?? $this->resourceClass;
     }
 
     public function setResourceClass(?string $resourceClass): void
@@ -265,7 +259,7 @@ class ResourceActionGrant
 
     public function getResourceIdentifier(): ?string
     {
-        return $this->resourceIdentifier;
+        return $this->authorizationResource?->getResourceIdentifier() ?? $this->resourceIdentifier;
     }
 
     public function setResourceIdentifier(?string $resourceIdentifier): void

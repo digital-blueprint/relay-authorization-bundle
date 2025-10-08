@@ -55,11 +55,6 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
             __DIR__.'/../Migrations',
             'Dbp\Relay\AuthorizationBundle\Migrations');
 
-        /**
-         * NOTE: sqlite3, which is used as in-memory test database, does support
-         * the 'unhex' function only from version 3.41.1. Should be available in PHP 8.4
-         * TODO: check and uncomment unit-tests for get group collection as soon as available.
-         */
         $container->prependExtensionConfig('doctrine', [
             'orm' => [
                 'entity_managers' => [
