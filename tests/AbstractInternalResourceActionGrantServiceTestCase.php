@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestResourceActionGrantAddedEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
+use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -38,6 +39,7 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
 
         $this->internalResourceActionGrantService = new InternalResourceActionGrantService(
             $this->testEntityManager->getEntityManager(), $this->eventDispatcher);
+        $this->internalResourceActionGrantService->setLogger(new NullLogger());
     }
 
     protected function tearDown(): void

@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * @internal
  */
-#[ORM\Table(name: 'authorization_grant_inheritance')]
+#[ORM\Table(name: 'authorization_grant_inheritances')]
 #[ORM\Entity]
 class GrantInheritance
 {
@@ -17,11 +17,11 @@ class GrantInheritance
     #[ORM\Column(type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
 
-    #[ORM\JoinColumn(name: 'source_authorization_resource', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'source_authorization_resource_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
     private ?AuthorizationResource $sourceAuthorizationResource = null;
 
-    #[ORM\JoinColumn(name: 'target_authorization_resource', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: 'target_authorization_resource_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
     private ?AuthorizationResource $targetAuthorizationResource = null;
 

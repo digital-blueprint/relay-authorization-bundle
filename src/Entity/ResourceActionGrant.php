@@ -181,10 +181,10 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $dynamicGroupIdentifier = null;
 
-    #[Groups(['AuthorizationResourceActionGrant:input'])]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceClass = null;
 
-    #[Groups(['AuthorizationResourceActionGrant:input'])]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceIdentifier = null;
 
     public function getIdentifier(): ?string
@@ -197,6 +197,10 @@ class ResourceActionGrant
         $this->identifier = $identifier;
     }
 
+    /**
+     * NOTE: The authorization resource is not set (hydrated) by default, so its presence is not guaranteed.
+     * Try to use getResourceClass() and getResourceIdentifier() to identify the resource instead.
+     */
     public function getAuthorizationResource(): ?AuthorizationResource
     {
         return $this->authorizationResource;

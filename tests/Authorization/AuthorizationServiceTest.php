@@ -754,52 +754,45 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addResourceActionGrant($resourceCollection,
             'create', null, null, 'students');
 
-        $isWritable = function ($authorizationResource) {
-            return $authorizationResource->getWritable();
-        };
-        $isNotWritable = function ($authorizationResource) {
-            return $authorizationResource->getWritable() === false;
-        };
-
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(3, $authorizationResources);
-        $this->assertContainsResourceWhere($resource1, $authorizationResources, $isWritable);
-        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isNotWritable);
-        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isWritable);
+        $this->assertContainsResource($resource1, $authorizationResources);
+        $this->assertContainsResource($resource3, $authorizationResources);
+        $this->assertContainsResource($resourceCollection, $authorizationResources);
 
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass');
         $this->assertCount(1, $authorizationResources);
-        $this->assertContainsResourceWhere($resource1, $authorizationResources, $isWritable);
+        $this->assertContainsResource($resource1, $authorizationResources);
 
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass_2');
         $this->assertCount(1, $authorizationResources);
-        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isNotWritable);
+        $this->assertContainsResource($resource3, $authorizationResources);
 
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass_3');
         $this->assertCount(1, $authorizationResources);
-        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isWritable);
+        $this->assertContainsResource($resourceCollection, $authorizationResources);
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(2, $authorizationResources);
-        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isWritable);
-        $this->assertContainsResourceWhere($resource4, $authorizationResources, $isWritable);
+        $this->assertContainsResource($resource2, $authorizationResources);
+        $this->assertContainsResource($resource4, $authorizationResources);
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(2, $authorizationResources);
-        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isWritable);
-        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isWritable);
+        $this->assertContainsResource($resource2, $authorizationResources);
+        $this->assertContainsResource($resource3, $authorizationResources);
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_STUDENT'] = true;
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_3', $userAttributes);
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(2, $authorizationResources);
-        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isNotWritable);
-        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isNotWritable);
+        $this->assertContainsResource($resource2, $authorizationResources);
+        $this->assertContainsResource($resourceCollection, $authorizationResources);
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_STUDENT'] = true;
@@ -807,9 +800,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_4', $userAttributes);
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(3, $authorizationResources);
-        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isNotWritable);
-        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isWritable);
-        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isNotWritable);
+        $this->assertContainsResource($resource2, $authorizationResources);
+        $this->assertContainsResource($resource3, $authorizationResources);
+        $this->assertContainsResource($resourceCollection, $authorizationResources);
 
         // ----------------------------------------------------------------
         // test pagination:
@@ -821,9 +814,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $authorizationResourcePage2);
 
         $authorizationResources = array_merge($authorizationResourcePage1, $authorizationResourcePage2);
-        $this->assertContainsResourceWhere($resource2, $authorizationResources, $isNotWritable);
-        $this->assertContainsResourceWhere($resource3, $authorizationResources, $isWritable);
-        $this->assertContainsResourceWhere($resourceCollection, $authorizationResources, $isNotWritable);
+        $this->assertContainsResource($resource2, $authorizationResources);
+        $this->assertContainsResource($resource3, $authorizationResources);
+        $this->assertContainsResource($resourceCollection, $authorizationResources);
         // ----------------------------------------------------------------
 
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');

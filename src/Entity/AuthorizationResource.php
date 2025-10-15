@@ -23,8 +23,6 @@ class AuthorizationResource
     #[ORM\Column(name: 'resource_identifier', type: 'string', length: 40, nullable: true)]
     private ?string $resourceIdentifier = null;
 
-    private bool $writable = false;
-
     public function getIdentifier(): ?string
     {
         return $this->identifier;
@@ -53,15 +51,5 @@ class AuthorizationResource
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
-    }
-
-    public function getWritable(): bool
-    {
-        return $this->writable;
-    }
-
-    public function setWritable(bool $writable): void
-    {
-        $this->writable = $writable;
     }
 }

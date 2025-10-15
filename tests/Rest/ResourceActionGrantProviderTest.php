@@ -76,7 +76,8 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertCount(1, $resourceActionGrantCollection);
         $resourceActionGrantItem = $resourceActionGrantCollection[0];
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
-        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getResourceClass(), $resourceActionGrantItem->getResourceClass());
+        $this->assertEquals($resourceActionGrant->getResourceIdentifier(), $resourceActionGrantItem->getResourceIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
     }

@@ -42,36 +42,6 @@ class ApiTest extends AbstractApiTest
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
-    // Operation currently disabled:
-    //    public function testGetAuthorizationResourceUnauthenticated(): void
-    //    {
-    //        $response = $this->testClient->get('/authorization/resources/foo', token: null);
-    //
-    //        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-    //    }
-
-    // Operation currently disabled:
-    //    public function testGetAuthorizationResourceNotFound(): void
-    //    {
-    //        $response = $this->testClient->get('/authorization/resources/foo');
-    //
-    //        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-    //    }
-
-    // Operation currently disabled:
-    //    public function testGetAuthorizationResourceCollection(): void
-    //    {
-    //        $response = $this->testClient->get('/authorization/resources');
-    //        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-    //    }
-
-    // Operation currently disabled:
-    //    public function testGetAuthorizationResourceCollectionUnauthenticated(): void
-    //    {
-    //        $response = $this->testClient->get('/authorization/resources/foo', token: null);
-    //        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-    //    }
-
     public function testPostGroupUnauthenticated(): void
     {
         $response = $this->testClient->postJson('/authorization/groups', [
@@ -192,4 +162,6 @@ class ApiTest extends AbstractApiTest
         $groupMemberFromGet = json_decode($response->getContent(), true);
         $this->assertEquals($groupMember['identifier'], $groupMemberFromGet['identifier']);
     }
+
+    // TODO: add resource action grant tests
 }
