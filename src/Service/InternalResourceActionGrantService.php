@@ -469,7 +469,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 switch ($get) {
                     case self::GET_RESOURCE_ACTION_GRANTS:
                         $resourceActionGrant = new ResourceActionGrant();
-                        $resourceActionGrant->setIdentifier(AuthorizationUuidBinaryType::toStringUuid($row['identifier']));
+                        $resourceActionGrant->setIdentifier(
+                            $row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier'] ?
+                        'inherited_grant' : AuthorizationUuidBinaryType::toStringUuid($row['identifier']));
                         // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
                         $resourceActionGrant->setResourceClass($row['effective_resource_class']);
                         $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
@@ -516,7 +518,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    private function getQueryInternal(string $get = self::GET_RESOURCE_ACTION_GRANTS,
+    private function getQueryInternal(string $get,
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
@@ -529,11 +531,28 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $parameterValues = [];
         $parameterTypes = [];
 
+        $selectResourceActionGrants = "DISTINCT
+            $RESOURCE_ACTION_GRANT_ALIAS.identifier, 
+            $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier, 
+            $RESOURCE_ACTION_GRANT_ALIAS.action, 
+            $RESOURCE_ACTION_GRANT_ALIAS.user_identifier,
+            $RESOURCE_ACTION_GRANT_ALIAS.group_identifier, 
+            $RESOURCE_ACTION_GRANT_ALIAS.dynamic_group_identifier, 
+            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_class, 
+            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_identifier,
+            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier";
+        $selectAuthorizationResources = "DISTINCT
+            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier,
+            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_class,
+            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_identifier";
+        $selectAuthorizationResourceIdentifiers = "DISTINCT
+            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier";
+
         $select = $options[self::SELECT_OPTION] ?? null;
         $select ??= match ($get) {
-            self::GET_RESOURCE_ACTION_GRANTS => "DISTINCT $RESOURCE_ACTION_GRANT_ALIAS.identifier, $RESOURCE_ACTION_GRANT_ALIAS.action, $RESOURCE_ACTION_GRANT_ALIAS.user_identifier, $RESOURCE_ACTION_GRANT_ALIAS.group_identifier, $RESOURCE_ACTION_GRANT_ALIAS.dynamic_group_identifier, $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_class, $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_identifier",
-            self::GET_AUTHORIZATION_RESOURCES => "DISTINCT $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier, $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_class, $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_identifier",
-            self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS => "DISTINCT $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier",
+            self::GET_RESOURCE_ACTION_GRANTS => $selectResourceActionGrants,
+            self::GET_AUTHORIZATION_RESOURCES => $selectAuthorizationResources,
+            self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS => $selectAuthorizationResourceIdentifiers,
             default => throw new \InvalidArgumentException('Undefined get: '.$get),
         };
 
@@ -567,16 +586,18 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         $sql = "SELECT $select
-                FROM authorization_resource_action_grants rag
+                FROM authorization_resource_action_grants $RESOURCE_ACTION_GRANT_ALIAS
                 INNER JOIN (
                     WITH RECURSIVE cte AS (
-                        SELECT ar_gi_0.identifier, ar_gi_0.source_authorization_resource_identifier, ar_gi_0.target_authorization_resource_identifier,
-                               ar.identifier AS effective_authorization_resource_identifier,
-                               ar.resource_class AS effective_resource_class,
-                               ar.resource_identifier AS effective_resource_identifier
-                        FROM authorization_resources ar
+                        SELECT ar_gi_0.identifier,
+                               ar_gi_0.source_authorization_resource_identifier, 
+                               ar_gi_0.target_authorization_resource_identifier,
+                               $AUTHORIZATION_RESOURCE_ALIAS.identifier AS effective_authorization_resource_identifier,
+                               $AUTHORIZATION_RESOURCE_ALIAS.resource_class AS effective_resource_class,
+                               $AUTHORIZATION_RESOURCE_ALIAS.resource_identifier AS effective_resource_identifier
+                        FROM authorization_resources $AUTHORIZATION_RESOURCE_ALIAS
                         LEFT JOIN authorization_grant_inheritances ar_gi_0
-                        ON ar_gi_0.target_authorization_resource_identifier = ar.identifier
+                        ON ar_gi_0.target_authorization_resource_identifier = $AUTHORIZATION_RESOURCE_ALIAS.identifier
                         WHERE $authorizationResourceCriteria
                         UNION ALL
                         SELECT ar_gi_n.identifier, ar_gi_n.source_authorization_resource_identifier, ar_gi_n.target_authorization_resource_identifier,
@@ -584,7 +605,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                         FROM authorization_grant_inheritances ar_gi_n
                         INNER JOIN cte ON ar_gi_n.target_authorization_resource_identifier = cte.source_authorization_resource_identifier)
                     SELECT source_authorization_resource_identifier, cte.effective_authorization_resource_identifier,
-                           cte.effective_resource_class, cte.effective_resource_identifier FROM cte) AS ar_gi
+                           cte.effective_resource_class, cte.effective_resource_identifier FROM cte) AS $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS
                 ON $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.source_authorization_resource_identifier
                 OR $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier
                 $additionalJoinStatements

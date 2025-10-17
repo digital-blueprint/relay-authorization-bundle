@@ -18,9 +18,12 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
     protected const ANOTHER_USER_IDENTIFIER = 'anotherUserIdentifier';
 
     protected const TEST_RESOURCE_CLASS = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS;
+    protected const TEST_COLLECTION_RESOURCE_CLASS = TestGetAvailableResourceClassActionsEventSubscriber::TEST_COLLECTION_RESOURCE_CLASS;
     protected const TEST_RESOURCE_CLASS_2 = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2;
 
     protected const TEST_RESOURCE_IDENTIFIER = 'resourceIdentifier';
+    protected const TEST_COLLECTION_RESOURCE_IDENTIFIER = 'collectionResourceIdentifier';
+    protected const TEST_RESOURCE_IDENTIFIER_2 = 'resourceIdentifier_2';
 
     protected ?TestEntityManager $testEntityManager = null;
     protected InternalResourceActionGrantService $internalResourceActionGrantService;

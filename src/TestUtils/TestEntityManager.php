@@ -300,4 +300,26 @@ class TestEntityManager extends CoreTestEntityManager
             throw new \RuntimeException($exception->getMessage());
         }
     }
+
+    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): GrantInheritance
+    {
+        $grantInheritance = new GrantInheritance();
+        $grantInheritance->setIdentifier(Uuid::uuid7()->toString());
+        $grantInheritance->setSourceAuthorizationResource(
+            $this->getAuthorizationResourceByResourceClassAndIdentifier($sourceResourceClass, $sourceResourceIdentifier)
+        );
+        $grantInheritance->setTargetAuthorizationResource(
+            $this->getAuthorizationResourceByResourceClassAndIdentifier($targetResourceClass, $targetResourceIdentifier)
+        );
+
+        try {
+            $this->entityManager->persist($grantInheritance);
+            $this->entityManager->flush();
+        } catch (\Throwable $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+
+        return $grantInheritance;
+    }
 }
