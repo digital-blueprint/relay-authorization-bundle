@@ -10,6 +10,7 @@ use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -62,6 +63,7 @@ class TestResourceActionGrantServiceFactory
         $eventDispatcher->addSubscriber($authorizationService); // before setConfig/setCache!
         $authorizationService->setConfig($testConfig ?? self::getTestConfig());
         $authorizationService->setCache(new ArrayAdapter());
+        $authorizationService->setLogger(new NullLogger());
 
         return $authorizationService;
     }

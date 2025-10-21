@@ -10,6 +10,9 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class TestGetAvailableResourceClassActionsEventSubscriber implements EventSubscriberInterface
 {
     public const TEST_RESOURCE_CLASS = 'resourceClass';
+
+    public const TEST_COLLECTION_RESOURCE_CLASS = 'resourceClassCollection';
+
     public const TEST_RESOURCE_CLASS_2 = 'resourceClass_2';
     public const TEST_RESOURCE_CLASS_3 = 'resourceClass_3';
 
@@ -88,6 +91,7 @@ class TestGetAvailableResourceClassActionsEventSubscriber implements EventSubscr
     {
         switch ($event->getResourceClass()) {
             case self::TEST_RESOURCE_CLASS:
+            case self::TEST_COLLECTION_RESOURCE_CLASS:
                 $event->setItemActions(self::TEST_RESOURCE_ITEM_ACTIONS);
                 $event->setCollectionActions(self::TEST_RESOURCE_COLLECTION_ACTIONS);
                 break;

@@ -17,10 +17,8 @@ use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
-/**
- * @internal
- */
 #[ApiResource(
     shortName: 'AuthorizationResourceActionGrant',
     operations: [
@@ -181,10 +179,10 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $dynamicGroupIdentifier = null;
 
-    #[Groups(['AuthorizationResourceActionGrant:input'])]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceClass = null;
 
-    #[Groups(['AuthorizationResourceActionGrant:input'])]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceIdentifier = null;
 
     public function getIdentifier(): ?string
@@ -197,6 +195,10 @@ class ResourceActionGrant
         $this->identifier = $identifier;
     }
 
+    /**
+     * NOTE: The authorization resource is not set (hydrated) by default, so its presence is not guaranteed.
+     * Try to use getResourceClass() and getResourceIdentifier() to identify the resource instead.
+     */
     public function getAuthorizationResource(): ?AuthorizationResource
     {
         return $this->authorizationResource;
@@ -265,5 +267,19 @@ class ResourceActionGrant
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
+    }
+
+    #[Ignore]
+    public function __toString(): string
+    {
+        return sprintf(
+            'ResourceActionGrant{class=%s, identifier=%s, action=%s, user=%s, group=%s, dynamicGroup=%s}',
+            $this->getResourceClass(),
+            $this->getResourceIdentifier(),
+            $this->getAction(),
+            $this->getUserIdentifier(),
+            $this->getGroup() ? $this->getGroup()->getName() : 'null',
+            $this->getDynamicGroupIdentifier() ?? 'null'
+        );
     }
 }

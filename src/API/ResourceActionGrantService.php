@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\API;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -74,19 +75,23 @@ class ResourceActionGrantService
     }
 
     /**
-     * Parameters with null values will not be filtered on.
-     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
-     * with an OR conjunction.
-     *
-     * @param ?string[] $actions
+     * @throws ApiError
+     */
+    public function removeResourceActionGrant(string $identifier): void
+    {
+        $this->authorizationService->removeResourceActionGrant($identifier);
+    }
+
+    /**
+     * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
-    public function removeResourceActionGrants(string $resourceClass, ?string $resourceIdentifier, ?array $actions = null,
-        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
+    public function getResourceActionGrantsForResourceClassAndIdentifier(
+        string $resourceClass, ?string $resourceIdentifier): array
     {
-        $this->authorizationService->removeResourceActionGrants($resourceClass, $resourceIdentifier, $actions,
-            $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
+        return $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $resourceClass, $resourceIdentifier);
     }
 
     /**

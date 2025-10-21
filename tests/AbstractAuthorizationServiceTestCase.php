@@ -55,7 +55,9 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
     protected function assertIsPermutationOf(array $array1, array $array2): void
     {
         $this->assertTrue(count($array1) === count($array2)
-            && count($array1) === count(array_intersect($array1, $array2)), 'arrays are no permutations of each other');
+            && count($array1) === count(array_intersect($array1, $array2)),
+            'arrays are no permutations of each other: '.
+            (print_r(array_diff($array1, $array2), true).' / '.print_r(array_diff($array2, $array1), true)));
     }
 
     protected function getTestConfig(): array
