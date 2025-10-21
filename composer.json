@@ -9,7 +9,6 @@
         "api-platform/core": "^3.4 | ^4.1",
         "beberlei/doctrineextensions": "^1.5",
         "dbp/relay-core-bundle": "^0.1.219",
-        "doctrine/annotations": "^2.0",
         "doctrine/collections": "^2.2",
         "doctrine/common": "^3.4.4",
         "doctrine/dbal": "^3.8 || ^4.0",
