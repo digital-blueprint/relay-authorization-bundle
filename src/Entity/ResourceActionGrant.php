@@ -17,7 +17,6 @@ use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ApiResource(
     shortName: 'AuthorizationResourceActionGrant',
@@ -269,7 +268,6 @@ class ResourceActionGrant
         $this->resourceIdentifier = $resourceIdentifier;
     }
 
-    #[Ignore]
     public function __toString(): string
     {
         return sprintf(
