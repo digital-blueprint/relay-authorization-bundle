@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestResourceActionGrantAddedEventSubscriber;
@@ -88,5 +90,34 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
     {
         $this->assertTrue(count($array1) === count($array2)
             && count($array1) === count(array_intersect($array1, $array2)), 'arrays are no permutations of each other');
+    }
+
+    protected function assertContainsResourceActionGrant(array $rags, ResourceActionGrant $ragExpected): void
+    {
+        $this->assertCount(1, $this->selectWhere($rags,
+            function (ResourceActionGrant $rag) use ($ragExpected) {
+                return $rag->getIdentifier() === $ragExpected->getIdentifier()
+                    && $rag->getResourceClass() === $ragExpected->getResourceClass()
+                    && $rag->getResourceIdentifier() === $ragExpected->getResourceIdentifier()
+                    && $rag->getAction() === $ragExpected->getAction()
+                    && $rag->getUserIdentifier() === $ragExpected->getUserIdentifier()
+                    && $rag->getGroup() === $ragExpected->getGroup()
+                    && $rag->getDynamicGroupIdentifier() === $ragExpected->getDynamicGroupIdentifier();
+            }), (string) $ragExpected);
+    }
+
+    protected function assertContainsInheritedResourceActionGrant(array $rags,
+        ResourceActionGrant $sourceRag, AuthorizationResource $effectiveResource): void
+    {
+        $this->assertCount(1, $this->selectWhere($rags,
+            function (ResourceActionGrant $rag) use ($sourceRag, $effectiveResource) {
+                return $rag->getIdentifier() === $sourceRag->getIdentifier().'_inherited'
+                    && $rag->getResourceClass() === $effectiveResource->getResourceClass()
+                    && $rag->getResourceIdentifier() === $effectiveResource->getResourceIdentifier()
+                    && $rag->getAction() === $sourceRag->getAction()
+                    && $rag->getUserIdentifier() === $sourceRag->getUserIdentifier()
+                    && $rag->getGroup() === $sourceRag->getGroup()
+                    && $rag->getDynamicGroupIdentifier() === $sourceRag->getDynamicGroupIdentifier();
+            }), (string) $sourceRag);
     }
 }

@@ -19,9 +19,6 @@ use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\PersistentCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
 
-/**
- * @internal
- */
 #[ApiResource(
     shortName: 'AuthorizationGroup',
     operations: [

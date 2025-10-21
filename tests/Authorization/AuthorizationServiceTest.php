@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Authorization;
 
+use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
-use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
+use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -88,7 +91,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testIsCurrentUserAuthorizedToReadResource(): void
     {
-        $resource = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
+        $resource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadResource($resource));
 
         $this->authorizationService->clearRequestCache();
@@ -221,7 +224,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // ----------------------------------------------------------------
         // current user:
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION, 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
@@ -229,7 +232,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
 
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertIsPermutationOf(['read', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
@@ -237,7 +240,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER.'_3');
 
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertIsPermutationOf(['write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
@@ -246,7 +249,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER.'_4', $userAttributes);
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertIsPermutationOf(['write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
@@ -255,14 +258,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER.'_5', $userAttributes);
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertIsPermutationOf(['read', 'delete', 'write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 6:
         $this->login(self::CURRENT_USER_IDENTIFIER.'_6');
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertIsPermutationOf(['delete', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
@@ -271,15 +274,165 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER.'_7', $userAttributes);
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertIsPermutationOf(['read', 'delete', 'write', 'get_title'], $resourceItemActions);
 
         // ----------------------------------------------------------------
         // user 8:
         $this->login(self::CURRENT_USER_IDENTIFIER.'_8');
         $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertEquals(['get_title'], $resourceItemActions);
+    }
+
+    public function testGetResourceItemActionsForCurrentUserWithInheritance(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource();
+        $collectionResource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+        $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
+
+        $this->testEntityManager->addResourceActionGrant($resource,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource,
+            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, group: $group1);
+        $this->testEntityManager->addResourceActionGrant($resource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'everybody');
+
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource->getResourceClass(), $resource->getResourceIdentifier());
+
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::DELETE_ACTION, dynamicGroupIdentifier: 'employees');
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            AuthorizationService::MANAGE_ACTION, 'admin');
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::WRITE_ACTION, group: $group2);
+
+        // add some noise:
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, 'somebody_else');
+
+        // ----------------------------------------------------------------
+        // current user:
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+            AuthorizationService::MANAGE_ACTION,
+        ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION,
+        ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+            TestGetAvailableResourceClassActionsEventSubscriber::WRITE_ACTION,
+        ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        $this->login('admin');
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+            AuthorizationService::MANAGE_ACTION,
+        ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login('some_employee', $userAttributes);
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+            TestGetAvailableResourceClassActionsEventSubscriber::DELETE_ACTION,
+        ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        // user 5:
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login('some_student', $userAttributes);
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+        ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        $this->login('somebody_else');
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+        ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        $this->login('everybody_user');
+        $resourceItemActions = $this->authorizationService->getResourceItemActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION,
+        ], $resourceItemActions);
+    }
+
+    public function testGetResourceCollectionActionsForCurrentUserWithInheritance(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, null);
+
+        $collectionResource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertEmpty($resourceCollectionActions);
+
+        $this->testEntityManager->addResourceActionGrant($resource,
+            ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertEquals([ResourceActionGrantService::MANAGE_ACTION], $resourceCollectionActions);
+
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertEmpty($resourceCollectionActions);
+
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource->getResourceClass(), $resource->getResourceIdentifier());
+
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertEmpty($resourceCollectionActions);
+
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER.'_2');
+
+        $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertEquals([TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION], $resourceCollectionActions);
     }
 
     public function testGetResourceItemActionsPageForCurrentUser(): void
@@ -301,8 +454,8 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // managed by user 2
         // readable by user
         // writable by group 'Testgroup'
-        $resource_2 = $this->testEntityManager->addAuthorizationResource(TestEntityManager::DEFAULT_RESOURCE_CLASS,
-            TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_2');
+        $resource_2 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_2');
         $this->testEntityManager->addResourceActionGrant($resource_2,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER.'_2');
         $this->testEntityManager->addResourceActionGrant($resource_2, 'read', self::CURRENT_USER_IDENTIFIER);
@@ -310,16 +463,16 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         // managed by user 3
         // writable by dynamic group 'employees'
-        $resource_3 = $this->testEntityManager->addAuthorizationResource(TestEntityManager::DEFAULT_RESOURCE_CLASS,
-            TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_3');
+        $resource_3 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_3');
         $this->testEntityManager->addResourceActionGrant($resource_3,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER.'_3');
         $this->testEntityManager->addResourceActionGrant($resource_3, 'write', null, null, 'employees');
 
         // managed by group 'Testgroup'
         // readable by user 4
-        $resource_4 = $this->testEntityManager->addAuthorizationResource(TestEntityManager::DEFAULT_RESOURCE_CLASS,
-            TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_4');
+        $resource_4 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_4');
         $this->testEntityManager->addResourceActionGrant($resource_4,
             AuthorizationService::MANAGE_ACTION, null, $testGroup);
         $this->testEntityManager->addResourceActionGrant($resource_4,
@@ -327,16 +480,16 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         // managed by dynamic group 'employees'
         // readable by dynamic group 'students'
-        $resource_5 = $this->testEntityManager->addAuthorizationResource(TestEntityManager::DEFAULT_RESOURCE_CLASS,
-            TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_5');
+        $resource_5 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_5');
         $this->testEntityManager->addResourceActionGrant($resource_5,
             AuthorizationService::MANAGE_ACTION, null, null, 'employees');
         $this->testEntityManager->addResourceActionGrant($resource_5,
             'read', null, null, 'students');
 
         // add some noise:
-        $resource_foo = $this->testEntityManager->addAuthorizationResource(TestEntityManager::DEFAULT_RESOURCE_CLASS,
-            TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_foo');
+        $resource_foo = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_foo');
         $this->testEntityManager->addResourceActionGrant($resource_foo,
             AuthorizationService::MANAGE_ACTION, 'foo');
         $this->testEntityManager->addResourceActionGrant($resource_foo,
@@ -346,7 +499,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // user:
         // manage action
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) use ($resource) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
@@ -355,7 +508,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         // any action
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) use ($resource) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
@@ -368,7 +521,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         // unavailable action
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, 'foo');
+            self::TEST_RESOURCE_CLASS, 'foo');
         $this->assertCount(0, $usersResourceActions);
 
         // ----------------------------------------------------------------
@@ -376,24 +529,24 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // manage action
         $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_2';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
         }, true));
 
         // any action
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_2';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER;
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
         }, true));
 
         // ----------------------------------------------------------------
@@ -401,62 +554,62 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // manage action
         $this->login(self::CURRENT_USER_IDENTIFIER.'_3');
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_3';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_4';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
         }, true));
 
         // any action
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertCount(4, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_3';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_4';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER;
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['write']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_2';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
         }, true));
 
         // test pagination (page size 3):
         $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 0, 3);
+            self::TEST_RESOURCE_CLASS, null, 0, 3);
         $this->assertCount(3, $userResourceActionPage1);
         $userResourceActionPage2 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 3, 3);
+            self::TEST_RESOURCE_CLASS, null, 3, 3);
         $this->assertCount(1, $userResourceActionPage2);
 
         $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_3';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_4';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER;
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['write']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_2';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
         }, true));
 
         // ----------------------------------------------------------------
@@ -466,61 +619,61 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER.'_4', $userAttributes);
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_5';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
         }, true));
 
         // any action
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertCount(4, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_5';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_4';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER;
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['write']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_3';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
         }, true));
 
         // test pagination (page size 2):
         $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 0, 2);
+            self::TEST_RESOURCE_CLASS, null, 0, 2);
         $this->assertCount(2, $userResourceActionPage1);
         $userResourceActionPage2 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 2, 2);
+            self::TEST_RESOURCE_CLASS, null, 2, 2);
         $this->assertCount(2, $userResourceActionPage2);
         $userResourceActionPage3 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 4, 2);
+            self::TEST_RESOURCE_CLASS, null, 4, 2);
         $this->assertCount(0, $userResourceActionPage3);
 
         $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === [AuthorizationService::MANAGE_ACTION]
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_5';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_4';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER;
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
         }, true));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['write']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_3';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
         }, true));
 
         // ----------------------------------------------------------------
@@ -530,26 +683,26 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userAttributes['IS_STUDENT'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER.'_5', $userAttributes);
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
         $this->assertCount(0, $usersResourceActions);
 
         // read action
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, 'read');
+            self::TEST_RESOURCE_CLASS, 'read');
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
             return $resourceActions === ['read']
-                && $resourceIdentifier === TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER.'_5';
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
         }, true));
 
         // test pagination (page size 1):
         $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 0, 1);
+            self::TEST_RESOURCE_CLASS, null, 0, 1);
         $this->assertCount(1, $userResourceActionPage1);
 
         // test pagination (page size 0):
         $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, 0, 0);
+            self::TEST_RESOURCE_CLASS, null, 0, 0);
         $this->assertCount(0, $userResourceActionPage1);
 
         // ----------------------------------------------------------------
@@ -557,7 +710,335 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // any action
         $this->login(self::CURRENT_USER_IDENTIFIER.'_6');
         $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(0, $usersResourceActions);
+    }
+
+    public function testGetResourceItemActionsPageForCurrentUserWithInheritance(): void
+    {
+        $testGroup = $this->testEntityManager->addGroup();
+        $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+
+        $collectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS,
+            self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, 'controller_user');
+
+        // managed by user
+        // readable by user 2
+        // readable by user 3
+        // readable by user 4
+        $resource = $this->testEntityManager->addAuthorizationResource();
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource->getResourceClass(), $resource->getResourceIdentifier());
+        $this->testEntityManager->addResourceActionGrant($resource,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource, 'read', self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addResourceActionGrant($resource, 'read', self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addResourceActionGrant($resource, 'read', self::CURRENT_USER_IDENTIFIER.'_4');
+
+        // managed by user 2
+        // readable by user
+        // writable by group 'Testgroup'
+        $resource_2 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_2');
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource_2->getResourceClass(), $resource_2->getResourceIdentifier());
+        $this->testEntityManager->addResourceActionGrant($resource_2,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addResourceActionGrant($resource_2, 'read', self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource_2, 'write', null, $testGroup);
+
+        // managed by user 3
+        // writable by dynamic group 'employees'
+        $resource_3 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_3');
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource_3->getResourceClass(), $resource_3->getResourceIdentifier());
+        $this->testEntityManager->addResourceActionGrant($resource_3,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addResourceActionGrant($resource_3, 'write', null, null, 'employees');
+
+        // managed by group 'Testgroup'
+        // readable by user 4
+        $resource_4 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_4');
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource_4->getResourceClass(), $resource_4->getResourceIdentifier());
+        $this->testEntityManager->addResourceActionGrant($resource_4,
+            AuthorizationService::MANAGE_ACTION, null, $testGroup);
+        $this->testEntityManager->addResourceActionGrant($resource_4,
+            'read', self::CURRENT_USER_IDENTIFIER.'_4');
+
+        // managed by dynamic group 'employees'
+        // readable by dynamic group 'students'
+        $resource_5 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_5');
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource_5->getResourceClass(), $resource_5->getResourceIdentifier());
+        $this->testEntityManager->addResourceActionGrant($resource_5,
+            AuthorizationService::MANAGE_ACTION, null, null, 'employees');
+        $this->testEntityManager->addResourceActionGrant($resource_5,
+            'read', null, null, 'students');
+
+        // add some noise:
+        $resource_foo = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_foo');
+        $this->testEntityManager->addResourceActionGrant($resource_foo,
+            AuthorizationService::MANAGE_ACTION, 'foo');
+        $this->testEntityManager->addResourceActionGrant($resource_foo,
+            'read', null, null, 'bar');
+
+        // ----------------------------------------------------------------
+        // user:
+        // manage action
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+        $this->assertCount(1, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) use ($resource) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === $resource->getResourceIdentifier();
+        }, true));
+
+        // any action
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(2, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) use ($resource) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === $resource->getResourceIdentifier();
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) use ($resource_2) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === $resource_2->getResourceIdentifier();
+        }, true));
+
+        // unavailable action
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, 'foo');
+        $this->assertCount(0, $usersResourceActions);
+
+        // ----------------------------------------------------------------
+        // user 2:
+        // manage action
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+        $this->assertCount(1, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
+        }, true));
+
+        // any action
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(2, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
+        }, true));
+
+        // ----------------------------------------------------------------
+        // user 3:
+        // manage action
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_3');
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+        $this->assertCount(2, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
+        }, true));
+
+        // any action
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(4, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['write']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
+        }, true));
+
+        // test pagination (page size 3):
+        $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, null, 0, 3);
+        $this->assertCount(3, $userResourceActionPage1);
+        $userResourceActionPage2 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, null, 3, 3);
+        $this->assertCount(1, $userResourceActionPage2);
+
+        $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['write']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
+        }, true));
+
+        // ----------------------------------------------------------------
+        // user 4:
+        // manage action
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_4', $userAttributes);
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+        $this->assertCount(1, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
+        }, true));
+
+        // any action
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(4, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['write']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
+        }, true));
+
+        // test pagination (page size 2):
+        $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, null, 0, 2);
+        $this->assertCount(2, $userResourceActionPage1);
+        $userResourceActionPage2 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, null, 2, 2);
+        $this->assertCount(2, $userResourceActionPage2);
+        $userResourceActionPage3 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, null, 4, 2);
+        $this->assertCount(0, $userResourceActionPage3);
+
+        $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [AuthorizationService::MANAGE_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['write']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
+        }, true));
+
+        // ----------------------------------------------------------------
+        // user 5 (student):
+        // manage action
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_5', $userAttributes);
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
+        $this->assertCount(0, $usersResourceActions);
+
+        // read action
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, 'read');
+        $this->assertCount(1, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === ['read']
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
+        }, true));
+
+        // test pagination (page size 1):
+        $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, null, 0, 1);
+        $this->assertCount(1, $userResourceActionPage1);
+
+        // test pagination (page size 0):
+        $userResourceActionPage1 = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, null, 0, 0);
+        $this->assertCount(0, $userResourceActionPage1);
+
+        // ----------------------------------------------------------------
+        // user 6:
+        // any action
+        $this->login(self::CURRENT_USER_IDENTIFIER.'_6');
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(0, $usersResourceActions);
+
+        $this->login('controller_user');
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(5, $usersResourceActions);
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER;
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_2';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_3';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_4';
+        }, true));
+        $this->assertCount(1, $this->selectWhere($usersResourceActions, function ($resourceActions, $resourceIdentifier) {
+            return $resourceActions === [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION]
+                && $resourceIdentifier === self::TEST_RESOURCE_IDENTIFIER.'_5';
+        }, true));
+
+        $usersResourceActions = $this->authorizationService->getResourceItemActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
         $this->assertCount(0, $usersResourceActions);
     }
 
@@ -573,12 +1054,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_5');
 
         $resourceCollection1 = $this->testEntityManager->addAuthorizationResource(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null);
+            self::TEST_RESOURCE_CLASS, null);
         $resourceCollection2 = $this->testEntityManager->addAuthorizationResource(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS.'_2', null);
+            self::TEST_RESOURCE_CLASS.'_2', null);
 
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertEmpty($resourceCollectionActions);
 
         $this->testEntityManager->addResourceActionGrant($resourceCollection1,
@@ -603,17 +1084,17 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // current user:
         // manage action:
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceCollectionActions);
 
         // any action:
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceCollectionActions);
 
         // any action:
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS.'_2');
+            self::TEST_RESOURCE_CLASS.'_2');
         $this->assertEquals([AuthorizationService::MANAGE_ACTION], $resourceCollectionActions);
 
         // ----------------------------------------------------------------
@@ -623,7 +1104,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         // any action:
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertEquals(['read'], $resourceCollectionActions);
 
         // ----------------------------------------------------------------
@@ -632,7 +1113,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER.'_3');
 
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertCount(2, $resourceCollectionActions);
         $this->assertContains('read', $resourceCollectionActions);
         $this->assertContains('write', $resourceCollectionActions);
@@ -645,7 +1126,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER.'_4', $userAttributes);
 
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertEquals(['delete'], $resourceCollectionActions);
 
         // ----------------------------------------------------------------
@@ -657,18 +1138,54 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // delete action: user 5 has one personal grant and one grant via dynamic group 'employees'
         // -> expecting only 1 grant, since only unique resource actions should be returned
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertContains('read', $resourceCollectionActions);
         $this->assertContains('write', $resourceCollectionActions);
         $this->assertContains('delete', $resourceCollectionActions);
 
         // any action:
         $resourceCollectionActions = $this->authorizationService->getResourceCollectionActionsForCurrentUser(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS);
+            self::TEST_RESOURCE_CLASS);
         $this->assertCount(3, $resourceCollectionActions);
         $this->assertContains('read', $resourceCollectionActions);
         $this->assertContains('write', $resourceCollectionActions);
         $this->assertContains('delete', $resourceCollectionActions);
+    }
+
+    public function testGetResourceActionGrantsByResourceClassAndIdentifier(): void
+    {
+        $group = $this->testEntityManager->addGroup();
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, null);
+
+        $rag_1_manage = $this->testEntityManager->addResourceActionGrant($resource,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $rag_1_read = $this->testEntityManager->addResourceActionGrant($resource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, group: $group);
+        $rag_coll_create = $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION, dynamicGroupIdentifier: 'everybody');
+
+        $rags = $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+
+        $rags = $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, null);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_create);
+        $this->assertCount(1, $this->selectWhere($rags,
+            function (ResourceActionGrant $rag): bool {
+                return $rag->getAction() === AuthorizationService::MANAGE_ACTION
+                    && $rag->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $rag->getResourceIdentifier() === null
+                    && $rag->getUserIdentifier() === null
+                    && $rag->getGroup() === null
+                    && $rag->getDynamicGroupIdentifier() === AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS;
+            }));
     }
 
     public function testGetGroupCollectionActionGrants(): void
@@ -729,11 +1246,16 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
 
-        $resource1 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
-        $resource2 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier2');
-        $resource3 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier');
-        $resource4 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier3');
+        $resource1 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resource2 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+        $resource3 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER);
+        $resource4 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_3');
         $resourceCollection = $this->testEntityManager->addAuthorizationResource('resourceClass_3', null);
+        $collectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 
         $this->testEntityManager->addResourceActionGrant($resource1,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -753,6 +1275,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             'create', self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resourceCollection,
             'create', null, null, 'students');
+        $this->testEntityManager->addResourceActionGrant($collectionResource, 'read', self::ANOTHER_USER_IDENTIFIER.'_5');
 
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(3, $authorizationResources);
@@ -760,11 +1283,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContainsResource($resource3, $authorizationResources);
         $this->assertContainsResource($resourceCollection, $authorizationResources);
 
-        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass');
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS);
         $this->assertCount(1, $authorizationResources);
         $this->assertContainsResource($resource1, $authorizationResources);
 
-        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead('resourceClass_2');
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS_2);
         $this->assertCount(1, $authorizationResources);
         $this->assertContainsResource($resource3, $authorizationResources);
 
@@ -804,8 +1327,22 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContainsResource($resource3, $authorizationResources);
         $this->assertContainsResource($resourceCollection, $authorizationResources);
 
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_5');
+        // source and target resource of grant inheritance:
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(2, $authorizationResources);
+        $this->assertContainsResource($resource1, $authorizationResources);
+        $this->assertContainsResource($collectionResource, $authorizationResources);
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS);
+        $this->assertCount(1, $authorizationResources);
+        $this->assertContainsResource($resource1, $authorizationResources);
+
         // ----------------------------------------------------------------
         // test pagination:
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_4', $userAttributes);
         $authorizationResourcePage1 = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead(
             null, 0, 2);
         $this->assertCount(2, $authorizationResourcePage1);
@@ -833,11 +1370,23 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
 
-        $resource1 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
-        $resource2 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier2');
-        $resource3 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier');
-        $resource4 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier3');
-        $resourceCollection = $this->testEntityManager->addAuthorizationResource('resourceClass_2', null);
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+        $resource3 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER);
+        $resource4 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_3');
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS_2, null);
+
+        $collectionResource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_COLLECTION_RESOURCE_CLASS, 'collectionResourceIdentifier');
+
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 
         $r1ManageCU = $this->testEntityManager->addResourceActionGrant($resource1,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -872,12 +1421,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContainsResource($rcCreateCU, $resourceActionsGrants);
         $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
 
-        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead('resourceClass');
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS);
         $this->assertCount(2, $resourceActionsGrants);
         $this->assertContainsResource($r1ManageCU, $resourceActionsGrants);
         $this->assertContainsResource($r1ReadAU3, $resourceActionsGrants);
 
-        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead('resourceClass_2');
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS_2);
         $this->assertCount(4, $resourceActionsGrants);
         $this->assertContainsResource($r3DeleteG1, $resourceActionsGrants);
         $this->assertContainsResource($rcManageG1, $resourceActionsGrants);
@@ -885,25 +1434,25 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
 
         $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
-            'resourceClass', 'resourceIdentifier');
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(2, $resourceActionsGrants);
         $this->assertContainsResource($r1ManageCU, $resourceActionsGrants);
         $this->assertContainsResource($r1ReadAU3, $resourceActionsGrants);
 
         $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
-            'resourceClass_2', 'resourceIdentifier');
+            self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(1, $resourceActionsGrants);
         $this->assertContainsResource($r3DeleteG1, $resourceActionsGrants);
 
         $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
-            'resourceClass_2', AuthorizationService::IS_NULL);
+            self::TEST_RESOURCE_CLASS_2, AuthorizationService::IS_NULL);
         $this->assertCount(3, $resourceActionsGrants);
         $this->assertContainsResource($rcManageG1, $resourceActionsGrants);
         $this->assertContainsResource($rcCreateCU, $resourceActionsGrants);
         $this->assertContainsResource($rcCreateStudents, $resourceActionsGrants);
 
         $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
-            'resourceClass', 'resourceIdentifier2');
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
         $this->assertCount(0, $resourceActionsGrants);
 
         $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
@@ -959,6 +1508,190 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(0, $resourceActionsGrants);
     }
 
+    public function testGetResourceActionsGrantsUserIsAuthorizedToReadWithGrantInheritance(): void
+    {
+        $group1 = $this->testEntityManager->addGroup();
+        $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
+
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, null);
+        $collectionResource1 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+        $collectionResource2 = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER.'_2');
+        $collectionResourceCollection = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_COLLECTION_RESOURCE_CLASS, null);
+        $superCollectionResource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER.'_super');
+
+        // grandparent -> parent
+        $this->testEntityManager->addGrantInheritance(
+            $superCollectionResource->getResourceClass(), $superCollectionResource->getResourceIdentifier(),
+            $collectionResource1->getResourceClass(), $collectionResource1->getResourceIdentifier());
+
+        // parent -> child (resource item)
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource1->getResourceClass(), $collectionResource1->getResourceIdentifier(),
+            $resource1->getResourceClass(), $resource1->getResourceIdentifier());
+
+        // parent -> child (resource item)
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource1->getResourceClass(), $collectionResource1->getResourceIdentifier(),
+            $resource2->getResourceClass(), $resource2->getResourceIdentifier());
+
+        // parent -> child
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource2->getResourceClass(), $collectionResource2->getResourceIdentifier(),
+            $resource1->getResourceClass(), $resource1->getResourceIdentifier());
+
+        // parent -> child (resource collection)
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResourceCollection->getResourceClass(), $collectionResourceCollection->getResourceIdentifier(),
+            $resourceCollection->getResourceClass(), $resourceCollection->getResourceIdentifier());
+
+        $rag_1_manage = $this->testEntityManager->addResourceActionGrant($resource1,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $rag_1_read = $this->testEntityManager->addResourceActionGrant($resource1,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'employees');
+        $rag_2_manage = $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, dynamicGroupIdentifier: 'students');
+        $rag_coll_manage = $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            AuthorizationService::MANAGE_ACTION, null, $group1);
+
+        $rag_super_coll_read = $this->testEntityManager->addResourceActionGrant($superCollectionResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, 'big_brother');
+        $rag_coll_1_manage = $this->testEntityManager->addResourceActionGrant($collectionResource1,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER.'_2');
+        $rag_coll_2_read = $this->testEntityManager->addResourceActionGrant($collectionResource2,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'students');
+        $rag_coll_coll_create = $this->testEntityManager->addResourceActionGrant($collectionResourceCollection,
+            TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION, group: $group1);
+
+        $this->login(self::CURRENT_USER_IDENTIFIER);
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(5, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
+
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS);
+        $this->assertCount(5, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
+
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(5, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
+
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_COLLECTION_RESOURCE_CLASS);
+        $this->assertCount(0, $rags);
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(3, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_coll_create);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_coll_create, $resourceCollection);
+
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_coll_create, $resourceCollection);
+
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_COLLECTION_RESOURCE_CLASS);
+        $this->assertCount(1, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_coll_create);
+
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            self::TEST_RESOURCE_CLASS, InternalResourceActionGrantService::IS_NULL);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_coll_create, $resourceCollection);
+
+        $this->login('big_brother');
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(4, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_super_coll_read);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $collectionResource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource2);
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(10, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_1_manage);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource2);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsResourceActionGrant($rags, $rag_2_manage);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource2);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $collectionResource1);
+
+        // test pagination:
+        $ragPage1 = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            firstResultIndex: 0, maxNumResults: 6);
+        $this->assertCount(6, $ragPage1);
+        $ragPage2 = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            firstResultIndex: 6, maxNumResults: 6);
+        $this->assertCount(4, $ragPage2);
+        $rags = array_merge($ragPage1, $ragPage2);
+        $this->assertCount(10, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_1_manage);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource2);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsResourceActionGrant($rags, $rag_2_manage);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource2);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $collectionResource1);
+
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(5, $rags);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login('some_student', $userAttributes);
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(5, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_2_read);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource2);
+        $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource2);
+        $this->assertContainsResourceActionGrant($rags, $rag_2_manage);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login('some_employee', $userAttributes);
+        $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
+        $this->assertCount(1, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+    }
+
     public function testGetResourceClassesCurrentUserIsAuthorizedToRead(): void
     {
         $group1 = $this->testEntityManager->addGroup();
@@ -968,10 +1701,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
 
-        $resource1 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier');
-        $resource2 = $this->testEntityManager->addAuthorizationResource('resourceClass', 'resourceIdentifier2');
-        $resource3 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier');
-        $resource4 = $this->testEntityManager->addAuthorizationResource('resourceClass_2', 'resourceIdentifier3');
+        $resource1 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resource2 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+        $resource3 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER);
+        $resource4 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER.'_3');
         $resourceCollection = $this->testEntityManager->addAuthorizationResource('resourceClass_3', null);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
@@ -995,30 +1728,30 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertCount(3, $resourceClasses);
-        $this->assertContains('resourceClass', $resourceClasses);
-        $this->assertContains('resourceClass_2', $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS_2, $resourceClasses);
         $this->assertContains('resourceClass_3', $resourceClasses);
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertCount(2, $resourceClasses);
-        $this->assertContains('resourceClass', $resourceClasses);
-        $this->assertContains('resourceClass_2', $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS_2, $resourceClasses);
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_EMPLOYEE'] = true;
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertCount(2, $resourceClasses);
-        $this->assertContains('resourceClass', $resourceClasses);
-        $this->assertContains('resourceClass_2', $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS_2, $resourceClasses);
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_STUDENT'] = true;
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_3', $userAttributes);
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertCount(2, $resourceClasses);
-        $this->assertContains('resourceClass', $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
         $this->assertContains('resourceClass_3', $resourceClasses);
 
         $userAttributes = $this->getDefaultUserAttributes();
@@ -1027,9 +1760,90 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_4', $userAttributes);
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertCount(3, $resourceClasses);
-        $this->assertContains('resourceClass', $resourceClasses);
-        $this->assertContains('resourceClass_2', $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS_2, $resourceClasses);
         $this->assertContains('resourceClass_3', $resourceClasses);
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
+        $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(0, $resourceClasses);
+    }
+
+    public function testGetResourceClassesCurrentUserIsAuthorizedToReadWithGrantInheritance(): void
+    {
+        $group1 = $this->testEntityManager->addGroup();
+        $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
+
+        $resource1 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resource2 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, null);
+        $collectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+        $collectionResource2 = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER.'_2');
+        $superCollectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER.'_super');
+
+        $this->testEntityManager->addGrantInheritance(
+            $superCollectionResource->getResourceClass(), $superCollectionResource->getResourceIdentifier(),
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier());
+
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource1->getResourceClass(), $resource1->getResourceIdentifier());
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+            $resource2->getResourceClass(), $resource2->getResourceIdentifier());
+
+        $this->testEntityManager->addGrantInheritance(
+            $collectionResource2->getResourceClass(), $collectionResource2->getResourceIdentifier(),
+            $resource1->getResourceClass(), $resource1->getResourceIdentifier());
+
+        $this->testEntityManager->addResourceActionGrant($resource1,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource1,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'employees');
+        $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            AuthorizationService::MANAGE_ACTION, null, $group1);
+
+        $this->testEntityManager->addResourceActionGrant($superCollectionResource,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, 'big_brother');
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addResourceActionGrant($collectionResource2,
+            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'students');
+
+        $this->login(self::CURRENT_USER_IDENTIFIER);
+        $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(1, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(1, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
+        $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(2, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+        $this->assertContains(self::TEST_COLLECTION_RESOURCE_CLASS, $resourceClasses);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_3', $userAttributes);
+        $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(2, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+        $this->assertContains(self::TEST_COLLECTION_RESOURCE_CLASS, $resourceClasses);
+
+        $userAttributes = $this->getDefaultUserAttributes();
+        $userAttributes['IS_STUDENT'] = true;
+        $userAttributes['IS_EMPLOYEE'] = true;
+        $this->login(self::ANOTHER_USER_IDENTIFIER.'_4', $userAttributes);
+        $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(2, $resourceClasses);
+        $this->assertContains(self::TEST_RESOURCE_CLASS, $resourceClasses);
+        $this->assertContains(self::TEST_COLLECTION_RESOURCE_CLASS, $resourceClasses);
 
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();

@@ -5,7 +5,9 @@
 - Do not expose `AuthorizationResource` anymore via REST API (always identify by resource class and identifier)
 - Do not explicitly register resources anymore. Create `AuthorizationResource` implicitly when adding a resource action grant
 for a resource that does not yet exist.
-- Allow adding and removing grant inheritance between resources
+- Allow adding and removing grant inheritance between resources.
+  If a resource A inherits from resource B,
+  all grants for resource B are also valid for resource A.
 
 ## v0.5.4
 

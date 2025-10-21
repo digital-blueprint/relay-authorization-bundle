@@ -470,8 +470,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     case self::GET_RESOURCE_ACTION_GRANTS:
                         $resourceActionGrant = new ResourceActionGrant();
                         $resourceActionGrant->setIdentifier(
-                            $row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier'] ?
-                        'inherited_grant' : AuthorizationUuidBinaryType::toStringUuid($row['identifier']));
+                            AuthorizationUuidBinaryType::toStringUuid($row['identifier']).
+                            ($row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier'] ? '_inherited' : ''));
                         // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
                         $resourceActionGrant->setResourceClass($row['effective_resource_class']);
                         $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
