@@ -95,7 +95,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
                                 'required' => ['action'],
                             ],
                             'example' => [
-                                'authorizationResource' => '/authorization/resources/{identifier}',
+                                'resourceClass' => 'VendorBundleNameResourceName',
+                                'resourceIdentifier' => '01963da9-548b-7ca1-88e1-032ef6c1d992',
                                 'action' => 'read',
                                 'userIdentifier' => '811EC3ACC0ADCA70', // woody007
                             ],
