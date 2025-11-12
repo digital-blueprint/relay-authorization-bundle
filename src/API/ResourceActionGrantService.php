@@ -97,23 +97,23 @@ class ResourceActionGrantService
     /**
      * @throws ApiError
      */
-    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
-        string $targetResourceClass, ?string $targetResourceIdentifier): void
+    public function addResourceToGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
+        string $resourceClass, ?string $resourceIdentifier): void
     {
-        $this->authorizationService->addGrantInheritance(
-            $sourceResourceClass, $sourceResourceIdentifier,
-            $targetResourceClass, $targetResourceIdentifier);
+        $this->authorizationService->addResourceToGroupResource(
+            $groupResourceClass, $groupResourceIdentifier,
+            $resourceClass, $resourceIdentifier);
     }
 
     /**
      * @throws ApiError
      */
-    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
-        string $targetResourceClass, ?string $targetResourceIdentifier): void
+    public function removeResourceFromGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
+        string $resourceClass, ?string $resourceIdentifier): void
     {
-        $this->authorizationService->removeGrantInheritance(
-            $sourceResourceClass, $sourceResourceIdentifier,
-            $targetResourceClass, $targetResourceIdentifier);
+        $this->authorizationService->removeResourceFromGroupResource(
+            $groupResourceClass, $groupResourceIdentifier,
+            $resourceClass, $resourceIdentifier);
     }
 
     /**

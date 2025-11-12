@@ -248,18 +248,18 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier($resourceClass, $resourceIdentifiers);
     }
 
-    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+    public function addResourceToGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
         string $targetResourceClass, ?string $targetResourceIdentifier): void
     {
-        $this->internalResourceActionGrantService->addGrantInheritance(
-            $sourceResourceClass, $sourceResourceIdentifier,
+        $this->internalResourceActionGrantService->addResourceToGroupResource(
+            $groupResourceClass, $groupResourceIdentifier,
             $targetResourceClass, $targetResourceIdentifier);
     }
 
-    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+    public function removeResourceFromGroupResource(string $sourceResourceClass, ?string $sourceResourceIdentifier,
         string $targetResourceClass, ?string $targetResourceIdentifier): void
     {
-        $this->internalResourceActionGrantService->removeGrantInheritance(
+        $this->internalResourceActionGrantService->removeResourceFromGroupResource(
             $sourceResourceClass, $sourceResourceIdentifier,
             $targetResourceClass, $targetResourceIdentifier);
     }
@@ -391,7 +391,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getGroupsCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults, array $filters = []): array
     {
-        $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS = InternalResourceActionGrantService::AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS;
+        $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS =
+            InternalResourceActionGrantService::AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS;
         $GROUP_ALIAS = 'g';
 
         $userIdentifier = $this->getUserIdentifier();
@@ -416,7 +417,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $options = [
             InternalResourceActionGrantService::SELECT_OPTION => "$GROUP_ALIAS.*",
             InternalResourceActionGrantService::ADDITIONAL_JOIN_STATEMENTS_OPTION => "INNER JOIN authorization_groups $GROUP_ALIAS
-                 ON UNHEX(REPLACE($AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_identifier, '-', '')) = $GROUP_ALIAS.identifier",
+                 ON UNHEX(REPLACE($AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier, '-', '')) = $GROUP_ALIAS.identifier",
             InternalResourceActionGrantService::ADDITIONAL_CRITERIA_OPTION => [
                 "AND $groupNameCriteria AND $childGroupCandidateCriteria",
                 $groupParameterValues,
@@ -591,7 +592,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function getResourceActionGrantsCurrentUserIsAuthorizedToReadInternal(string $get = self::GET_RESOURCE_ACTION_GRANTS,
         ?string $resourceClass = null, ?string $resourceIdentifier = null, int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
-        $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS = InternalResourceActionGrantService::AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS;
+        $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS =
+            InternalResourceActionGrantService::AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS;
 
         $userIdentifier = $this->getUserIdentifier();
         $groupIdentifiers = $userIdentifier !== null ? self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($userIdentifier)) : null;
@@ -609,7 +611,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
             $options = [
                 InternalResourceActionGrantService::ADDITIONAL_CRITERIA_OPTION => [
-                    "OR $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier IN (:orAuthorizationResourceIdentifiersIn)",
+                    "OR $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier IN (:orAuthorizationResourceIdentifiersIn)",
                     ['orAuthorizationResourceIdentifiersIn' => $managedAuthorizationResourceIdentifiersBinary],
                     ['orAuthorizationResourceIdentifiersIn' => ArrayParameterType::BINARY],
                 ],

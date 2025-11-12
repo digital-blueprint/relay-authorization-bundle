@@ -6,8 +6,8 @@ namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
-use Dbp\Relay\AuthorizationBundle\Entity\GrantInheritance;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
+use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
@@ -291,35 +291,35 @@ class TestEntityManager extends CoreTestEntityManager
         return $resourceActionGrant;
     }
 
-    public function getGrantInheritance(string $identifier): ?GrantInheritance
+    public function getGroupAuthorizationResourceMember(string $identifier): ?GroupAuthorizationResourceMember
     {
         try {
-            return $this->entityManager->getRepository(GrantInheritance::class)
+            return $this->entityManager->getRepository(GroupAuthorizationResourceMember::class)
                 ->findOneBy(['identifier' => $identifier]);
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
     }
 
-    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
-        string $targetResourceClass, ?string $targetResourceIdentifier): GrantInheritance
+    public function addResourceToGroupResource(string $sourceResourceClass, ?string $sourceResourceIdentifier,
+        string $targetResourceClass, ?string $targetResourceIdentifier): GroupAuthorizationResourceMember
     {
-        $grantInheritance = new GrantInheritance();
-        $grantInheritance->setIdentifier(Uuid::uuid7()->toString());
-        $grantInheritance->setSourceAuthorizationResource(
+        $groupAuthorizationResourceMember = new GroupAuthorizationResourceMember();
+        $groupAuthorizationResourceMember->setIdentifier(Uuid::uuid7()->toString());
+        $groupAuthorizationResourceMember->setGroupAuthorizationResource(
             $this->getAuthorizationResourceByResourceClassAndIdentifier($sourceResourceClass, $sourceResourceIdentifier)
         );
-        $grantInheritance->setTargetAuthorizationResource(
+        $groupAuthorizationResourceMember->setMemberAuthorizationResource(
             $this->getAuthorizationResourceByResourceClassAndIdentifier($targetResourceClass, $targetResourceIdentifier)
         );
 
         try {
-            $this->entityManager->persist($grantInheritance);
+            $this->entityManager->persist($groupAuthorizationResourceMember);
             $this->entityManager->flush();
         } catch (\Throwable $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
 
-        return $grantInheritance;
+        return $groupAuthorizationResourceMember;
     }
 }

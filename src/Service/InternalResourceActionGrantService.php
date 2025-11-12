@@ -7,8 +7,8 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
-use Dbp\Relay\AuthorizationBundle\Entity\GrantInheritance;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
+use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
@@ -43,7 +43,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     public const RESOURCE_ACTION_GRANT_ALIAS = 'rag';
     public const AUTHORIZATION_RESOURCE_ALIAS = 'ar';
-    public const AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS = 'ar_gi';
+    public const AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS = 'ar_garm';
 
     public const GET_RESOURCE_ACTION_GRANTS = 'resource action grants';
     public const GET_AUTHORIZATION_RESOURCES = 'authorization resources';
@@ -58,8 +58,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
-    public const ADDING_GRANT_INHERITANCE_FAILED_ERROR_ID = 'authorization:adding-grant-inheritance-failed';
-    private const REMOVING_GRANT_INHERITANCE_FAILED_ERROR_ID = 'authorization:removing-grant-inheritance-failed';
+    public const ADDING_RESOURCE_TO_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-to-group-resource-failed';
+    private const REMOVING_RESOURCE_FROM_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-from-group-resource-failed';
     private const GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-collection-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
     private const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:authorization-resource-not-found';
@@ -67,7 +67,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         'authorization:resource-action-grant-invalid-authorization-resource-missing';
 
     public const AUTHORIZATION_RESOURCE_IDENTIFIER_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS.'.identifier';
-    private const GRANT_INHERITANCE_ALIAS = 'gi';
+    private const GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS = 'garm';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -230,82 +230,83 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function addGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
-        string $targetResourceClass, ?string $targetResourceIdentifier): GrantInheritance
+    public function addResourceToGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
+        string $resourceClass, ?string $resourceIdentifier): GroupAuthorizationResourceMember
     {
-        if ($sourceResourceClass === $targetResourceClass && $sourceResourceIdentifier === $targetResourceIdentifier) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST, 'Grant inheritance source and target resource must not be identical',
-                self::ADDING_GRANT_INHERITANCE_FAILED_ERROR_ID);
+        // TODO: prevent circular references
+        if ($groupResourceClass === $resourceClass && $groupResourceIdentifier === $resourceIdentifier) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST, 'Group resource and member resource must not be identical',
+                self::ADDING_RESOURCE_TO_GROUP_RESOURCE_FAILED_ERROR_ID);
         }
 
-        $grantInheritance = new GrantInheritance();
-        $grantInheritance->setIdentifier(Uuid::uuid7()->toString());
-        $grantInheritance->setSourceAuthorizationResource(
-            $this->getOrCreateAuthorizationResource($sourceResourceClass, $sourceResourceIdentifier)
+        $groupAuthorizationResourceMember = new GroupAuthorizationResourceMember();
+        $groupAuthorizationResourceMember->setIdentifier(Uuid::uuid7()->toString());
+        $groupAuthorizationResourceMember->setGroupAuthorizationResource(
+            $this->getOrCreateAuthorizationResource($groupResourceClass, $groupResourceIdentifier)
         );
-        $grantInheritance->setTargetAuthorizationResource(
-            $this->getOrCreateAuthorizationResource($targetResourceClass, $targetResourceIdentifier)
+        $groupAuthorizationResourceMember->setMemberAuthorizationResource(
+            $this->getOrCreateAuthorizationResource($resourceClass, $resourceIdentifier)
         );
 
         try {
-            $this->entityManager->persist($grantInheritance);
+            $this->entityManager->persist($groupAuthorizationResourceMember);
             $this->entityManager->flush();
         } catch (\Exception $e) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to add grant inheritance!',
-                self::ADDING_GRANT_INHERITANCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to add resource to group resource!',
+                self::ADDING_RESOURCE_TO_GROUP_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
 
-        return $grantInheritance;
+        return $groupAuthorizationResourceMember;
     }
 
-    public function removeGrantInheritance(string $sourceResourceClass, ?string $sourceResourceIdentifier,
-        string $targetResourceClass, ?string $targetResourceIdentifier): void
+    public function removeResourceFromGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
+        string $resourceClass, ?string $resourceIdentifier): void
     {
-        $GRANT_INHERITANCE_ALIAS = self::GRANT_INHERITANCE_ALIAS;
-        $SOURCE_AUTHORIZATION_RESOURCE_ALIAS = 'sar';
-        $TARGET_AUTHORIZATION_RESOURCE_ALIAS = 'tar';
+        $GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS = self::GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS;
+        $GROUP_AUTHORIZATION_RESOURCE_ALIAS = 'gar';
+        $MEMBER_AUTHORIZATION_RESOURCE_ALIAS = 'mar';
 
         $innerQueryBuilder = $this->entityManager->createQueryBuilder();
-        $innerQueryBuilder->select(self::GRANT_INHERITANCE_ALIAS.'.identifier')
-            ->from(GrantInheritance::class, self::GRANT_INHERITANCE_ALIAS)
-            ->innerJoin(AuthorizationResource::class, $SOURCE_AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
-                "$GRANT_INHERITANCE_ALIAS.sourceAuthorizationResource = $SOURCE_AUTHORIZATION_RESOURCE_ALIAS.identifier")
-            ->innerJoin(AuthorizationResource::class, $TARGET_AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
-                "$GRANT_INHERITANCE_ALIAS.targetAuthorizationResource = $TARGET_AUTHORIZATION_RESOURCE_ALIAS.identifier")
-            ->where($innerQueryBuilder->expr()->eq($SOURCE_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':sourceResourceClass'))
-            ->setParameter(':sourceResourceClass', $sourceResourceClass)
-            ->andWhere($innerQueryBuilder->expr()->eq($TARGET_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':targetResourceClass'))
-            ->setParameter(':targetResourceClass', $targetResourceClass);
-        if ($sourceResourceIdentifier !== null) {
+        $innerQueryBuilder->select(self::GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS.'.identifier')
+            ->from(GroupAuthorizationResourceMember::class, self::GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS)
+            ->innerJoin(AuthorizationResource::class, $GROUP_AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
+                "$GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS.groupAuthorizationResource = $GROUP_AUTHORIZATION_RESOURCE_ALIAS.identifier")
+            ->innerJoin(AuthorizationResource::class, $MEMBER_AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
+                "$GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS.memberAuthorizationResource = $MEMBER_AUTHORIZATION_RESOURCE_ALIAS.identifier")
+            ->where($innerQueryBuilder->expr()->eq($GROUP_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':groupResourceClass'))
+            ->setParameter(':groupResourceClass', $groupResourceClass)
+            ->andWhere($innerQueryBuilder->expr()->eq($MEMBER_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':memberResourceClass'))
+            ->setParameter(':memberResourceClass', $resourceClass);
+        if ($groupResourceIdentifier !== null) {
             $innerQueryBuilder
-                ->andWhere($innerQueryBuilder->expr()->eq($SOURCE_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':sourceResourceIdentifier'))
-                ->setParameter(':sourceResourceIdentifier', $sourceResourceIdentifier);
+                ->andWhere($innerQueryBuilder->expr()->eq($GROUP_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':sourceResourceIdentifier'))
+                ->setParameter(':sourceResourceIdentifier', $groupResourceIdentifier);
         } else {
             $innerQueryBuilder
-                ->andWhere($innerQueryBuilder->expr()->isNull($SOURCE_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
+                ->andWhere($innerQueryBuilder->expr()->isNull($GROUP_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
         }
-        if ($targetResourceIdentifier !== null) {
+        if ($resourceIdentifier !== null) {
             $innerQueryBuilder
-                ->andWhere($innerQueryBuilder->expr()->eq($TARGET_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':targetResourceIdentifier'))
-                ->setParameter(':targetResourceIdentifier', $targetResourceIdentifier);
+                ->andWhere($innerQueryBuilder->expr()->eq($MEMBER_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':targetResourceIdentifier'))
+                ->setParameter(':targetResourceIdentifier', $resourceIdentifier);
         } else {
             $innerQueryBuilder
-                ->andWhere($innerQueryBuilder->expr()->isNull($TARGET_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
+                ->andWhere($innerQueryBuilder->expr()->isNull($MEMBER_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
         }
 
         $queryBuilder = $this->entityManager->createQueryBuilder();
         $queryBuilder
-            ->delete(GrantInheritance::class, self::GRANT_INHERITANCE_ALIAS.'_2')
-            ->where($queryBuilder->expr()->in(self::GRANT_INHERITANCE_ALIAS.'_2.identifier', $innerQueryBuilder->getDQL()));
+            ->delete(GroupAuthorizationResourceMember::class, self::GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS.'_2')
+            ->where($queryBuilder->expr()->in(self::GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS.'_2.identifier', $innerQueryBuilder->getDQL()));
 
         $queryBuilder->setParameters($innerQueryBuilder->getParameters()); // doctrine forgets the parameters of the inner query builder...
 
         try {
             $queryBuilder->getQuery()->execute();
         } catch (\Throwable $throwable) {
-            $this->logger->error('Failed to remove grant inheritance: '.$throwable->getMessage(), ['exception' => $throwable]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to remove grant inheritance!',
-                self::REMOVING_GRANT_INHERITANCE_FAILED_ERROR_ID);
+            $this->logger->error('Failed to remove resource from group resource: '.$throwable->getMessage(), ['exception' => $throwable]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to remove resource from group resource!',
+                self::REMOVING_RESOURCE_FROM_GROUP_RESOURCE_FAILED_ERROR_ID);
         }
     }
 
@@ -526,7 +527,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     {
         $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
         $AUTHORIZATION_RESOURCE_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS;
-        $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS = self::AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS;
+        $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS = self::AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS;
 
         $parameterValues = [];
         $parameterTypes = [];
@@ -538,15 +539,15 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $RESOURCE_ACTION_GRANT_ALIAS.user_identifier,
             $RESOURCE_ACTION_GRANT_ALIAS.group_identifier, 
             $RESOURCE_ACTION_GRANT_ALIAS.dynamic_group_identifier, 
-            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_class, 
-            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_identifier,
-            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier";
+            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class, 
+            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier,
+            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier";
         $selectAuthorizationResources = "DISTINCT
-            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier,
-            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_class,
-            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_resource_identifier";
+            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier,
+            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class,
+            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier";
         $selectAuthorizationResourceIdentifiers = "DISTINCT
-            $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier";
+            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier";
 
         $select = $options[self::SELECT_OPTION] ?? null;
         $select ??= match ($get) {
@@ -573,7 +574,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
         $orderBy = '';
         if ($get === self::GET_RESOURCE_ACTION_GRANTS) {
-            $orderBy = "ORDER BY $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier";
+            $orderBy = "ORDER BY $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier";
         }
 
         $additionalJoinStatements = $options[self::ADDITIONAL_JOIN_STATEMENTS_OPTION] ?? '';
@@ -589,25 +590,25 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 FROM authorization_resource_action_grants $RESOURCE_ACTION_GRANT_ALIAS
                 INNER JOIN (
                     WITH RECURSIVE cte AS (
-                        SELECT ar_gi_0.identifier,
-                               ar_gi_0.source_authorization_resource_identifier, 
-                               ar_gi_0.target_authorization_resource_identifier,
+                        SELECT ar_garm_0.identifier,
+                               ar_garm_0.group_authorization_resource_identifier, 
+                               ar_garm_0.member_authorization_resource_identifier,
                                $AUTHORIZATION_RESOURCE_ALIAS.identifier AS effective_authorization_resource_identifier,
                                $AUTHORIZATION_RESOURCE_ALIAS.resource_class AS effective_resource_class,
                                $AUTHORIZATION_RESOURCE_ALIAS.resource_identifier AS effective_resource_identifier
                         FROM authorization_resources $AUTHORIZATION_RESOURCE_ALIAS
-                        LEFT JOIN authorization_grant_inheritances ar_gi_0
-                        ON ar_gi_0.target_authorization_resource_identifier = $AUTHORIZATION_RESOURCE_ALIAS.identifier
+                        LEFT JOIN group_authorization_resource_members ar_garm_0
+                        ON ar_garm_0.member_authorization_resource_identifier = $AUTHORIZATION_RESOURCE_ALIAS.identifier
                         WHERE $authorizationResourceCriteria
                         UNION ALL
-                        SELECT ar_gi_n.identifier, ar_gi_n.source_authorization_resource_identifier, ar_gi_n.target_authorization_resource_identifier,
+                        SELECT ar_garm_n.identifier, ar_garm_n.group_authorization_resource_identifier, ar_garm_n.member_authorization_resource_identifier,
                                cte.effective_authorization_resource_identifier, cte.effective_resource_class, cte.effective_resource_identifier
-                        FROM authorization_grant_inheritances ar_gi_n
-                        INNER JOIN cte ON ar_gi_n.target_authorization_resource_identifier = cte.source_authorization_resource_identifier)
-                    SELECT source_authorization_resource_identifier, cte.effective_authorization_resource_identifier,
-                           cte.effective_resource_class, cte.effective_resource_identifier FROM cte) AS $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS
-                ON $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.source_authorization_resource_identifier
-                OR $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GRANT_INHERITANCE_JOIN_ALIAS.effective_authorization_resource_identifier
+                        FROM group_authorization_resource_members ar_garm_n
+                        INNER JOIN cte ON ar_garm_n.member_authorization_resource_identifier = cte.group_authorization_resource_identifier)
+                    SELECT group_authorization_resource_identifier, cte.effective_authorization_resource_identifier,
+                           cte.effective_resource_class, cte.effective_resource_identifier FROM cte) AS $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS
+                ON $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.group_authorization_resource_identifier
+                OR $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier
                 $additionalJoinStatements
                 WHERE ($actionCriteria
                 AND $grantHolderCriteria)

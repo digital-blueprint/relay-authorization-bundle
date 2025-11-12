@@ -285,7 +285,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertEquals(['get_title'], $resourceItemActions);
     }
 
-    public function testGetResourceItemActionsForCurrentUserWithInheritance(): void
+    public function testGetResourceItemActionsForCurrentUserWithGroupResources(): void
     {
         $resource = $this->testEntityManager->addAuthorizationResource();
         $collectionResource = $this->testEntityManager->addAuthorizationResource(
@@ -303,7 +303,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addResourceActionGrant($resource,
             TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'everybody');
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource->getResourceClass(), $resource->getResourceIdentifier());
 
@@ -395,7 +395,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         ], $resourceItemActions);
     }
 
-    public function testGetResourceCollectionActionsForCurrentUserWithInheritance(): void
+    public function testGetResourceCollectionActionsForCurrentUserWithGroupResources(): void
     {
         $resource = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, null);
@@ -419,7 +419,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS);
         $this->assertEmpty($resourceCollectionActions);
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource->getResourceClass(), $resource->getResourceIdentifier());
 
@@ -714,7 +714,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(0, $usersResourceActions);
     }
 
-    public function testGetResourceItemActionsPageForCurrentUserWithInheritance(): void
+    public function testGetResourceItemActionsPageForCurrentUserWithGroupResources(): void
     {
         $testGroup = $this->testEntityManager->addGroup();
         $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
@@ -729,7 +729,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // readable by user 3
         // readable by user 4
         $resource = $this->testEntityManager->addAuthorizationResource();
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource->getResourceClass(), $resource->getResourceIdentifier());
         $this->testEntityManager->addResourceActionGrant($resource,
@@ -743,7 +743,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // writable by group 'Testgroup'
         $resource_2 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_2');
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource_2->getResourceClass(), $resource_2->getResourceIdentifier());
         $this->testEntityManager->addResourceActionGrant($resource_2,
@@ -755,7 +755,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // writable by dynamic group 'employees'
         $resource_3 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_3');
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource_3->getResourceClass(), $resource_3->getResourceIdentifier());
         $this->testEntityManager->addResourceActionGrant($resource_3,
@@ -766,7 +766,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // readable by user 4
         $resource_4 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_4');
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource_4->getResourceClass(), $resource_4->getResourceIdentifier());
         $this->testEntityManager->addResourceActionGrant($resource_4,
@@ -778,7 +778,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // readable by dynamic group 'students'
         $resource_5 = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_5');
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource_5->getResourceClass(), $resource_5->getResourceIdentifier());
         $this->testEntityManager->addResourceActionGrant($resource_5,
@@ -1253,7 +1253,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $resourceCollection = $this->testEntityManager->addAuthorizationResource('resourceClass_3', null);
         $collectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 
@@ -1328,7 +1328,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContainsResource($resourceCollection, $authorizationResources);
 
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_5');
-        // source and target resource of grant inheritance:
+        // group and member resource:
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(2, $authorizationResources);
         $this->assertContainsResource($resource1, $authorizationResources);
@@ -1384,7 +1384,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $collectionResource = $this->testEntityManager->addAuthorizationResource(
             self::TEST_COLLECTION_RESOURCE_CLASS, 'collectionResourceIdentifier');
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 
@@ -1508,7 +1508,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(0, $resourceActionsGrants);
     }
 
-    public function testGetResourceActionsGrantsUserIsAuthorizedToReadWithGrantInheritance(): void
+    public function testGetResourceActionsGrantsUserIsAuthorizedToReadWithGroupResources(): void
     {
         $group1 = $this->testEntityManager->addGroup();
         $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
@@ -1529,27 +1529,27 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER.'_super');
 
         // grandparent -> parent
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $superCollectionResource->getResourceClass(), $superCollectionResource->getResourceIdentifier(),
             $collectionResource1->getResourceClass(), $collectionResource1->getResourceIdentifier());
 
         // parent -> child (resource item)
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource1->getResourceClass(), $collectionResource1->getResourceIdentifier(),
             $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 
         // parent -> child (resource item)
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource1->getResourceClass(), $collectionResource1->getResourceIdentifier(),
             $resource2->getResourceClass(), $resource2->getResourceIdentifier());
 
         // parent -> child
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource2->getResourceClass(), $collectionResource2->getResourceIdentifier(),
             $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 
         // parent -> child (resource collection)
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResourceCollection->getResourceClass(), $collectionResourceCollection->getResourceIdentifier(),
             $resourceCollection->getResourceClass(), $resourceCollection->getResourceIdentifier());
 
@@ -1769,7 +1769,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(0, $resourceClasses);
     }
 
-    public function testGetResourceClassesCurrentUserIsAuthorizedToReadWithGrantInheritance(): void
+    public function testGetResourceClassesCurrentUserIsAuthorizedToReadWithGroupResources(): void
     {
         $group1 = $this->testEntityManager->addGroup();
         $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
@@ -1781,18 +1781,18 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $collectionResource2 = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER.'_2');
         $superCollectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER.'_super');
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $superCollectionResource->getResourceClass(), $superCollectionResource->getResourceIdentifier(),
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier());
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource1->getResourceClass(), $resource1->getResourceIdentifier());
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource2->getResourceClass(), $resource2->getResourceIdentifier());
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource2->getResourceClass(), $collectionResource2->getResourceIdentifier(),
             $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 

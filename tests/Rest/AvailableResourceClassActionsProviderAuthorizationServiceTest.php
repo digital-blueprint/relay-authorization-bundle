@@ -89,7 +89,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $collectionResource = $this->testEntityManager->addAuthorizationResource(
             TestGetAvailableResourceClassActionsEventSubscriber::TEST_COLLECTION_RESOURCE_CLASS, 'collectionResourceIdentifier');
 
-        $this->testEntityManager->addGrantInheritance(
+        $this->testEntityManager->addResourceToGroupResource(
             $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
             $resource1->getResourceClass(), $resource1->getResourceIdentifier());
 
@@ -213,7 +213,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $availableResourceClassActionCollection =
             $this->availableResourceClassActionsProviderTester->getCollection();
         $this->assertCount(2, $availableResourceClassActionCollection);
-        // source target resource class of the grant inheritance:
+
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClassActions) {
                 return $availableResourceClassActions->getResourceClass() === TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS
