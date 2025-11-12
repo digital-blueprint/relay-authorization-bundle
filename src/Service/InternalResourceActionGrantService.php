@@ -597,13 +597,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                                $AUTHORIZATION_RESOURCE_ALIAS.resource_class AS effective_resource_class,
                                $AUTHORIZATION_RESOURCE_ALIAS.resource_identifier AS effective_resource_identifier
                         FROM authorization_resources $AUTHORIZATION_RESOURCE_ALIAS
-                        LEFT JOIN group_authorization_resource_members ar_garm_0
+                        LEFT JOIN authorization_group_resource_members ar_garm_0
                         ON ar_garm_0.member_authorization_resource_identifier = $AUTHORIZATION_RESOURCE_ALIAS.identifier
                         WHERE $authorizationResourceCriteria
                         UNION ALL
                         SELECT ar_garm_n.identifier, ar_garm_n.group_authorization_resource_identifier, ar_garm_n.member_authorization_resource_identifier,
                                cte.effective_authorization_resource_identifier, cte.effective_resource_class, cte.effective_resource_identifier
-                        FROM group_authorization_resource_members ar_garm_n
+                        FROM authorization_group_resource_members ar_garm_n
                         INNER JOIN cte ON ar_garm_n.member_authorization_resource_identifier = cte.group_authorization_resource_identifier)
                     SELECT group_authorization_resource_identifier, cte.effective_authorization_resource_identifier,
                            cte.effective_resource_class, cte.effective_resource_identifier FROM cte) AS $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS

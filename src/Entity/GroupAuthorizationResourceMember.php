@@ -9,7 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * @internal
  */
-#[ORM\Table(name: 'group_authorization_resource_members')]
+#[ORM\Table(name: 'authorization_group_resource_members')]
 #[ORM\Entity]
 class GroupAuthorizationResourceMember
 {
