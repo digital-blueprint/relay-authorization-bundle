@@ -6,10 +6,10 @@ namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
@@ -21,17 +21,18 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @internal
  */
-class AuthorizationService extends AbstractAuthorizationService implements LoggerAwareInterface, EventSubscriberInterface
+class AuthorizationService extends AbstractAuthorizationService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
     public const MANAGE_ACTION = 'manage';
+
+    public const GROUP_RESOURCE_CLASS = 'DbpRelayAuthorizationGroup';
 
     public const CREATE_GROUPS_ACTION = 'create';
 
@@ -41,24 +42,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const ADD_GROUP_MEMBERS_GROUP_ACTION = 'add_members';
     public const DELETE_GROUP_MEMBERS_GROUP_ACTION = 'delete_members';
 
-    public const GROUP_RESOURCE_CLASS = 'DbpRelayAuthorizationGroup';
-
-    public const DYNAMIC_GROUP_UNDEFINED_ERROR_ID = 'authorization:dynamic-group-undefined';
-
-    public const MAX_NUM_RESULTS_DEFAULT = 1024;
-    public const SEARCH_FILTER = 'search';
-    public const GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER = 'getChildGroupCandidatesForGroupIdentifier';
-    public const DYNAMIC_GROUP_IDENTIFIER_EVERYBODY = 'everybody';
-    public const MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX = '@';
-
-    public const IS_NULL = InternalResourceActionGrantService::IS_NULL;
-
-    private const WERE_MANAGE_COLLECTION_GRANTS_WRITTEN_TO_DB_CACHE_KEY = 'registeredManageResourceCollectionGrants';
-
-    private const GET_RESOURCE_ACTION_GRANTS = 'rag';
-    private const GET_AUTHORIZATION_RESOURCES = 'ar';
-    private const GET_RESOURCE_CLASSES = 'rc';
-    private const GROUP_ITEM_ACTIONS = [
+    public const GROUP_ITEM_ACTIONS = [
         self::READ_GROUP_ACTION => [
             'en' => 'Read',
             'de' => 'Lesen',
@@ -80,12 +64,28 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             'de' => 'Mitglieder löschen',
         ],
     ];
-    private const GROUP_COLLECTION_ACTIONS = [
+    public const GROUP_COLLECTION_ACTIONS = [
         self::CREATE_GROUPS_ACTION => [
             'en' => 'Create',
             'de' => 'Erstellen',
         ],
     ];
+
+    public const DYNAMIC_GROUP_UNDEFINED_ERROR_ID = 'authorization:dynamic-group-undefined';
+
+    public const MAX_NUM_RESULTS_DEFAULT = 1024;
+    public const SEARCH_FILTER = 'search';
+    public const GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER = 'getChildGroupCandidatesForGroupIdentifier';
+    public const DYNAMIC_GROUP_IDENTIFIER_EVERYBODY = 'everybody';
+    public const MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX = '@';
+
+    public const IS_NULL = InternalResourceActionGrantService::IS_NULL;
+
+    private const WERE_MANAGE_COLLECTION_GRANTS_WRITTEN_TO_DB_CACHE_KEY = 'registeredManageResourceCollectionGrants';
+
+    private const GET_RESOURCE_ACTION_GRANTS = 'rag';
+    private const GET_AUTHORIZATION_RESOURCES = 'ar';
+    private const GET_RESOURCE_CLASSES = 'rc';
 
     private ?CacheItemPoolInterface $cachePool = null;
     private ?array $config = null;
@@ -94,13 +94,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @var string[][]
      */
     private array $grantedAuthorizationResourceActionsCache = [];
-
-    public static function getSubscribedEvents(): array
-    {
-        return [
-            GetAvailableResourceClassActionsEvent::class => 'onGetAvailableResourceClassActionsEvent',
-        ];
-    }
 
     public function __construct(
         private readonly InternalResourceActionGrantService $internalResourceActionGrantService,
@@ -148,16 +141,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $this->grantedAuthorizationResourceActionsCache = [];
     }
 
-    public function onGetAvailableResourceClassActionsEvent(GetAvailableResourceClassActionsEvent $event): void
+    /**
+     * @param array<string, array<string, string>> $itemActions       A mapping from item action names to their localized names
+     * @param array<string, array<string, string>> $collectionActions A mapping from collection action names to their localized names
+     */
+    public function addAvailableResourceClassActions(string $resourceClass,
+        array $itemActions, array $collectionActions): void
     {
-        switch ($event->getResourceClass()) {
-            case self::GROUP_RESOURCE_CLASS:
-                $event->setItemActions(self::GROUP_ITEM_ACTIONS);
-                $event->setCollectionActions(self::GROUP_COLLECTION_ACTIONS);
-                break;
-            default:
-                break;
-        }
+        $this->internalResourceActionGrantService->addAvailableResourceClassActions(
+            $resourceClass, $itemActions, $collectionActions);
     }
 
     /**
@@ -342,7 +334,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         // since grants for all resource items are requested, we get the groups the user is member of beforehand
         // let the db do the pagination (probably more efficient)
         foreach ($this->internalResourceActionGrantService->getResourceActionGrantsForAuthorizationResourcePage(
-            $resourceClass, InternalResourceActionGrantService::ITEM_ACTIONS_TYPE, $whereActionsContainAnyOf,
+            $resourceClass, AvailableResourceClassAction::ITEM_ACTION_TYPE, $whereActionsContainAnyOf,
             $currentUserIdentifier,
             $currentUserIdentifier !== null ?
                 self::nullIfEmpty($this->groupService->getGroupsUserIsMemberOf($currentUserIdentifier)) : null,
@@ -710,7 +702,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $resourceActions = [];
         foreach ($getResourceActionGrantsCallback() as $resourceActionGrant) {
             if ($this->isCurrentUsersGrant($resourceActionGrant)) {
-                $resourceActions[$resourceActionGrant->getAction()] = null; // deduplication
+                if (($action = $resourceActionGrant->getAction()) === self::MANAGE_ACTION) {
+                    $resourceActions = [self::MANAGE_ACTION => null]; // manage implies all actions
+                    break;
+                } else {
+                    $resourceActions[$action] = null; // deduplication
+                }
             }
         }
 

@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
+use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
@@ -29,13 +30,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
     public function testGetGrantedItemActions(): void
     {
         $manageGrant = $this->addResourceAndManageGrant();
-        $this->addGrant($manageGrant->getAuthorizationResource(), 'read', self::CURRENT_USER_IDENTIFIER);
-        $this->addGrant($manageGrant->getAuthorizationResource(), 'post', self::ANOTHER_USER_IDENTIFIER);
+        $this->addGrant($manageGrant->getAuthorizationResource(), TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->addGrant($manageGrant->getAuthorizationResource(), TestResources::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
         $grantedActions = $this->grantedActionsProviderTester->getItem(
             TestEntityManager::DEFAULT_RESOURCE_CLASS.':'.TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
         assert($grantedActions instanceof GrantedActions);
-        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION, 'read'], $grantedActions->getActions());
+        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
 
@@ -43,7 +44,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
         $grantedActions = $this->grantedActionsProviderTester->getItem(
             TestEntityManager::DEFAULT_RESOURCE_CLASS.':'.TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
         assert($grantedActions instanceof GrantedActions);
-        $this->assertIsPermutationOf(['post'], $grantedActions->getActions());
+        $this->assertEquals([TestResources::UPDATE_ACTION], $grantedActions->getActions());
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
     }
@@ -51,23 +52,23 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
     public function testGetGrantedCollectionActions(): void
     {
         $manageGrant = $this->addResourceAndManageGrant(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS, null, self::CURRENT_USER_IDENTIFIER);
-        $this->addGrant($manageGrant->getAuthorizationResource(), 'read', self::CURRENT_USER_IDENTIFIER);
-        $this->addGrant($manageGrant->getAuthorizationResource(), 'post', self::ANOTHER_USER_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS_3, null, self::CURRENT_USER_IDENTIFIER);
+        $this->addGrant($manageGrant->getAuthorizationResource(), TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->addGrant($manageGrant->getAuthorizationResource(), TestResources::CREATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
         $grantedActions = $this->grantedActionsProviderTester->getItem(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS.':');
+            self::TEST_RESOURCE_CLASS_3.':');
         assert($grantedActions instanceof GrantedActions);
-        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION, 'read'], $grantedActions->getActions());
-        $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $grantedActions->getResourceClass());
+        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertEquals(self::TEST_RESOURCE_CLASS_3, $grantedActions->getResourceClass());
         $this->assertNull($grantedActions->getResourceIdentifier());
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $grantedActions = $this->grantedActionsProviderTester->getItem(
-            TestEntityManager::DEFAULT_RESOURCE_CLASS.':');
+            self::TEST_RESOURCE_CLASS_3.':');
         assert($grantedActions instanceof GrantedActions);
-        $this->assertIsPermutationOf(['post'], $grantedActions->getActions());
-        $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $grantedActions->getResourceClass());
+        $this->assertEquals([TestResources::CREATE_ACTION], $grantedActions->getActions());
+        $this->assertEquals(self::TEST_RESOURCE_CLASS_3, $grantedActions->getResourceClass());
         $this->assertNull($grantedActions->getResourceIdentifier());
     }
 

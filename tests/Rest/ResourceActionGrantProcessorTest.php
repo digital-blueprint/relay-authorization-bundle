@@ -8,7 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
-use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
+use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
@@ -65,14 +65,14 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
-        $resourceActionGrant->setAction(TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION);
+        $resourceActionGrant->setAction(TestResources::READ_ACTION);
         $resourceActionGrant->setDynamicGroupIdentifier(AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY);
         $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
 
         $event = $this->testResourceActionGrantAddedEventSubscriber->getEvent();
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $event->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $event->getResourceIdentifier());
-        $this->assertEquals(TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, $event->getAction());
+        $this->assertEquals(TestResources::READ_ACTION, $event->getAction());
         $this->assertNull($event->getUserIdentifier());
         $this->assertEquals(AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY, $event->getDynamicGroupIdentifier());
         $this->assertNull($event->getGroupIdentifier());
@@ -86,14 +86,14 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(self::TEST_RESOURCE_CLASS);
-        $resourceActionGrant->setAction(TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION);
+        $resourceActionGrant->setAction(TestResources::CREATE_ACTION);
         $resourceActionGrant->setGroup($group);
         $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
 
         $event = $this->testResourceActionGrantAddedEventSubscriber->getEvent();
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $event->getResourceClass());
         $this->assertNull($event->getResourceIdentifier());
-        $this->assertEquals(TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION, $event->getAction());
+        $this->assertEquals(TestResources::CREATE_ACTION, $event->getAction());
         $this->assertNull($event->getUserIdentifier());
         $this->assertNull($event->getDynamicGroupIdentifier());
         $this->assertEquals($group->getIdentifier(), $event->getGroupIdentifier());

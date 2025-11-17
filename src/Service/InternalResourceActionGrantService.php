@@ -6,14 +6,16 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActionName;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent;
 use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
@@ -32,9 +34,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     public const IS_NULL = '@@@ __is_null__ @@@';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
-
-    public const ITEM_ACTIONS_TYPE = 'ia';
-    public const COLLECTION_ACTIONS_TYPE = 'ca';
 
     public const GROUP_BY_RESOURCE_CLASS_OPTION = 'group_by_resource_class';
     public const SELECT_OPTION = 'select';
@@ -57,6 +56,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID = 'authorization:resource_action_grant-invalid-action-undefined';
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
+    private const ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID = 'authorization:adding-available-resource-class-actions-failed';
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
     public const ADDING_RESOURCE_TO_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-to-group-resource-failed';
     private const REMOVING_RESOURCE_FROM_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-from-group-resource-failed';
@@ -66,8 +66,50 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING =
         'authorization:resource-action-grant-invalid-authorization-resource-missing';
 
-    public const AUTHORIZATION_RESOURCE_IDENTIFIER_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS.'.identifier';
     private const GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS = 'garm';
+
+    public static function addAvailableResourceClassActionsStatic(EntityManagerInterface $entityManager,
+        string $resourceClass, array $itemActions, array $collectionActions): void
+    {
+        self::addAvailableResourceClassActionsInternal($entityManager,
+            $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        self::addAvailableResourceClassActionsInternal($entityManager,
+            $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+    }
+
+    /**
+     * @throw ApiError
+     */
+    public static function addAvailableResourceClassActionsInternal(EntityManagerInterface $entityManager,
+        string $resourceClass, array $availableActions, int $actionType): void
+    {
+        try {
+            foreach ($availableActions as $action => $actionNames) {
+                $availableGroupResourceAction = new AvailableResourceClassAction();
+                $availableGroupResourceAction->setIdentifier(Uuid::uuid7()->toString());
+                $availableGroupResourceAction->setResourceClass($resourceClass);
+                $availableGroupResourceAction->setAction($action);
+                $availableGroupResourceAction->setActionType($actionType);
+
+                $names = [];
+                foreach ($actionNames as $languageTag => $name) {
+                    $availableGroupResourceActionName = new AvailableResourceClassActionName();
+                    $availableGroupResourceActionName->setAvailableResourceClassAction($availableGroupResourceAction);
+                    $availableGroupResourceActionName->setLanguageTag($languageTag);
+                    $availableGroupResourceActionName->setName($name);
+                    $names[] = $availableGroupResourceActionName;
+                }
+                $availableGroupResourceAction->setNames(new ArrayCollection($names));
+
+                $entityManager->persist($availableGroupResourceAction);
+            }
+            $entityManager->flush();
+        } catch (\Throwable $throwable) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Available resource class actions could not be added!',
+                self::ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID);
+        }
+    }
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -78,6 +120,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getEntityManager(): EntityManagerInterface
     {
         return $this->entityManager;
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function addAvailableResourceClassActions(string $resourceClass,
+        array $itemActions, array $collectionActions): void
+    {
+        self::addAvailableResourceClassActionsStatic($this->entityManager,
+            $resourceClass, $itemActions, $collectionActions);
     }
 
     /**
@@ -411,7 +463,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @throws ApiError
      */
     public function getResourceActionGrantsForAuthorizationResourcePage(string $resourceClass,
-        string $actionsType = self::ITEM_ACTIONS_TYPE, ?array $whereAuthorizationResourceActionsContainAnyOf = null,
+        int $actionType = AvailableResourceClassAction::ITEM_ACTION_TYPE, ?array $whereAuthorizationResourceActionsContainAnyOf = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
@@ -422,7 +474,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             // first get the requested page of authorization resource ids
             $authorizationResourceIdPage = $this->getInternal(
                 self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS, $resourceClass,
-                $actionsType === self::COLLECTION_ACTIONS_TYPE ? self::IS_NULL : self::IS_NOT_NULL,
+                $actionType === AvailableResourceClassAction::COLLECTION_ACTION_TYPE ? self::IS_NULL : self::IS_NOT_NULL,
                 null, $whereAuthorizationResourceActionsContainAnyOf,
                 $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
                 $firstResultIndex, $maxNumResults);
@@ -505,6 +557,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             return $results;
         } catch (\Throwable $throwable) {
             $this->logger->error("Failed to get $get: ".$throwable->getMessage(), ['exception' => $throwable]);
+            dump($throwable->getMessage());
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 "Failed to get $get",
                 $get === self::GET_RESOURCE_ACTION_GRANTS ?
@@ -586,6 +639,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $parameterTypes = array_merge($parameterTypes, $additionalCriteriaOption[2] ?? []);
         }
 
+        $availableResourceClassActionsTable = AvailableResourceClassAction::TABLE_NAME;
+        $manageAction = AuthorizationService::MANAGE_ACTION;
+
         $sql = "SELECT $select
                 FROM authorization_resource_action_grants $RESOURCE_ACTION_GRANT_ALIAS
                 INNER JOIN (
@@ -604,14 +660,25 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                         SELECT ar_garm_n.identifier, ar_garm_n.group_authorization_resource_identifier, ar_garm_n.member_authorization_resource_identifier,
                                cte.effective_authorization_resource_identifier, cte.effective_resource_class, cte.effective_resource_identifier
                         FROM authorization_group_resource_members ar_garm_n
-                        INNER JOIN cte ON ar_garm_n.member_authorization_resource_identifier = cte.group_authorization_resource_identifier)
+                        INNER JOIN cte ON ar_garm_n.member_authorization_resource_identifier = cte.group_authorization_resource_identifier
+                    )
                     SELECT group_authorization_resource_identifier, cte.effective_authorization_resource_identifier,
-                           cte.effective_resource_class, cte.effective_resource_identifier FROM cte) AS $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS
+                           cte.effective_resource_class, cte.effective_resource_identifier FROM cte
+                ) AS $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS
                 ON $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.group_authorization_resource_identifier
                 OR $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier
                 $additionalJoinStatements
-                WHERE ($actionCriteria
-                AND $grantHolderCriteria)
+                WHERE (
+                    $actionCriteria
+                    AND $grantHolderCriteria
+                    AND (
+                        $RESOURCE_ACTION_GRANT_ALIAS.action = '$manageAction' 
+                        OR $RESOURCE_ACTION_GRANT_ALIAS.action IN (
+                            SELECT action FROM $availableResourceClassActionsTable
+                            WHERE resource_class = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class
+                        )
+                    )
+                )
                 $additionalCriteria
                 $groupBy
                 $orderBy
@@ -651,18 +718,33 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     public function getAvailableResourceClassActions(string $resourceClass): array
     {
-        $getActionsEvent = new GetAvailableResourceClassActionsEvent($resourceClass);
-        $this->eventDispatcher->dispatch($getActionsEvent);
+        $itemActions = [];
+        $collectionActions = [];
 
-        $itemActions = $getActionsEvent->getItemActions();
-        if ($itemActions !== null) {
+        /** @var AvailableResourceClassAction $availableResourceClassAction */
+        foreach ($this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy([
+            'resourceClass' => $resourceClass,
+        ]) as $availableResourceClassAction) {
+            $names = [];
+            /** @var AvailableResourceClassActionName $availableResourceClassActionName */
+            foreach ($availableResourceClassAction->getNames() as $availableResourceClassActionName) {
+                $names[$availableResourceClassActionName->getLanguageTag()] = $availableResourceClassActionName->getName();
+            }
+            if ($availableResourceClassAction->getActionType() === AvailableResourceClassAction::ITEM_ACTION_TYPE) {
+                $itemActions[$availableResourceClassAction->getAction()] = $names;
+            } elseif ($availableResourceClassAction->getActionType() === AvailableResourceClassAction::COLLECTION_ACTION_TYPE) {
+                $collectionActions[$availableResourceClassAction->getAction()] = $names;
+            }
+        }
+
+        if ($itemActions !== []) {
             $itemActions[AuthorizationService::MANAGE_ACTION] = [
                 'en' => 'Manage',
                 'de' => 'Verwalten',
             ];
         }
-        $collectionActions = $getActionsEvent->getCollectionActions();
-        if ($collectionActions !== null) {
+
+        if ($collectionActions !== []) {
             $collectionActions[AuthorizationService::MANAGE_ACTION] = [
                 'en' => 'Manage',
                 'de' => 'Verwalten',

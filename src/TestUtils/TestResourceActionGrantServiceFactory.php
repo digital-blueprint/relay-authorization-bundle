@@ -60,7 +60,6 @@ class TestResourceActionGrantServiceFactory
             $internalResourceActionGrantService, new GroupService($entityManager), $entityManager);
         TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier,
             $currentUserAttributes, isServiceAccount: $isServiceAccount);
-        $eventDispatcher->addSubscriber($authorizationService); // before setConfig/setCache!
         $authorizationService->setConfig($testConfig ?? self::getTestConfig());
         $authorizationService->setCache(new ArrayAdapter());
         $authorizationService->setLogger(new NullLogger());

@@ -8,7 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractInternalResourceActionGrantServiceTestCase;
-use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
+use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
@@ -88,12 +88,12 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $group = $this->testEntityManager->addGroup();
         $resourceActionGrant = $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
             self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, null, $group);
+            TestResources::UPDATE_ACTION, null, $group);
 
         $this->assertTrue(Uuid::isValid($resourceActionGrant->getIdentifier()));
         $this->assertEquals(self::TEST_RESOURCE_CLASS_2, $resourceActionGrant->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $resourceActionGrant->getResourceIdentifier());
-        $this->assertEquals(TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, $resourceActionGrant->getAction());
+        $this->assertEquals(TestResources::UPDATE_ACTION, $resourceActionGrant->getAction());
         $this->assertEquals(null, $resourceActionGrant->getUserIdentifier());
         $this->assertEquals($group, $resourceActionGrant->getGroup());
         $this->assertEquals(null, $resourceActionGrant->getDynamicGroupIdentifier());
@@ -151,13 +151,13 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($authorizationResource);
-        $resourceActionGrant->setAction(TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION);
+        $resourceActionGrant->setAction(TestResources::READ_ACTION);
 
         $resourceActionGrant = $this->internalResourceActionGrantService->addResourceActionGrant($resourceActionGrant);
-        $this->assertEquals(TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, $resourceActionGrant->getAction());
+        $this->assertEquals(TestResources::READ_ACTION, $resourceActionGrant->getAction());
 
         $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier());
-        $this->assertEquals(TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, $resourceActionGrantPersistence->getAction());
+        $this->assertEquals(TestResources::READ_ACTION, $resourceActionGrantPersistence->getAction());
 
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantPersistence->getIdentifier());
 
@@ -165,7 +165,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($authorizationGroupResource);
-        $resourceActionGrant->setAction(TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION);
+        $resourceActionGrant->setAction(TestResources::CREATE_ACTION);
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrant = $this->internalResourceActionGrantService->addResourceActionGrant($resourceActionGrant);
@@ -200,7 +200,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($itemResource);
         // action is only defined for resource collections -> fail
-        $resourceActionGrant->setAction(TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION);
+        $resourceActionGrant->setAction(TestResources::CREATE_ACTION);
         $resourceActionGrant->setUserIdentifier('userIdentifier');
 
         try {
@@ -216,7 +216,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($collectionResource);
         // action is only defined for resource items -> fail
-        $resourceActionGrant->setAction(TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION);
+        $resourceActionGrant->setAction(TestResources::READ_ACTION);
         $resourceActionGrant->setUserIdentifier('userIdentifier');
 
         try {
@@ -292,7 +292,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
     {
         $resourceActionGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->internalResourceActionGrantService->removeResourceActionGrant($resourceActionGrant);
 
@@ -313,21 +313,21 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($resource2,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource2,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($resource3,
             AuthorizationService::MANAGE_ACTION, group: $group);
         $this->testEntityManager->addResourceActionGrant($resource3,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'everybody');
+            TestResources::READ_ACTION, dynamicGroupIdentifier: 'everybody');
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
         $this->assertCount(7, $resourceActionGrants);
@@ -337,21 +337,21 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertCount(0, $resourceActionGrants);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($resource2,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource2,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($resource3,
             AuthorizationService::MANAGE_ACTION, group: $group);
         $this->testEntityManager->addResourceActionGrant($resource3,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'everybody');
+            TestResources::READ_ACTION, dynamicGroupIdentifier: 'everybody');
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             self::TEST_RESOURCE_CLASS);
@@ -363,16 +363,16 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertCount(0, $resourceActionGrants);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($resource2,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource2,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -385,11 +385,11 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertCount(0, $resourceActionGrants);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             null, self::TEST_RESOURCE_IDENTIFIER);
@@ -402,36 +402,36 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertCount(0, $resourceActionGrants);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $updateGrant = $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->testEntityManager->addResourceActionGrant($resource3,
             AuthorizationService::MANAGE_ACTION, group: $group);
         $this->testEntityManager->addResourceActionGrant($resource3,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'everybody');
+            TestResources::READ_ACTION, dynamicGroupIdentifier: 'everybody');
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
-            self::TEST_RESOURCE_IDENTIFIER, [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION]);
+            self::TEST_RESOURCE_IDENTIFIER, [TestResources::READ_ACTION]);
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($updateGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
-            self::TEST_RESOURCE_IDENTIFIER, [TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION]);
+            self::TEST_RESOURCE_IDENTIFIER, [TestResources::UPDATE_ACTION]);
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(0, $resourceActionGrants);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $anotherUserGrant = $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER, userIdentifier: self::CURRENT_USER_IDENTIFIER);
@@ -447,14 +447,14 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertCount(0, $resourceActionGrants);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
         $anotherUserGrant = $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $updateGrant = $this->testEntityManager->addResourceActionGrant($resource1,
-            TestGetAvailableResourceClassActionsEventSubscriber::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
-            self::TEST_RESOURCE_IDENTIFIER, [TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION],
+            self::TEST_RESOURCE_IDENTIFIER, [TestResources::READ_ACTION],
             self::CURRENT_USER_IDENTIFIER);
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -485,7 +485,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->testEntityManager->addResourceActionGrant($resource3,
             AuthorizationService::MANAGE_ACTION, group: $group);
         $this->testEntityManager->addResourceActionGrant($resource3,
-            TestGetAvailableResourceClassActionsEventSubscriber::READ_ACTION, dynamicGroupIdentifier: 'everybody');
+            TestResources::READ_ACTION, dynamicGroupIdentifier: 'everybody');
 
         $this->assertCount(1,
             $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
@@ -656,10 +656,10 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             $resourceActionGrantCollection1_2->getResourceClass(), $resourceActionGrantCollection1_2->getResourceIdentifier());
 
         $collectionResourceActionGrant = $this->testEntityManager->addResourceActionGrant($collectionResource,
-            TestGetAvailableResourceClassActionsEventSubscriber::DELETE_ACTION, self::ANOTHER_USER_IDENTIFIER);
+            TestResources::DELETE_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
         $collectionResourceCollectionActionGrant = $this->testEntityManager->addResourceActionGrant($collectionResourceCollection,
-            TestGetAvailableResourceClassActionsEventSubscriber::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            TestResources::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
         $this->assertCount(9, $resourceActionGrants);

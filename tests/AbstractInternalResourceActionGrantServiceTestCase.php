@@ -7,21 +7,21 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
-use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestGetAvailableResourceClassActionsEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestResourceActionGrantAddedEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Psr\Log\NullLogger;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
-abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTestCase
+abstract class AbstractInternalResourceActionGrantServiceTestCase extends KernelTestCase
 {
     protected const CURRENT_USER_IDENTIFIER = 'userIdentifier';
     protected const ANOTHER_USER_IDENTIFIER = 'anotherUserIdentifier';
 
-    protected const TEST_RESOURCE_CLASS = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS;
-    protected const TEST_COLLECTION_RESOURCE_CLASS = TestGetAvailableResourceClassActionsEventSubscriber::TEST_COLLECTION_RESOURCE_CLASS;
-    protected const TEST_RESOURCE_CLASS_2 = TestGetAvailableResourceClassActionsEventSubscriber::TEST_RESOURCE_CLASS_2;
+    protected const TEST_RESOURCE_CLASS = TestResources::TEST_RESOURCE_CLASS;
+    protected const TEST_COLLECTION_RESOURCE_CLASS = TestResources::TEST_COLLECTION_RESOURCE_CLASS;
+    protected const TEST_RESOURCE_CLASS_2 = TestResources::TEST_RESOURCE_CLASS_2;
+    protected const TEST_RESOURCE_CLASS_3 = TestResources::TEST_RESOURCE_CLASS_3;
 
     protected const TEST_RESOURCE_IDENTIFIER = 'resourceIdentifier';
     protected const TEST_COLLECTION_RESOURCE_IDENTIFIER = 'collectionResourceIdentifier';
@@ -34,17 +34,35 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends WebTes
 
     protected function setUp(): void
     {
-        // allow database data re-use when calling setUp multiple times
-        $this->testEntityManager = $this->testEntityManager ?: new TestEntityManager(self::bootKernel()->getContainer());
+        $newEntityManagerCreated = false;
+        // allow in-memory database data re-use when calling setUp multiple times
+        if ($this->testEntityManager === null) {
+            $this->testEntityManager = new TestEntityManager(self::bootKernel()->getContainer());
+            $newEntityManagerCreated = true;
+        }
 
         $this->eventDispatcher = new EventDispatcher();
-        $this->eventDispatcher->addSubscriber(new TestGetAvailableResourceClassActionsEventSubscriber());
         $this->testResourceActionGrantAddedEventSubscriber = new TestResourceActionGrantAddedEventSubscriber();
         $this->eventDispatcher->addSubscriber($this->testResourceActionGrantAddedEventSubscriber);
 
         $this->internalResourceActionGrantService = new InternalResourceActionGrantService(
             $this->testEntityManager->getEntityManager(), $this->eventDispatcher);
         $this->internalResourceActionGrantService->setLogger(new NullLogger());
+
+        if ($newEntityManagerCreated) {
+            $this->internalResourceActionGrantService->addAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
+                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+            $this->internalResourceActionGrantService->addAvailableResourceClassActions(self::TEST_COLLECTION_RESOURCE_CLASS,
+                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+            $this->internalResourceActionGrantService->addAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2,
+                TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS);
+            $this->internalResourceActionGrantService->addAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_3,
+                TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS);
+        }
     }
 
     protected function tearDown(): void
