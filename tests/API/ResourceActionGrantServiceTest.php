@@ -59,7 +59,21 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
                 'fr' => 'Créer',
             ],
         ];
-        $this->resourceActionGrantService->addAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
+        $this->resourceActionGrantService->setAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
+
+        [$retrievedItemActions, $retrievedCollectionActions] =
+            $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);
+
+        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedItemActions);
+        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedCollectionActions);
+        unset($retrievedItemActions[AuthorizationService::MANAGE_ACTION]);
+        unset($retrievedCollectionActions[AuthorizationService::MANAGE_ACTION]);
+
+        $this->assertEquals($itemActions, $retrievedItemActions);
+        $this->assertEquals($collectionActions, $retrievedCollectionActions);
+
+        // test again, to see if available resource class actions are cleared before adding the new ones
+        $this->resourceActionGrantService->setAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
 
         [$retrievedItemActions, $retrievedCollectionActions] =
             $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);

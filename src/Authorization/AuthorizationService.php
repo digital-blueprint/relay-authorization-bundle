@@ -139,10 +139,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @param array<string, array<string, string>> $itemActions       A mapping from item action names to their localized names
      * @param array<string, array<string, string>> $collectionActions A mapping from collection action names to their localized names
      */
-    public function addAvailableResourceClassActions(string $resourceClass,
+    public function setAvailableResourceClassActions(string $resourceClass,
         array $itemActions, array $collectionActions): void
     {
-        $this->internalResourceActionGrantService->addAvailableResourceClassActions(
+        $this->internalResourceActionGrantService->setAvailableResourceClassActions(
             $resourceClass, $itemActions, $collectionActions);
     }
 

@@ -125,9 +125,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function addAvailableResourceClassActions(string $resourceClass,
+    public function setAvailableResourceClassActions(string $resourceClass,
         array $itemActions, array $collectionActions): void
     {
+        $this->clearAvailableResourceClassActions($resourceClass);
         self::addAvailableResourceClassActionsStatic($this->entityManager,
             $resourceClass, $itemActions, $collectionActions);
     }
@@ -752,6 +753,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         return [$itemActions, $collectionActions];
+    }
+
+    private function clearAvailableResourceClassActions(string $resourceClass): void
+    {
+        foreach ($this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy(
+            ['resourceClass' => $resourceClass]
+        ) as $availableResourceClassAction) {
+            $this->entityManager->remove($availableResourceClassAction);
+        }
+        $this->entityManager->flush();
     }
 
     /**

@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Require the available actions for a resource class to be stored in the database instead of requesting them from subscribers
-on each request.
+on each request (using, e.g., `ResourceActionGrantService::setAvailableResourceClassActions`).
 - Only return grants for actions that are actually available for the grant's resource class.
 - Do not expose `AuthorizationResource` anymore via REST API (always identify by resource class and identifier)
 - Do not explicitly register resources anymore. Create `AuthorizationResource` implicitly when adding a resource action grant
