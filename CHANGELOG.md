@@ -10,6 +10,8 @@ on each request.
 for a resource that does not yet exist.
 - Allow adding and removing resources to/from group resources, which are normal authorization resources, i.e., there can be
 grants for them. If a grant is valid for a group resource, it is implicitly valid for all resources that are members of the group resource.
+- Update core bundle
+- Implement `ResetInterface::reset()` where possible for automatic cleanup of request state
 
 ## v0.5.4
 

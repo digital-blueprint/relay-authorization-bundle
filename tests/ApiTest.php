@@ -20,7 +20,6 @@ class ApiTest extends AbstractApiTest
 
     protected function tearDown(): void
     {
-        AuthorizationTest::tearDown($this->testClient->getContainer());
     }
 
     public function testContainer()
@@ -48,7 +47,6 @@ class ApiTest extends AbstractApiTest
             'name' => 'Test Group',
         ], [], null);
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
     }
 
     public function testPostGroupForbidden(): void
@@ -57,7 +55,6 @@ class ApiTest extends AbstractApiTest
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
     }
 
     public function testPostAndGetGroup(): void
@@ -67,8 +64,6 @@ class ApiTest extends AbstractApiTest
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
 
         $group = json_decode($response->getContent(), true);
         $response = $this->testClient->get('/authorization/groups/'.$group['identifier']);
@@ -90,7 +85,6 @@ class ApiTest extends AbstractApiTest
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
 
         $group = json_decode($response->getContent(), true);
 
@@ -115,7 +109,6 @@ class ApiTest extends AbstractApiTest
             'userIdentifier' => 'testuser',
         ], token: null);
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
     }
 
     public function testPostGroupMemberForbidden(): void
@@ -125,7 +118,6 @@ class ApiTest extends AbstractApiTest
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
         $group = json_decode($response->getContent(), true);
 
         $this->testClient->setUpUser('anotheruser', ['MAY_CREATE_GROUPS' => false]);
@@ -134,7 +126,6 @@ class ApiTest extends AbstractApiTest
             'userIdentifier' => 'anotheruser',
         ]);
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
     }
 
     public function testPostAndGetGroupMember(): void
@@ -144,7 +135,6 @@ class ApiTest extends AbstractApiTest
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
         $group = json_decode($response->getContent(), true);
 
         $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => true]);
@@ -153,8 +143,6 @@ class ApiTest extends AbstractApiTest
             'userIdentifier' => 'anotheruser',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-
-        AuthorizationTest::postRequestCleanup($this->testClient->getContainer());
 
         $groupMember = json_decode($response->getContent(), true);
         $response = $this->testClient->get('/authorization/group-members/'.$groupMember['identifier']);

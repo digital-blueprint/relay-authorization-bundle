@@ -22,11 +22,12 @@ use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * @internal
  */
-class AuthorizationService extends AbstractAuthorizationService implements LoggerAwareInterface
+class AuthorizationService extends AbstractAuthorizationService implements LoggerAwareInterface, ResetInterface
 {
     use LoggerAwareTrait;
 
@@ -126,19 +127,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
-     * @internal For testing only
+     * For testing purposes.
      */
-    public function getCache(): ?CacheItemPoolInterface
-    {
-        return $this->cachePool;
-    }
-
-    /**
-     * @internal For testing only
-     */
-    public function clearRequestCache(): void
+    public function reset(): void
     {
         $this->grantedAuthorizationResourceActionsCache = [];
+        $this->cachePool->clear();
     }
 
     /**

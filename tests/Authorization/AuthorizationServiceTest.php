@@ -94,7 +94,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $resource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadResource($resource));
 
-        $this->authorizationService->clearRequestCache();
+        $this->authorizationService->reset();
 
         $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);

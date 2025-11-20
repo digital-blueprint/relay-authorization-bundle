@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "699b6a330c7d54d51b82f30eca18d55a",
+    "content-hash": "d03580c981779cb44d71c2bc251693eb",
     "packages": [
         {
             "name": "api-platform/core",
@@ -351,16 +351,16 @@
         },
         {
             "name": "dbp/relay-core-bundle",
-            "version": "v0.1.222",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "https://github.com/digital-blueprint/relay-core-bundle.git",
-                "reference": "7665d27d4b9f0d49369cf69b552f3094baf6db3d"
+                "reference": "c0e7a7e90e7cf303fc43eaf441a4b8443fe16206"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/7665d27d4b9f0d49369cf69b552f3094baf6db3d",
-                "reference": "7665d27d4b9f0d49369cf69b552f3094baf6db3d",
+                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/c0e7a7e90e7cf303fc43eaf441a4b8443fe16206",
+                "reference": "c0e7a7e90e7cf303fc43eaf441a4b8443fe16206",
                 "shasum": ""
             },
             "require": {
@@ -444,6 +444,7 @@
                 "symfony/phpunit-bridge": "^7.0.6",
                 "symfony/runtime": "^6.4"
             },
+            "default-branch": true,
             "type": "symfony-bundle",
             "autoload": {
                 "psr-4": {
@@ -457,9 +458,9 @@
             "description": "The core bundle of the Relay API gateway",
             "support": {
                 "issues": "https://github.com/digital-blueprint/relay-core-bundle/issues",
-                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/v0.1.222"
+                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/main"
             },
-            "time": "2025-10-29T10:08:47+00:00"
+            "time": "2025-11-20T10:54:36+00:00"
         },
         {
             "name": "doctrine/collections",
@@ -11617,9 +11618,18 @@
             "time": "2024-03-03T12:36:25+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "dbp/relay-core-bundle",
+            "version": "dev-main",
+            "alias": "0.1.224",
+            "alias_normalized": "0.1.224.0"
+        }
+    ],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "dbp/relay-core-bundle": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
@@ -11630,5 +11640,5 @@
     "platform-overrides": {
         "php": "8.2"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

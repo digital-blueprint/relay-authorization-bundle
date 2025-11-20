@@ -8,12 +8,10 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
-use Psr\Cache\CacheItemPoolInterface;
 
 abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalResourceActionGrantServiceTestCase
 {
-    protected AuthorizationService $authorizationService;
-    protected ?CacheItemPoolInterface $cachePool = null;
+    protected ?AuthorizationService $authorizationService = null;
 
     protected function setUp(): void
     {
@@ -26,8 +24,6 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
             $this->getTestConfig(),
             self::CURRENT_USER_IDENTIFIER,
             $this->getDefaultUserAttributes());
-
-        $this->cachePool = $this->authorizationService->getCache();
     }
 
     protected function login(?string $userIdentifier, ?array $userAttributes = null): void
