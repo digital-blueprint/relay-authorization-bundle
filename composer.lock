@@ -355,12 +355,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/digital-blueprint/relay-core-bundle.git",
-                "reference": "c0e7a7e90e7cf303fc43eaf441a4b8443fe16206"
+                "reference": "aa760333f5a2028c424651d3575daf4ad8b9de04"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/c0e7a7e90e7cf303fc43eaf441a4b8443fe16206",
-                "reference": "c0e7a7e90e7cf303fc43eaf441a4b8443fe16206",
+                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/aa760333f5a2028c424651d3575daf4ad8b9de04",
+                "reference": "aa760333f5a2028c424651d3575daf4ad8b9de04",
                 "shasum": ""
             },
             "require": {
@@ -460,7 +460,7 @@
                 "issues": "https://github.com/digital-blueprint/relay-core-bundle/issues",
                 "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/main"
             },
-            "time": "2025-11-20T10:54:36+00:00"
+            "time": "2025-11-22T05:51:09+00:00"
         },
         {
             "name": "doctrine/collections",
@@ -11640,5 +11640,5 @@
     "platform-overrides": {
         "php": "8.2"
     },
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
