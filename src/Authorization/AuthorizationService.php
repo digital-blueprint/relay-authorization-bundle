@@ -251,16 +251,24 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
+     * @param bool $ignoreActionAvailability if true, grants are returned if the granted action is not available for the resource class
+     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, ?string $resourceIdentifier): array
+        string $resourceClass, ?string $resourceIdentifier, bool $ignoreActionAvailability = false): array
     {
+        $options = [];
+        if ($ignoreActionAvailability) {
+            $options[InternalResourceActionGrantService::IGNORE_ACTION_AVAILABILITY_OPTION] = true;
+        }
+
         return $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             $resourceClass,
-            $resourceIdentifier === null ? InternalResourceActionGrantService::IS_NULL : $resourceIdentifier);
+            $resourceIdentifier === null ? InternalResourceActionGrantService::IS_NULL : $resourceIdentifier,
+            options: $options);
     }
 
     /**

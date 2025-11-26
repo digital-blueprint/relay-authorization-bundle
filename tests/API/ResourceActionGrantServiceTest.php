@@ -497,4 +497,24 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->resourceActionGrantService->removeResourceActionGrant($rag->getIdentifier());
         $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($rag->getIdentifier()));
     }
+
+    public function testGetResourceActionGrantsForResourceClassAndIdentifier(): void
+    {
+        $rag1 = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0], self::CURRENT_USER_IDENTIFIER);
+        $rag2 = $this->testEntityManager->addResourceActionGrant($rag1->getAuthorizationResource(),
+            'foobar', dynamicGroupIdentifier: 'everybody');
+
+        $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(1, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag1);
+
+        $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, ignoreActionAvailability: true);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag1);
+        $this->assertContainsResourceActionGrant($rags, $rag2);
+    }
 }

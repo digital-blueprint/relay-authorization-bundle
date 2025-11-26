@@ -94,15 +94,17 @@ class ResourceActionGrantService
     }
 
     /**
+     * @param bool $ignoreActionAvailability if true, grants are returned if the granted action is not available for the resource class
+     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, ?string $resourceIdentifier): array
+        string $resourceClass, ?string $resourceIdentifier, bool $ignoreActionAvailability = false): array
     {
         return $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier);
+            $resourceClass, $resourceIdentifier, $ignoreActionAvailability);
     }
 
     /**

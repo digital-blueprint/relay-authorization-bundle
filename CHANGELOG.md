@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Require at least one action to be defined for a resource class for it to be 'available'
 - Require the available actions for a resource class to be stored in the database instead of requesting them from subscribers
 on each request (using, e.g., `ResourceActionGrantService::setAvailableResourceClassActions`).
 - Only return grants for actions that are actually available for the grant's resource class.

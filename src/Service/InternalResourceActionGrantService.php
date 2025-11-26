@@ -39,6 +39,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const SELECT_OPTION = 'select';
     public const ADDITIONAL_JOIN_STATEMENTS_OPTION = 'additional_join_statements';
     public const ADDITIONAL_CRITERIA_OPTION = 'additional_criteria';
+    public const IGNORE_ACTION_AVAILABILITY_OPTION = 'ignore_action_availability';
 
     public const RESOURCE_ACTION_GRANT_ALIAS = 'rag';
     public const AUTHORIZATION_RESOURCE_ALIAS = 'ar';
@@ -643,6 +644,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $availableResourceClassActionsTable = AvailableResourceClassAction::TABLE_NAME;
         $manageAction = AuthorizationService::MANAGE_ACTION;
 
+        $actionsAvailabilityCriteria = ($options[self::IGNORE_ACTION_AVAILABILITY_OPTION] ?? false) ?
+            'true' :
+            "(
+                $RESOURCE_ACTION_GRANT_ALIAS.action = '$manageAction' 
+                OR $RESOURCE_ACTION_GRANT_ALIAS.action IN (
+                    SELECT action FROM $availableResourceClassActionsTable
+                    WHERE resource_class = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class
+                )
+            )";
+
         $sql = "SELECT $select
                 FROM authorization_resource_action_grants $RESOURCE_ACTION_GRANT_ALIAS
                 INNER JOIN (
@@ -672,13 +683,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 WHERE (
                     $actionCriteria
                     AND $grantHolderCriteria
-                    AND (
-                        $RESOURCE_ACTION_GRANT_ALIAS.action = '$manageAction' 
-                        OR $RESOURCE_ACTION_GRANT_ALIAS.action IN (
-                            SELECT action FROM $availableResourceClassActionsTable
-                            WHERE resource_class = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class
-                        )
-                    )
+                    AND $actionsAvailabilityCriteria
                 )
                 $additionalCriteria
                 $groupBy
@@ -738,14 +743,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             }
         }
 
-        if ($itemActions !== []) {
+        // DESIGN NOTE: we require at least one custom action to be defined for a resource class to be 'available'
+        if ([] !== $itemActions || [] !== $collectionActions) {
             $itemActions[AuthorizationService::MANAGE_ACTION] = [
                 'en' => 'Manage',
                 'de' => 'Verwalten',
             ];
-        }
-
-        if ($collectionActions !== []) {
             $collectionActions[AuthorizationService::MANAGE_ACTION] = [
                 'en' => 'Manage',
                 'de' => 'Verwalten',
