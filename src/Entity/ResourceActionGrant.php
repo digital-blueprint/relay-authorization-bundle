@@ -185,6 +185,11 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceIdentifier = null;
 
+    #[Groups(['AuthorizationResourceActionGrant:output'])]
+    private ?array $grantedActions = null;
+
+    private ?string $authorizationResourceIdentifier = null;
+
     public function getIdentifier(): ?string
     {
         return $this->identifier;
@@ -197,7 +202,8 @@ class ResourceActionGrant
 
     /**
      * NOTE: The authorization resource is not set (hydrated) by default, so its presence is not guaranteed.
-     * Try to use getResourceClass() and getResourceIdentifier() to identify the resource instead.
+     * Try to use getResourceClass() and getResourceIdentifier(), or getAuthorizationResourceIdentifier()
+     * to identify the resource instead.
      */
     public function getAuthorizationResource(): ?AuthorizationResource
     {
@@ -207,6 +213,24 @@ class ResourceActionGrant
     public function setAuthorizationResource(?AuthorizationResource $authorizationResource): void
     {
         $this->authorizationResource = $authorizationResource;
+    }
+
+    /**
+     * Can be used for cases where authorizationResource is not hydrated automatically, i.e. in custom sql queries.
+     */
+    public function setAuthorizationResourceIdentifier(?string $authorizationResourceIdentifier): void
+    {
+        assert($this->authorizationResource === null);
+        $this->authorizationResourceIdentifier = $authorizationResourceIdentifier;
+    }
+
+    public function getAuthorizationResourceIdentifier(): ?string
+    {
+        if ($this->authorizationResource !== null) {
+            return $this->authorizationResource->getIdentifier();
+        }
+
+        return $this->authorizationResourceIdentifier;
     }
 
     public function getAction(): ?string
@@ -267,6 +291,16 @@ class ResourceActionGrant
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
+    }
+
+    public function setGrantedActions(array $grantedActions): void
+    {
+        $this->grantedActions = $grantedActions;
+    }
+
+    public function getGrantedActions(): ?array
+    {
+        return $this->grantedActions;
     }
 
     public function __toString(): string

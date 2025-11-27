@@ -307,16 +307,16 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function addResourceToGroupResource(string $sourceResourceClass, ?string $sourceResourceIdentifier,
-        string $targetResourceClass, ?string $targetResourceIdentifier): GroupAuthorizationResourceMember
+    public function addResourceToGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
+        string $memberResourceClass, ?string $memberResourceIdentifier): GroupAuthorizationResourceMember
     {
         $groupAuthorizationResourceMember = new GroupAuthorizationResourceMember();
         $groupAuthorizationResourceMember->setIdentifier(Uuid::uuid7()->toString());
         $groupAuthorizationResourceMember->setGroupAuthorizationResource(
-            $this->getAuthorizationResourceByResourceClassAndIdentifier($sourceResourceClass, $sourceResourceIdentifier)
+            $this->getAuthorizationResourceByResourceClassAndIdentifier($groupResourceClass, $groupResourceIdentifier)
         );
         $groupAuthorizationResourceMember->setMemberAuthorizationResource(
-            $this->getAuthorizationResourceByResourceClassAndIdentifier($targetResourceClass, $targetResourceIdentifier)
+            $this->getAuthorizationResourceByResourceClassAndIdentifier($memberResourceClass, $memberResourceIdentifier)
         );
 
         try {

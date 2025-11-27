@@ -1580,16 +1580,16 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::CURRENT_USER_IDENTIFIER);
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
         $this->assertCount(5, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
 
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS);
         $this->assertCount(5, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
@@ -1597,8 +1597,8 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(5, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
@@ -1609,29 +1609,29 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
         $this->assertCount(3, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage);
-        $this->assertContainsResourceActionGrant($rags, $rag_coll_coll_create);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_coll_create, []);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_coll_create, $resourceCollection);
 
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_RESOURCE_CLASS);
         $this->assertCount(2, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_coll_create, $resourceCollection);
 
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(self::TEST_COLLECTION_RESOURCE_CLASS);
         $this->assertCount(1, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_coll_coll_create);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_coll_create, []);
 
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
             self::TEST_RESOURCE_CLASS, InternalResourceActionGrantService::IS_NULL);
         $this->assertCount(2, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_manage, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_coll_create, $resourceCollection);
 
         $this->login('big_brother');
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
         $this->assertCount(4, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_super_coll_read);
+        $this->assertContainsResourceActionGrant($rags, $rag_super_coll_read, []);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $collectionResource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource2);
@@ -1639,13 +1639,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
         $rags = $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead();
         $this->assertCount(10, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_coll_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_1_manage, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource2);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
-        $this->assertContainsResourceActionGrant($rags, $rag_2_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_2_manage, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource2);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $collectionResource1);
@@ -1659,13 +1659,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(4, $ragPage2);
         $rags = array_merge($ragPage1, $ragPage2);
         $this->assertCount(10, $rags);
-        $this->assertContainsResourceActionGrant($rags, $rag_coll_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_1_manage, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_1_manage, $resource2);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_coll_2_read, $resource1);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
-        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
-        $this->assertContainsResourceActionGrant($rags, $rag_2_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read, ['delete']);
+        $this->assertContainsResourceActionGrant($rags, $rag_2_manage, ['delete']);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $resource2);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_super_coll_read, $collectionResource1);

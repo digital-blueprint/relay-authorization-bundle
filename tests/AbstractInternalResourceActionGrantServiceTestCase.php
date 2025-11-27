@@ -106,21 +106,31 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
 
     protected function assertIsPermutationOf(array $array1, array $array2): void
     {
-        $this->assertTrue(count($array1) === count($array2)
-            && count($array1) === count(array_intersect($array1, $array2)), 'arrays are no permutations of each other');
+        $this->assertTrue($this->isPermutationOf($array1, $array2),
+            'arrays are no permutations of each other: '.
+            (print_r(array_diff($array1, $array2), true).' vs. '.print_r(array_diff($array2, $array1), true)));
     }
 
-    protected function assertContainsResourceActionGrant(array $rags, ResourceActionGrant $ragExpected): void
+    protected function isPermutationOf(array $array1, array $array2): bool
+    {
+        return count($array1) === count($array2)
+            && count($array1) === count(array_intersect($array1, $array2));
+    }
+
+    protected function assertContainsResourceActionGrant(array $rags, ResourceActionGrant $ragExpected,
+        ?array $grantedActionsExpected = null): void
     {
         $this->assertCount(1, $this->selectWhere($rags,
-            function (ResourceActionGrant $rag) use ($ragExpected) {
+            function (ResourceActionGrant $rag) use ($ragExpected, $grantedActionsExpected) {
                 return $rag->getIdentifier() === $ragExpected->getIdentifier()
                     && $rag->getResourceClass() === $ragExpected->getResourceClass()
                     && $rag->getResourceIdentifier() === $ragExpected->getResourceIdentifier()
                     && $rag->getAction() === $ragExpected->getAction()
                     && $rag->getUserIdentifier() === $ragExpected->getUserIdentifier()
                     && $rag->getGroup() === $ragExpected->getGroup()
-                    && $rag->getDynamicGroupIdentifier() === $ragExpected->getDynamicGroupIdentifier();
+                    && $rag->getDynamicGroupIdentifier() === $ragExpected->getDynamicGroupIdentifier()
+                    && ($grantedActionsExpected === null
+                        || $this->isPermutationOf($rag->getGrantedActions(), $grantedActionsExpected));
             }), (string) $ragExpected);
     }
 
@@ -135,7 +145,8 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
                     && $rag->getAction() === $sourceRag->getAction()
                     && $rag->getUserIdentifier() === $sourceRag->getUserIdentifier()
                     && $rag->getGroup() === $sourceRag->getGroup()
-                    && $rag->getDynamicGroupIdentifier() === $sourceRag->getDynamicGroupIdentifier();
+                    && $rag->getDynamicGroupIdentifier() === $sourceRag->getDynamicGroupIdentifier()
+                    && ($rag->getGrantedActions() ?? []) === [];
             }), (string) $sourceRag);
     }
 }

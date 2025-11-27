@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add attribute `grantedActions` to resource action grants, which indicates, whether the grant 
+can be deleted by the current user (contains `"delete"` if so)
+
 ## v0.5.5
 
 - Require at least one action to be defined for a resource class for it to be 'available'

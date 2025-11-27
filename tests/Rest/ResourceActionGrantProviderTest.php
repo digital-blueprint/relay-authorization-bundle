@@ -20,8 +20,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
     {
         parent::setUp();
 
-        $resourceActionGrantProvider = new ResourceActionGrantProvider(
-            $this->internalResourceActionGrantService, $this->authorizationService);
+        $resourceActionGrantProvider = new ResourceActionGrantProvider($this->authorizationService);
         $this->resourceActionGrantProviderTester = DataProviderTester::create($resourceActionGrantProvider, ResourceActionGrant::class);
     }
 
@@ -35,19 +34,36 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
+        $this->assertIsPermutationOf($resourceActionGrant->getGrantedActions(), ['delete']);
     }
 
-    public function testGetResourceActionGrantItemWithDynamicGroupEverybody(): void
+    public function testGetResourceActionGrantItemWithDynamicGroupEverybodyWithManageRights(): void
     {
         $resourceActionGrant = $this->addResourceAndManageGrant();
         $readGrant = $this->addResourceActionGrant($resourceActionGrant->getAuthorizationResource(), 'read', dynamicGroupIdentifier: 'everybody');
+
         $readGrantItem = $this->resourceActionGrantProviderTester->getItem(
             $readGrant->getIdentifier());
-
         $this->assertEquals($readGrant->getIdentifier(), $readGrantItem->getIdentifier());
         $this->assertEquals($readGrant->getAuthorizationResource()->getIdentifier(), $readGrantItem->getAuthorizationResource()->getIdentifier());
         $this->assertEquals('read', $readGrantItem->getAction());
         $this->assertEquals('everybody', $readGrantItem->getDynamicGroupIdentifier());
+        $this->assertIsPermutationOf($readGrantItem->getGrantedActions(), ['delete']);
+    }
+
+    public function testGetResourceActionGrantItemWithDynamicGroupEverybodyWithoutManageRights(): void
+    {
+        $resourceActionGrant = $this->addResourceAndManageGrant();
+        $readGrant = $this->addResourceActionGrant($resourceActionGrant->getAuthorizationResource(), 'read', dynamicGroupIdentifier: 'everybody');
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $readGrantItem = $this->resourceActionGrantProviderTester->getItem(
+            $readGrant->getIdentifier());
+        $this->assertEquals($readGrant->getIdentifier(), $readGrantItem->getIdentifier());
+        $this->assertEquals($readGrant->getAuthorizationResource()->getIdentifier(), $readGrantItem->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals('read', $readGrantItem->getAction());
+        $this->assertEquals('everybody', $readGrantItem->getDynamicGroupIdentifier());
+        $this->assertIsPermutationOf($readGrantItem->getGrantedActions(), []);
     }
 
     public function testGetResourceActionGrantItemNotFound(): void
@@ -71,7 +87,9 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
     public function testGetResourceActionGrantCollection(): void
     {
         $resourceActionGrant = $this->addResourceAndManageGrant();
+        $this->authorizationService->setDebug(true);
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
+        $this->authorizationService->setDebug(false);
 
         $this->assertCount(1, $resourceActionGrantCollection);
         $resourceActionGrantItem = $resourceActionGrantCollection[0];
@@ -80,6 +98,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertEquals($resourceActionGrant->getResourceIdentifier(), $resourceActionGrantItem->getResourceIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
+        $this->assertIsPermutationOf($resourceActionGrantItem->getGrantedActions(), ['delete']);
     }
 
     public function testGetResourceActionGrantCollection2(): void
@@ -98,7 +117,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         // expecting:
         // * all grants of resources that the current user ('userIdentifier') is manager of and the
         // * grants of the user ('userIdentifier') of other resources
-        $resourceActionGrant = $this->addResourceAndManageGrant();
+        $resourceActionGrant1 = $this->addResourceAndManageGrant();
         $resourceActionGrant2 = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier_2',
             'userIdentifier_2');
         $resourceActionGrant3 = $this->addGrant($resourceActionGrant2->getAuthorizationResource(),
@@ -107,8 +126,16 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
 
         $this->assertCount(2, $resourceActionGrantCollection);
-        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantCollection[0]->getIdentifier());
-        $this->assertEquals($resourceActionGrant3->getIdentifier(), $resourceActionGrantCollection[1]->getIdentifier());
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resourceActionGrant1) {
+                return $resourceActionGrant->getIdentifier() === $resourceActionGrant1->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), ['delete']);
+            }));
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resourceActionGrant3) {
+                return $resourceActionGrant->getIdentifier() === $resourceActionGrant3->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), []);
+            }));
     }
 
     public function testGetResourceActionGrantCollection4(): void
@@ -127,9 +154,21 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
 
         $this->assertCount(3, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource1Manage, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource1Read, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource2Read, $resourceActionGrantCollection);
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resource1Manage) {
+                return $resourceActionGrant->getIdentifier() === $resource1Manage->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), ['delete']);
+            }));
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resource1Read) {
+                return $resourceActionGrant->getIdentifier() === $resource1Read->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), ['delete']);
+            }));
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resource2Read) {
+                return $resourceActionGrant->getIdentifier() === $resource2Read->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), []);
+            }));
 
         // test pagination
         $resourceActionGrantPage1 = $this->resourceActionGrantProviderTester->getCollection([
@@ -146,9 +185,21 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
         $resourceActionGrantCollection = array_merge($resourceActionGrantPage1, $resourceActionGrantPage2);
         $this->assertCount(3, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource1Manage, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource1Read, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource2Read, $resourceActionGrantCollection);
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resource1Manage) {
+                return $resourceActionGrant->getIdentifier() === $resource1Manage->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), ['delete']);
+            }));
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resource1Read) {
+                return $resourceActionGrant->getIdentifier() === $resource1Read->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), ['delete']);
+            }));
+        $this->assertCount(1, $this->selectWhere($resourceActionGrantCollection,
+            function (ResourceActionGrant $resourceActionGrant) use ($resource2Read) {
+                return $resourceActionGrant->getIdentifier() === $resource2Read->getIdentifier()
+                    && $this->isPermutationOf($resourceActionGrant->getGrantedActions(), []);
+            }));
     }
 
     public function testGetResourceActionGrantCollectionWithFilters(): void

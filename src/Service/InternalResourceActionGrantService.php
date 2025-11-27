@@ -530,6 +530,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                         // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
                         $resourceActionGrant->setResourceClass($row['effective_resource_class']);
                         $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
+                        $resourceActionGrant->setAuthorizationResourceIdentifier(
+                            AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier']));
                         $resourceActionGrant->setAction($row['action']);
                         $resourceActionGrant->setUserIdentifier($row['user_identifier']);
                         $resourceActionGrant->setGroup($row['group_identifier'] ?
