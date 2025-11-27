@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.6
+
 - Add attribute `grantedActions` to resource action grants, which indicates, whether the grant 
 can be deleted by the current user (contains `"delete"` if so)
 
