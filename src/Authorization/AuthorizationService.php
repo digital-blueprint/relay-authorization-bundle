@@ -17,7 +17,6 @@ use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -99,18 +98,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function __construct(
         private readonly InternalResourceActionGrantService $internalResourceActionGrantService,
         private readonly GroupService $groupService,
-        private EntityManagerInterface $entityManager,
         private bool $debug = false)
     {
         parent::__construct();
-    }
-
-    /**
-     * @internal For testing only
-     */
-    public function setEntityManager(EntityManagerInterface $entityManager): void
-    {
-        $this->entityManager = $entityManager;
     }
 
     public function setConfig(array $config): void
@@ -438,7 +428,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         try {
             $groups = [];
-            foreach ($this->entityManager->getConnection()->executeQuery($sql, $parameterValues, $parameterTypes)
+            foreach ($this->internalResourceActionGrantService->getEntityManager()->getConnection()
+                         ->executeQuery($sql, $parameterValues, $parameterTypes)
                          ->fetchAllAssociative() as $row) {
                 $group = new Group();
                 $group->setIdentifier(AuthorizationUuidBinaryType::toStringUuid($row['identifier']));

@@ -57,7 +57,7 @@ class TestResourceActionGrantServiceFactory
     {
         $internalResourceActionGrantService ??= new InternalResourceActionGrantService($entityManager, $eventDispatcher);
         $authorizationService = new AuthorizationService(
-            $internalResourceActionGrantService, new GroupService($entityManager), $entityManager);
+            $internalResourceActionGrantService, new GroupService($entityManager));
         TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier,
             $currentUserAttributes, isServiceAccount: $isServiceAccount);
         $authorizationService->setConfig($testConfig ?? self::getTestConfig());
