@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.5.7
+
+- Fix entity managers (sometimes caused HTTP 500 for get groups)
+
 ## v0.5.6
 
 - Add attribute `grantedActions` to resource action grants, which indicates, whether the grant 
