@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
+use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Ramsey\Uuid\Uuid;
@@ -73,7 +75,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantItemForbidden(): void
     {
-        $resourceActionGrant = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier',
+        $resourceActionGrant = $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier',
             self::CURRENT_USER_IDENTIFIER.'_2');
         try {
             $this->resourceActionGrantProviderTester->getItem(
@@ -104,7 +106,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
     public function testGetResourceActionGrantCollection2(): void
     {
         $resourceActionGrant = $this->addResourceAndManageGrant();
-        $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier_2',
+        $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
             'userIdentifier_2');
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
 
@@ -115,13 +117,13 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
     public function testGetResourceActionGrantCollection3(): void
     {
         // expecting:
-        // * all grants of resources that the current user ('userIdentifier') is manager of and the
-        // * grants of the user ('userIdentifier') of other resources
+        // * all grants of resources that the current user (self::CURRENT_USER_IDENTIFIER) is manager of and the
+        // * grants of the user (self::CURRENT_USER_IDENTIFIER) of other resources
         $resourceActionGrant1 = $this->addResourceAndManageGrant();
-        $resourceActionGrant2 = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier_2',
+        $resourceActionGrant2 = $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
             'userIdentifier_2');
         $resourceActionGrant3 = $this->addGrant($resourceActionGrant2->getAuthorizationResource(),
-            'read', 'userIdentifier');
+            'read', self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
 
@@ -141,15 +143,15 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
     public function testGetResourceActionGrantCollection4(): void
     {
         // expecting:
-        // * all grants of resources that the current user ('userIdentifier') is manager of and the
-        // * grants of the user ('userIdentifier') of other resources
+        // * all grants of resources that the current user (self::CURRENT_USER_IDENTIFIER) is manager of and the
+        // * grants of the user (self::CURRENT_USER_IDENTIFIER) of other resources
         $resource1Manage = $this->addResourceAndManageGrant();
         $resource1Read = $this->addGrant($resource1Manage->getAuthorizationResource(),
             'read', 'userIdentifier_2');
-        $resource2Manage = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier_2',
+        $resource2Manage = $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
             'userIdentifier_2');
         $resource2Read = $this->addGrant($resource2Manage->getAuthorizationResource(),
-            'read', 'userIdentifier');
+            'read', self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
 
@@ -204,48 +206,57 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantCollectionWithFilters(): void
     {
-        $resource1Manage = $this->addResourceAndManageGrant('resourceClass', 'resourceIdentifier');
-        $resource1Read = $this->addGrant($resource1Manage->getAuthorizationResource(),
-            'read', 'userIdentifier_2');
-
-        $resource2Manage = $this->addResourceAndManageGrant('resourceClass_2', 'resourceIdentifier_2',
+        $resource1Manage = $this->addResourceAndManageGrant(
+            self::TEST_RESOURCE_CLASS,
+            'resourceIdentifier');
+        $resource1Read = $this->addGrant(
+            $resource1Manage->getAuthorizationResource(),
+            TestResources::READ_ACTION,
             'userIdentifier_2');
-        $resource2Read = $this->addGrant($resource2Manage->getAuthorizationResource(),
-            'read', 'userIdentifier');
 
-        $resourceCollection = $this->addResourceAndManageGrant('resourceClass', null,
-            'userIdentifier_3');
-        $resourceCollectionRead = $this->addGrant($resourceCollection->getAuthorizationResource(),
-            'read', 'userIdentifier');
+        $resource2Manage = $this->addResourceAndManageGrant(
+            self::TEST_RESOURCE_CLASS_2,
+            'resourceIdentifier_2',
+            'userIdentifier_2');
+        $resource2Update = $this->addGrant($resource2Manage->getAuthorizationResource(),
+            TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $resourceCollection = $this->addResourceAndManageGrant(
+            self::TEST_RESOURCE_CLASS,
+            AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
+            'userIdentifier_3'
+        );
+        $resourceCollectionCreate = $this->addGrant($resourceCollection->getAuthorizationResource(),
+            TestResources::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
 
         $this->assertCount(4, $resourceActionGrantCollection);
         $this->assertContainsResource($resource1Manage, $resourceActionGrantCollection);
         $this->assertContainsResource($resource1Read, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource2Read, $resourceActionGrantCollection);
-        $this->assertContainsResource($resourceCollectionRead, $resourceActionGrantCollection);
+        $this->assertContainsResource($resource2Update, $resourceActionGrantCollection);
+        $this->assertContainsResource($resourceCollectionCreate, $resourceActionGrantCollection);
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
         ]);
 
         $this->assertCount(3, $resourceActionGrantCollection);
         $this->assertContainsResource($resource1Manage, $resourceActionGrantCollection);
         $this->assertContainsResource($resource1Read, $resourceActionGrantCollection);
-        $this->assertContainsResource($resourceCollectionRead, $resourceActionGrantCollection);
+        $this->assertContainsResource($resourceCollectionCreate, $resourceActionGrantCollection);
 
         // --------------------------------------------------------------------
         // test pagination:
         $resourceActionGrantPage1 = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
             'page' => 1,
             'perPage' => 2,
         ]);
         $this->assertCount(2, $resourceActionGrantPage1);
 
         $resourceActionGrantPage2 = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
             'page' => 2,
             'perPage' => 2,
         ]);
@@ -255,22 +266,22 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertCount(3, $resourceActionGrantCollection);
         $this->assertContainsResource($resource1Manage, $resourceActionGrantCollection);
         $this->assertContainsResource($resource1Read, $resourceActionGrantCollection);
-        $this->assertContainsResource($resourceCollectionRead, $resourceActionGrantCollection);
+        $this->assertContainsResource($resourceCollectionCreate, $resourceActionGrantCollection);
         // --------------------------------------------------------------------
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass_2',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS_2,
         ]);
         $this->assertCount(1, $resourceActionGrantCollection);
-        $this->assertContainsResource($resource2Read, $resourceActionGrantCollection);
+        $this->assertContainsResource($resource2Update, $resourceActionGrantCollection);
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass_foo',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => 'resourceClass_foo',
         ]);
         $this->assertCount(0, $resourceActionGrantCollection);
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
             'resourceIdentifier' => 'resourceIdentifier',
         ]);
         $this->assertCount(2, $resourceActionGrantCollection);
@@ -280,7 +291,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         // --------------------------------------------------------------------
         // test pagination:
         $resourceActionGrantPage1 = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
             'resourceIdentifier' => 'resourceIdentifier',
             'page' => 1,
             'perPage' => 1,
@@ -288,7 +299,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertCount(1, $resourceActionGrantPage1);
 
         $resourceActionGrantPage2 = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
             'resourceIdentifier' => 'resourceIdentifier',
             'page' => 2,
             'perPage' => 1,
@@ -301,14 +312,14 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         // --------------------------------------------------------------------
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
-            'resourceIdentifier' => Common::IS_NULL_FILTER,
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
+            'resourceIdentifier' => 'null',
         ]);
         $this->assertCount(1, $resourceActionGrantCollection);
-        $this->assertContainsResource($resourceCollectionRead, $resourceActionGrantCollection);
+        $this->assertContainsResource($resourceCollectionCreate, $resourceActionGrantCollection);
 
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection([
-            'resourceClass' => 'resourceClass',
+            Common::RESOURCE_CLASS_QUERY_PARAMETER => self::TEST_RESOURCE_CLASS,
             'resourceIdentifier' => 'resourceIdentifier_foo',
         ]);
         $this->assertCount(0, $resourceActionGrantCollection);

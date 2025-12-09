@@ -18,6 +18,7 @@ class TestResources
     public const UPDATE_ACTION = 'update';
     public const DELETE_ACTION = 'delete';
     public const CREATE_ACTION = 'create';
+    public const DELETE_ALL_ACTION = 'delete_all';
 
     public const TEST_RESOURCE_ITEM_ACTIONS = [
         self::READ_ACTION => self::READ_NAMES,
@@ -38,6 +39,7 @@ class TestResources
     public const TEST_RESOURCE_2_COLLECTION_ACTIONS = [
         self::READ_ACTION => self::READ_NAMES,
         self::CREATE_ACTION => self::CREATE_NAMES,
+        self::DELETE_ALL_ACTION => self::DELETE_ALL_NAMES,
     ];
 
     public const TEST_RESOURCE_3_ITEM_ACTIONS = [
@@ -68,5 +70,9 @@ class TestResources
     private const CREATE_NAMES = [
         'en' => 'Create',
         'de' => 'Erstellen',
+    ];
+    public const DELETE_ALL_NAMES = [
+        'en' => 'Delete All',
+        'de' => 'Alle löschen',
     ];
 }
