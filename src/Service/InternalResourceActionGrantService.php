@@ -546,7 +546,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 }
             }
         } catch (\Throwable $throwable) {
-            dump($throwable);
             $this->logger->error("Failed to get $get: ".$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 "Failed to get $get",

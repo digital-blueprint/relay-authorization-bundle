@@ -423,7 +423,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 ->setMaxResults($maxNumResults)
                 ->execute();
         } catch (\Throwable $throwable) {
-            dump($throwable);
             $this->logger->error('Failed to get groups: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get groups!');
