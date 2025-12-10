@@ -6,7 +6,8 @@
     "require": {
         "php": ">=8.2",
         "ext-json": "*",
-        "api-platform/core": "^3.4 | ^4.1",
+        "api-platform/metadata": "^4.1",
+        "api-platform/openapi": "^4.1",
         "beberlei/doctrineextensions": "^1.5",
         "dbp/relay-core-bundle": "^0.1.227",
         "doctrine/collections": "^2.2",
@@ -31,6 +32,7 @@
         "symfony/service-contracts": "^3.5"
     },
     "require-dev": {
+        "api-platform/symfony": "^4.1",
         "friendsofphp/php-cs-fixer": "^3.50",
         "phpstan/phpstan": "^2.0.0",
         "phpstan/phpstan-phpunit": "^2.0.0",
