@@ -144,11 +144,12 @@ class ApiTest extends AbstractApiTest
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
 
-        $groupMember = json_decode($response->getContent(), true);
-        $response = $this->testClient->get('/authorization/group-members/'.$groupMember['identifier']);
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        $groupMemberFromGet = json_decode($response->getContent(), true);
-        $this->assertEquals($groupMember['identifier'], $groupMemberFromGet['identifier']);
+        // endpoint disabled:
+        //        $groupMember = json_decode($response->getContent(), true);
+        //        $response = $this->testClient->get('/authorization/group-members/'.$groupMember['identifier']);
+        //        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        //        $groupMemberFromGet = json_decode($response->getContent(), true);
+        //        $this->assertEquals($groupMember['identifier'], $groupMemberFromGet['identifier']);
     }
 
     // TODO: add resource action grant tests

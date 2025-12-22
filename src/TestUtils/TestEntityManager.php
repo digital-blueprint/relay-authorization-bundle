@@ -45,17 +45,9 @@ class TestEntityManager extends CoreTestEntityManager
         return $this->addResourceActionGrantInternal($resource, $action, $userIdentifier, $group, $dynamicGroupIdentifier);
     }
 
-    public function addResourceActionGrantByResourceClassAndIdentifier(
-        string $resourceClass, ?string $resourceIdentifier, string $action,
+    public function addAuthorizationResourceAndActionGrant(
+        string $resourceClass, string $resourceIdentifier, string $action,
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
-    {
-        return $this->addResourceActionGrant(
-            $this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier),
-            $action, $userIdentifier, $group, $dynamicGroupIdentifier);
-    }
-
-    public function addAuthorizationResourceAndActionGrant(string $resourceClass, ?string $resourceIdentifier,
-        string $action, ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
 
@@ -63,7 +55,7 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addAuthorizationResource(string $resourceClass = self::DEFAULT_RESOURCE_CLASS,
-        ?string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER): AuthorizationResource
+        string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER): AuthorizationResource
     {
         $resource = new AuthorizationResource();
         $resource->setIdentifier(Uuid::uuid7()->toString());
@@ -164,7 +156,8 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function getAuthorizationResourceByResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier): ?AuthorizationResource
+    public function getAuthorizationResourceByResourceClassAndIdentifier(
+        string $resourceClass, string $resourceIdentifier): ?AuthorizationResource
     {
         $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
         $expressionBuilder = $this->entityManager->getExpressionBuilder();
@@ -174,15 +167,9 @@ class TestEntityManager extends CoreTestEntityManager
                 ->select($AUTHORIZATION_RESOURCE_ALIAS)
                 ->from(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS)
                 ->where($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass", ':resourceClass'))
-                ->setParameter(':resourceClass', $resourceClass);
-            if ($resourceIdentifier === null) {
-                $queryBuilder
-                    ->andWhere($expressionBuilder->isNull("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier"));
-            } else {
-                $queryBuilder
-                    ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
-                    ->setParameter(':resourceIdentifier', $resourceIdentifier);
-            }
+                ->setParameter(':resourceClass', $resourceClass)
+                ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
+                ->setParameter(':resourceIdentifier', $resourceIdentifier);
 
             return $queryBuilder
                 ->getQuery()
@@ -233,7 +220,7 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function addGroupMember(Group $group, ?string $userIdentifier, ?Group $childGroup = null): GroupMember
+    public function addGroupMember(Group $group, ?string $userIdentifier = null, ?Group $childGroup = null): GroupMember
     {
         $groupMember = new GroupMember();
         $groupMember->setIdentifier(Uuid::uuid7()->toString());
@@ -335,5 +322,10 @@ class TestEntityManager extends CoreTestEntityManager
             AuthorizationService::GROUP_RESOURCE_CLASS,
             AuthorizationService::GROUP_ITEM_ACTIONS,
             AuthorizationService::GROUP_COLLECTION_ACTIONS);
+    }
+
+    public function clear(): void
+    {
+        $this->entityManager->clear();
     }
 }

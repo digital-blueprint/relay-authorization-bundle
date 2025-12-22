@@ -82,17 +82,18 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->authorizationService->addGroup($group->getIdentifier());
         $this->addResourceAndManageGrant(
             resourceClass: self::TEST_RESOURCE_CLASS,
-            resourceIdentifier: null);
+            resourceIdentifier: AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(self::TEST_RESOURCE_CLASS);
+        $resourceActionGrant->setResourceIdentifier(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $resourceActionGrant->setAction(TestResources::CREATE_ACTION);
         $resourceActionGrant->setGroup($group);
         $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
 
         $event = $this->testResourceActionGrantAddedEventSubscriber->getEvent();
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $event->getResourceClass());
-        $this->assertNull($event->getResourceIdentifier());
+        $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $event->getResourceIdentifier());
         $this->assertEquals(TestResources::CREATE_ACTION, $event->getAction());
         $this->assertNull($event->getUserIdentifier());
         $this->assertNull($event->getDynamicGroupIdentifier());
@@ -119,9 +120,13 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
 
     public function testCreateResourceActionGrantWithResourceClassAndIdentifierCollection(): void
     {
-        $this->addResourceAndManageGrant(TestEntityManager::DEFAULT_RESOURCE_CLASS, null);
+        $this->addResourceAndManageGrant(
+            TestEntityManager::DEFAULT_RESOURCE_CLASS,
+            AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
+        );
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
+        $resourceActionGrant->setResourceIdentifier(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $resourceActionGrant->setAction('create');
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 

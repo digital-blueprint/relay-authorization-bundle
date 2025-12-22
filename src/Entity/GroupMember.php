@@ -24,29 +24,29 @@ use Symfony\Component\Serializer\Annotation\Groups;
 #[ApiResource(
     shortName: 'AuthorizationGroupMember',
     operations: [
-        new Get(
-            uriTemplate: '/authorization/group-members/{identifier}',
-            openapi: new Operation(
-                tags: ['Authorization']
-            ),
-            provider: GroupMemberProvider::class
-        ),
-        new GetCollection(
-            uriTemplate: '/authorization/group-members',
-            openapi: new Operation(
-                tags: ['Authorization'],
-                parameters: [
-                    new Parameter(
-                        name: 'groupIdentifier',
-                        in: 'query',
-                        description: 'AuthorizationGroup identifier to get members of',
-                        required: true,
-                        schema: ['type' => 'string'],
-                    ),
-                ]
-            ),
-            provider: GroupMemberProvider::class,
-        ),
+        //        new Get(
+        //            uriTemplate: '/authorization/group-members/{identifier}',
+        //            openapi: new Operation(
+        //                tags: ['Authorization']
+        //            ),
+        //            provider: GroupMemberProvider::class
+        //        ),
+        //        new GetCollection(
+        //            uriTemplate: '/authorization/group-members',
+        //            openapi: new Operation(
+        //                tags: ['Authorization'],
+        //                parameters: [
+        //                    new Parameter(
+        //                        name: 'groupIdentifier',
+        //                        in: 'query',
+        //                        description: 'AuthorizationGroup identifier to get members of',
+        //                        required: true,
+        //                        schema: ['type' => 'string'],
+        //                    ),
+        //                ]
+        //            ),
+        //            provider: GroupMemberProvider::class,
+        //        ),
         new Post(
             uriTemplate: '/authorization/group-members',
             openapi: new Operation(

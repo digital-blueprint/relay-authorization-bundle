@@ -25,6 +25,13 @@ use Symfony\Component\Serializer\Annotation\Groups;
             uriTemplate: '/authorization/resource-action-grants/{identifier}',
             openapi: new Operation(
                 tags: ['Authorization'],
+            ),
+            provider: ResourceActionGrantProvider::class
+        ),
+        new GetCollection(
+            uriTemplate: '/authorization/resource-action-grants',
+            openapi: new Operation(
+                tags: ['Authorization'],
                 parameters: [
                     new Parameter(
                         name: 'resourceClass',
@@ -41,13 +48,6 @@ use Symfony\Component\Serializer\Annotation\Groups;
                         schema: ['type' => 'string'],
                     ),
                 ],
-            ),
-            provider: ResourceActionGrantProvider::class
-        ),
-        new GetCollection(
-            uriTemplate: '/authorization/resource-action-grants',
-            openapi: new Operation(
-                tags: ['Authorization']
             ),
             provider: ResourceActionGrantProvider::class,
         ),
@@ -179,6 +179,24 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $dynamicGroupIdentifier = null;
 
+    // #[ORM\Column(name: 'shareable', type: 'boolean', nullable: false, options: ['default' => false])]
+    // #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    private bool $shareable = false;
+
+    /**
+     * If set, $this was/is requested to be created as a share of $shareOf.
+     */
+    // #[ORM\JoinColumn(name: 'share_of_identifier', referencedColumnName: 'identifier', nullable: true, onDelete: 'CASCADE')]
+    // #[ORM\ManyToOne(targetEntity: self::class)]
+    // #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    private ?ResourceActionGrant $shareOf = null;
+
+    // #[ORM\Column(name: 'creator_id', type: 'string', length: 40, nullable: true)]
+    private ?string $creatorId = null;
+
+    // #[ORM\Column(name: 'date_created', type: 'datetime', nullable: true)]
+    private ?\DateTime $dateCreated = null;
+
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceClass = null;
 
@@ -190,9 +208,11 @@ class ResourceActionGrant
 
     private ?string $authorizationResourceIdentifier = null;
 
+    private bool $isInherited = false;
+
     public function getIdentifier(): ?string
     {
-        return $this->identifier;
+        return $this->isInherited ? $this->identifier.'_inherited' : $this->identifier;
     }
 
     public function setIdentifier(?string $identifier): void
@@ -293,6 +313,26 @@ class ResourceActionGrant
         $this->resourceIdentifier = $resourceIdentifier;
     }
 
+    public function getShareable(): bool
+    {
+        return $this->shareable;
+    }
+
+    public function setShareable(bool $shareable): void
+    {
+        $this->shareable = $shareable;
+    }
+
+    public function getShareOf(): ?self
+    {
+        return $this->shareOf;
+    }
+
+    public function setShareOf(?self $shareOf): void
+    {
+        $this->shareOf = $shareOf;
+    }
+
     public function setGrantedActions(array $grantedActions): void
     {
         $this->grantedActions = $grantedActions;
@@ -301,6 +341,36 @@ class ResourceActionGrant
     public function getGrantedActions(): ?array
     {
         return $this->grantedActions;
+    }
+
+    public function getCreatorId(): ?string
+    {
+        return $this->creatorId;
+    }
+
+    public function setCreatorId(?string $creatorId): void
+    {
+        $this->creatorId = $creatorId;
+    }
+
+    public function getDateCreated(): ?\DateTime
+    {
+        return $this->dateCreated;
+    }
+
+    public function setDateCreated(?\DateTime $dateCreated): void
+    {
+        $this->dateCreated = $dateCreated;
+    }
+
+    public function isInherited(): bool
+    {
+        return $this->isInherited;
+    }
+
+    public function setIsInherited(bool $isInherited): void
+    {
+        $this->isInherited = $isInherited;
     }
 
     public function __toString(): string
