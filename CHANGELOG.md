@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v0.5.8
+
+- Drop support for Symfony 5
+- Drop support for api-platform 3
+- Add support for Symfony 7
+
 ## v0.5.7
 
 - Fix entity managers (sometimes caused HTTP 500 for get groups)
