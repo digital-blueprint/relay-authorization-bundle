@@ -2,14 +2,6 @@
 
 ## Unreleased
 
-- Replace collection resource identifier by the string `'null'` (used to be PHP `null`/SQL `NULL`), to 
-simplify code and querying. Note: `'null'` is thus a reserved resource identifier.
-- Prepare for the sharing of resource action grants
-- Add a GET item and collection operation for the `AuthorizationResource`, where the item operation
-also provides:
-  - the list of resource action grants that the current user may see for the resource
-  - the list of granted actions that user may perform on the resource (currently: `add_grants`).
-
 ## v0.5.7
 
 - Fix entity managers (sometimes caused HTTP 500 for get groups)

@@ -50,7 +50,7 @@ class ResourceActionGrantProcessor extends AbstractDataProcessor
     {
         assert($data instanceof ResourceActionGrant);
 
-        return $this->resourceActionGrantService->addResourceActionGrant($data, $this->getUserIdentifier());
+        return $this->resourceActionGrantService->addResourceActionGrant($data);
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\DependencyInjection;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -75,6 +76,12 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode(self::IDENTIFIER)
                                 ->cannotBeEmpty()
                                 ->isRequired()
+                                ->validate()
+                                ->ifTrue(function ($value) {
+                                    return str_contains($value, GrantedActions::ID_SEPARATOR);
+                                })
+                                ->thenInvalid('Resource class identifiers must not contain reserved character \''.GrantedActions::ID_SEPARATOR.'\'')
+                                ->end()
                                 ->validate()
                                 ->ifTrue(function ($value) {
                                     return str_contains($value, UserAttributeProvider::SEPARATOR);

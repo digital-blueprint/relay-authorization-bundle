@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActionName;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
@@ -31,7 +32,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    public const COLLECTION_RESOURCE_IDENTIFIER = 'null';
+    public const IS_NULL = '@@@ __is_null__ @@@';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
 
     public const GROUP_BY_RESOURCE_CLASS_OPTION = 'group_by_resource_class';
@@ -39,7 +40,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const ADDITIONAL_JOIN_STATEMENTS_OPTION = 'additional_join_statements';
     public const ADDITIONAL_CRITERIA_OPTION = 'additional_criteria';
     public const IGNORE_ACTION_AVAILABILITY_OPTION = 'ignore_action_availability';
-    public const EXCLUDE_COLLECTION_RESOURCE_OPTION = 'exclude_collection_resource';
 
     public const RESOURCE_ACTION_GRANT_ALIAS = 'rag';
     public const AUTHORIZATION_RESOURCE_ALIAS = 'ar';
@@ -137,10 +137,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function addResourceActionGrant(ResourceActionGrant $resourceActionGrant,
-        ?string $currentUserIdentifier): ResourceActionGrant
+    public function addResourceActionGrant(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
     {
-        return $this->addResourceActionGrantInternal($resourceActionGrant, $currentUserIdentifier);
+        return $this->addResourceActionGrantInternal($resourceActionGrant);
     }
 
     /**
@@ -233,9 +232,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function addResourceActionGrantByResourceClassAndIdentifier(string $resourceClass, string $resourceIdentifier,
-        string $action, ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
-        bool $shareable = false, ?string $currentUserIdentifier = null): ResourceActionGrant
+    public function addResourceActionGrantByResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier, string $action,
+        ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         $connection = $this->entityManager->getConnection();
         try {
@@ -247,9 +245,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $resourceActionGrant->setUserIdentifier($userIdentifier);
             $resourceActionGrant->setGroup($group);
             $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
-            $resourceActionGrant->setShareable($shareable);
 
-            $this->addResourceActionGrantInternal($resourceActionGrant, $currentUserIdentifier);
+            $this->addResourceActionGrantInternal($resourceActionGrant);
 
             $connection->commit();
         } catch (\Throwable $throwable) {
@@ -269,7 +266,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function removeAuthorizationResourceByResourceClassAndIdentifier(string $resourceClass, string $resourceIdentifier): void
+    public function removeAuthorizationResourceByResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier): void
     {
         $this->removeResourcesInternal($resourceClass, $resourceIdentifier);
     }
@@ -287,8 +284,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function addResourceToGroupResource(string $groupResourceClass, string $groupResourceIdentifier,
-        string $resourceClass, string $resourceIdentifier): GroupAuthorizationResourceMember
+    public function addResourceToGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
+        string $resourceClass, ?string $resourceIdentifier): GroupAuthorizationResourceMember
     {
         // TODO: prevent circular references
         if ($groupResourceClass === $resourceClass && $groupResourceIdentifier === $resourceIdentifier) {
@@ -316,8 +313,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         return $groupAuthorizationResourceMember;
     }
 
-    public function removeResourceFromGroupResource(string $groupResourceClass, string $groupResourceIdentifier,
-        string $resourceClass, string $resourceIdentifier): void
+    public function removeResourceFromGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
+        string $resourceClass, ?string $resourceIdentifier): void
     {
         $GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS = self::GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS;
         $GROUP_AUTHORIZATION_RESOURCE_ALIAS = 'gar';
@@ -333,11 +330,23 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             ->where($innerQueryBuilder->expr()->eq($GROUP_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':groupResourceClass'))
             ->setParameter(':groupResourceClass', $groupResourceClass)
             ->andWhere($innerQueryBuilder->expr()->eq($MEMBER_AUTHORIZATION_RESOURCE_ALIAS.'.resourceClass', ':memberResourceClass'))
-            ->setParameter(':memberResourceClass', $resourceClass)
-            ->andWhere($innerQueryBuilder->expr()->eq($GROUP_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':sourceResourceIdentifier'))
-            ->setParameter(':sourceResourceIdentifier', $groupResourceIdentifier)
-            ->andWhere($innerQueryBuilder->expr()->eq($MEMBER_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':targetResourceIdentifier'))
-            ->setParameter(':targetResourceIdentifier', $resourceIdentifier);
+            ->setParameter(':memberResourceClass', $resourceClass);
+        if ($groupResourceIdentifier !== null) {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->eq($GROUP_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':sourceResourceIdentifier'))
+                ->setParameter(':sourceResourceIdentifier', $groupResourceIdentifier);
+        } else {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->isNull($GROUP_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
+        }
+        if ($resourceIdentifier !== null) {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->eq($MEMBER_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier', ':targetResourceIdentifier'))
+                ->setParameter(':targetResourceIdentifier', $resourceIdentifier);
+        } else {
+            $innerQueryBuilder
+                ->andWhere($innerQueryBuilder->expr()->isNull($MEMBER_AUTHORIZATION_RESOURCE_ALIAS.'.resourceIdentifier'));
+        }
 
         $queryBuilder = $this->entityManager->createQueryBuilder();
         $queryBuilder
@@ -444,7 +453,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
-     * Gets all resource action grants for one resource item page defined by the first result
+     * Gets all resource action grants for an authorization resource subset (page) defined by the first result
      * index and the maximum number of result (page) items ordered by resource.
      *
      * Parameters with null values will not be filtered on.
@@ -455,10 +464,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function getResourceActionGrantsForResourceItemPage(string $resourceClass,
-        ?array $whereAuthorizationResourceActionsContainAnyOf = null,
+    public function getResourceActionGrantsForAuthorizationResourcePage(string $resourceClass,
+        int $actionType = AvailableResourceClassAction::ITEM_ACTION_TYPE, ?array $whereAuthorizationResourceActionsContainAnyOf = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
+        int $firstResultIndex = 0, int $maxNumResults = 1024): array
     {
         // * doctrine does not yet support joins with subqueries (SELECT ... INNER JOIN (SELECT ...))
         // * our current MySQL version doesn't yet support 'LIMIT & IN/ALL/ANY/SOME subquery' (SELECT ... WHERE foo IN (SELECT .... LIMIT 10)
@@ -466,11 +475,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         try {
             // first get the requested page of authorization resource ids
             $authorizationResourceIdPage = $this->getInternal(
-                self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS,
-                $resourceClass, null, null,
-                $whereAuthorizationResourceActionsContainAnyOf,
+                self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS, $resourceClass,
+                $actionType === AvailableResourceClassAction::COLLECTION_ACTION_TYPE ? self::IS_NULL : self::IS_NOT_NULL,
+                null, $whereAuthorizationResourceActionsContainAnyOf,
                 $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
-                $firstResultIndex, $maxNumResults, $options);
+                $firstResultIndex, $maxNumResults);
 
             // then get all grants for the authorization resource ids page
             return $this->getInternal(
@@ -485,59 +494,62 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
+    public function getResourceActionGrantQuery(
+        string $get = self::GET_RESOURCE_ACTION_GRANTS,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
+        ?array $actions = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []
+    ): array {
+        return $this->getQueryInternal($get, $resourceClass, $resourceIdentifier,
+            $authorizationResourceIdentifiers, $actions,
+            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+            $firstResultIndex, $maxNumResults, $options);
+    }
+
     private function getInternal(string $get,
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
         int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
     {
-        $GET_TYPE_RESOURCE_ACTION_GRANTS = 'rag';
-        $GET_TYPE_AUTHORIZATION_RESOURCES = 'ars';
-        $GET_TYPE_AUTHORIZATION_RESOURCE_WITH_RESOURCE_ACTION_GRANTS = 'ar';
-        $GET_TYPE_AUTHORIZATION_RESOURCE_IDENTIFIERS = 'ari';
-
-        $getType = match ($get) {
-            self::GET_RESOURCE_ACTION_GRANTS => $GET_TYPE_RESOURCE_ACTION_GRANTS,
-            self::GET_AUTHORIZATION_RESOURCES => $resourceIdentifier !== null ? $GET_TYPE_AUTHORIZATION_RESOURCE_WITH_RESOURCE_ACTION_GRANTS : $GET_TYPE_AUTHORIZATION_RESOURCES,
-            self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS => $GET_TYPE_AUTHORIZATION_RESOURCE_IDENTIFIERS,
-            default => throw new \InvalidArgumentException('Undefined get: '.$get),
-        };
-        $getInternal = $getType === $GET_TYPE_AUTHORIZATION_RESOURCE_WITH_RESOURCE_ACTION_GRANTS ?
-            self::GET_RESOURCE_ACTION_GRANTS : $get;
-
-        [$sql, $parameterValues, $parameterTypes] = $this->getQueryInternal(
-            $getInternal,
-            $resourceClass, $resourceIdentifier, $authorizationResourceIdentifiers,
-            $actions,
+        [$sql, $parameterValues, $parameterTypes] = $this->getQueryInternal($get, $resourceClass, $resourceIdentifier,
+            $authorizationResourceIdentifiers, $actions,
             $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
             $firstResultIndex, $maxNumResults, $options);
 
         try {
             $results = [];
-            /** @var AuthorizationResource|null $currentAuthorizationResource */
-            $currentAuthorizationResource = null;
             foreach ($this->entityManager->getConnection()->executeQuery($sql, $parameterValues, $parameterTypes)->fetchAllAssociative() as $row) {
-                switch ($getType) {
-                    case $GET_TYPE_AUTHORIZATION_RESOURCES:
-                        $results[] = $this->hydrateAuthorizationResource($row);
+                switch ($get) {
+                    case self::GET_RESOURCE_ACTION_GRANTS:
+                        $resourceActionGrant = new ResourceActionGrant();
+                        $resourceActionGrant->setIdentifier(
+                            AuthorizationUuidBinaryType::toStringUuid($row['identifier']).
+                            ($row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier'] ? '_inherited' : ''));
+                        // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
+                        $resourceActionGrant->setResourceClass($row['effective_resource_class']);
+                        $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
+                        $resourceActionGrant->setAuthorizationResourceIdentifier(
+                            AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier']));
+                        $resourceActionGrant->setAction($row['action']);
+                        $resourceActionGrant->setUserIdentifier($row['user_identifier']);
+                        $resourceActionGrant->setGroup($row['group_identifier'] ?
+                            $this->entityManager->getRepository(Group::class)->find(AuthorizationUuidBinaryType::toStringUuid($row['group_identifier'])) : null);
+                        $resourceActionGrant->setDynamicGroupIdentifier($row['dynamic_group_identifier']);
+                        $results[] = $resourceActionGrant;
                         break;
 
-                    case $GET_TYPE_RESOURCE_ACTION_GRANTS:
-                    case $GET_TYPE_AUTHORIZATION_RESOURCE_WITH_RESOURCE_ACTION_GRANTS:
-                        $resourceActionGrant = $this->hydrateResourceActionGrant($row);
-                        if ($getType === $GET_TYPE_AUTHORIZATION_RESOURCE_WITH_RESOURCE_ACTION_GRANTS) {
-                            if ($currentAuthorizationResource?->getIdentifier() !==
-                                AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier'])) {
-                                $currentAuthorizationResource = $this->hydrateAuthorizationResource($row);
-                                $results[] = $currentAuthorizationResource;
-                            }
-                            $currentAuthorizationResource->getResourceActionGrants()->add($resourceActionGrant);
-                        } else {
-                            $results[] = $resourceActionGrant;
-                        }
+                    case self::GET_AUTHORIZATION_RESOURCES:
+                        $authorizationResource = new AuthorizationResource();
+                        $authorizationResource->setIdentifier(
+                            AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier']));
+                        $authorizationResource->setResourceClass($row['effective_resource_class']);
+                        $authorizationResource->setResourceIdentifier($row['effective_resource_identifier']);
+                        $results[] = $authorizationResource;
                         break;
 
-                    case $GET_TYPE_AUTHORIZATION_RESOURCE_IDENTIFIERS:
+                    case self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS:
                         $results[] = $row['effective_authorization_resource_identifier'];
                         break;
 
@@ -545,27 +557,17 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                         throw new \InvalidArgumentException('Undefined get: '.$get);
                 }
             }
+
+            return $results;
         } catch (\Throwable $throwable) {
             $this->logger->error("Failed to get $get: ".$throwable->getMessage(), ['exception' => $throwable]);
+            dump($throwable->getMessage());
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 "Failed to get $get",
                 $get === self::GET_RESOURCE_ACTION_GRANTS ?
                     self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID :
                     self::GETTING_RESOURCE_COLLECTION_FAILED_ERROR_ID);
         }
-
-        return $results;
-    }
-
-    private function hydrateAuthorizationResource(array $row): AuthorizationResource
-    {
-        $currentAuthorizationResource = new AuthorizationResource();
-        $currentAuthorizationResource->setIdentifier(
-            AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier']));
-        $currentAuthorizationResource->setResourceClass($row['effective_resource_class']);
-        $currentAuthorizationResource->setResourceIdentifier($row['effective_resource_identifier']);
-
-        return $currentAuthorizationResource;
     }
 
     /**
@@ -614,7 +616,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
         $authorizationResourceCriteria = $this->getAuthorizationResourceCriteria($AUTHORIZATION_RESOURCE_ALIAS,
             $resourceClass, $resourceIdentifier, $authorizationResourceIdentifiers,
-            $parameterValues, $parameterTypes, $options);
+            $parameterValues, $parameterTypes);
 
         $actionCriteria = $this->getActionCriteria($RESOURCE_ACTION_GRANT_ALIAS, $actions, $parameterValues, $parameterTypes);
 
@@ -643,25 +645,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
         $availableResourceClassActionsTable = AvailableResourceClassAction::TABLE_NAME;
         $manageAction = AuthorizationService::MANAGE_ACTION;
-        $collectionResourceIdentifier = self::COLLECTION_RESOURCE_IDENTIFIER;
 
         $actionsAvailabilityCriteria = ($options[self::IGNORE_ACTION_AVAILABILITY_OPTION] ?? false) ?
             'true' :
             "(
                 $RESOURCE_ACTION_GRANT_ALIAS.action = '$manageAction' 
-                OR ($AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier != '$collectionResourceIdentifier' 
-                    AND $RESOURCE_ACTION_GRANT_ALIAS.action IN (
-                        SELECT action FROM $availableResourceClassActionsTable
-                        WHERE action_type = 0 
-                        AND resource_class = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class
-                    )
-                )
-                OR ($AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier = '$collectionResourceIdentifier'
-                    AND $RESOURCE_ACTION_GRANT_ALIAS.action IN (
-                        SELECT action FROM $availableResourceClassActionsTable
-                        WHERE action_type = 1 
-                        AND resource_class = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class
-                    )
+                OR $RESOURCE_ACTION_GRANT_ALIAS.action IN (
+                    SELECT action FROM $availableResourceClassActionsTable
+                    WHERE resource_class = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class
                 )
             )";
 
@@ -721,7 +712,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         [$itemActions, $collectionActions] = $this->getAvailableResourceClassActions(
             $resourceActionGrant->getAuthorizationResource()->getResourceClass());
 
-        if ($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier() !== self::COLLECTION_RESOURCE_IDENTIFIER) {
+        if ($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier() !== null) {
             $actionsToCheck = array_keys($itemActions ?? []);
         } else {
             $actionsToCheck = array_keys($collectionActions ?? []);
@@ -829,10 +820,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $this->entityManager->flush();
 
                 return $authorizationResource;
-            } catch (\Throwable $throwable) {
-                $this->logger->error('Failed to add resource: '.$throwable->getMessage(), ['exception' => $throwable]);
-                throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added! '.$throwable->getMessage(),
-                    self::ADDING_RESOURCE_FAILED_ERROR_ID);
+            } catch (\Exception $e) {
+                throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
+                    self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
             }
         }
 
@@ -842,38 +832,45 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    private function validateResourceClassAndIdentifier(string $resourceClass, string $resourceIdentifier): void
+    private function validateResourceClassAndIdentifier(string $resourceClass, ?string $resourceIdentifier): void
     {
         if (str_contains($resourceClass, UserAttributeProvider::SEPARATOR)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 sprintf("resource class must not contain the reserved character '%s'",
                     UserAttributeProvider::SEPARATOR));
         }
-        if (str_contains($resourceIdentifier, UserAttributeProvider::SEPARATOR)) {
+        if (str_contains($resourceClass, GrantedActions::ID_SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource class must not contain the reserved character '%s'",
+                    GrantedActions::ID_SEPARATOR));
+        }
+
+        if ($resourceIdentifier && str_contains($resourceIdentifier, UserAttributeProvider::SEPARATOR)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 sprintf("resource identifier must not contain the reserved character '%s'",
                     UserAttributeProvider::SEPARATOR));
+        }
+        if ($resourceIdentifier && str_contains($resourceIdentifier, GrantedActions::ID_SEPARATOR)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                sprintf("resource identifier must not contain the reserved character '%s'",
+                    GrantedActions::ID_SEPARATOR));
         }
     }
 
     /**
      * @throws ApiError
      */
-    private function addResourceActionGrantInternal(ResourceActionGrant $resourceActionGrant,
-        ?string $currentUserIdentifier): ResourceActionGrant
+    private function addResourceActionGrantInternal(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
     {
         $this->validateResourceActionGrant($resourceActionGrant);
 
         $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
-        $resourceActionGrant->setCreatorId($currentUserIdentifier);
-        $resourceActionGrant->setDateCreated(new \DateTime());
         try {
             $this->entityManager->persist($resourceActionGrant);
             $this->entityManager->flush();
-        } catch (\Throwable $throwable) {
-            $this->logger->error('Failed to add resource action grant: '.$throwable->getMessage(), ['exception' => $throwable]);
+        } catch (ApiError $e) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
-                self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);
+                self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
         }
 
         $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent(
@@ -889,7 +886,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     private function getAuthorizationResourceCriteria(string $authorization_resource_alias,
         ?string $resourceClass, ?string $resourceIdentifier, mixed $authorizationResourceIdentifiers,
-        array &$parameterValues, array &$parameterTypes, array $options = []): string
+        array &$parameterValues, array &$parameterTypes): string
     {
         $resourceClassCriteria = 'true';
         if ($resourceClass !== null) {
@@ -899,12 +896,17 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
         $resourceIdentifierCriteria = 'true';
         if ($resourceIdentifier !== null) {
-            if ($options[self::EXCLUDE_COLLECTION_RESOURCE_OPTION] ?? false) {
-                $COLLECTION_RESOURCE_IDENTIFIER = self::COLLECTION_RESOURCE_IDENTIFIER;
-                $resourceIdentifierCriteria = "$authorization_resource_alias.resource_identifier != '$COLLECTION_RESOURCE_IDENTIFIER'";
-            } else {
-                $resourceIdentifierCriteria = "$authorization_resource_alias.resource_identifier = :resourceIdentifier";
-                $parameterValues['resourceIdentifier'] = $resourceIdentifier;
+            switch ($resourceIdentifier) {
+                case self::IS_NULL:
+                    $resourceIdentifierCriteria = "$authorization_resource_alias.resource_identifier is null";
+                    break;
+                case self::IS_NOT_NULL:
+                    $resourceIdentifierCriteria = "$authorization_resource_alias.resource_identifier is not null";
+                    break;
+                default:
+                    $resourceIdentifierCriteria = "$authorization_resource_alias.resource_identifier = :resourceIdentifier";
+                    $parameterValues['resourceIdentifier'] = $resourceIdentifier;
+                    break;
             }
         }
         $authorizationResourceIdentifierCriteria = 'true';
@@ -984,27 +986,5 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         return $grantHolderCriteria;
-    }
-
-    private function hydrateResourceActionGrant(array $row): ResourceActionGrant
-    {
-        $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setIdentifier(
-            AuthorizationUuidBinaryType::toStringUuid($row['identifier']));
-        $resourceActionGrant->setIsInherited(
-            $row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier']);
-        // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
-        $resourceActionGrant->setResourceClass($row['effective_resource_class']);
-        $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
-        $resourceActionGrant->setAuthorizationResourceIdentifier(
-            AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier']));
-        $resourceActionGrant->setAction($row['action']);
-        $resourceActionGrant->setUserIdentifier($row['user_identifier']);
-        $resourceActionGrant->setGroup($row['group_identifier'] ?
-            $this->entityManager->getRepository(Group::class)->find(
-                AuthorizationUuidBinaryType::toStringUuid($row['group_identifier'])) : null);
-        $resourceActionGrant->setDynamicGroupIdentifier($row['dynamic_group_identifier']);
-
-        return $resourceActionGrant;
     }
 }

@@ -159,19 +159,19 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
         }
     }
 
+    /**
+     * @return void
+     */
     private function addManageGroupCollectionGrantForCurrentUser(): ResourceActionGrant
     {
         $groupCollection = $this->internalResourceActionGrantService->getAuthorizationResourceByResourceClassAndIdentifier(
-            AuthorizationService::GROUP_RESOURCE_CLASS,
-            AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
-        );
+            AuthorizationService::GROUP_RESOURCE_CLASS, null);
 
         $manageGroupCollectionGrant = new ResourceActionGrant();
         $manageGroupCollectionGrant->setAuthorizationResource($groupCollection);
         $manageGroupCollectionGrant->setAction(AuthorizationService::MANAGE_ACTION);
         $manageGroupCollectionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
-        return $this->internalResourceActionGrantService->addResourceActionGrant(
-            $manageGroupCollectionGrant, self::CURRENT_USER_IDENTIFIER);
+        return $this->internalResourceActionGrantService->addResourceActionGrant($manageGroupCollectionGrant);
     }
 }

@@ -89,7 +89,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
     public function testGetCollectionActionAttribute(): void
     {
         $authorizationResource = $this->testEntityManager->addAuthorizationResource(
-            self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_CLASS, null);
 
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.TestResources::CREATE_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(

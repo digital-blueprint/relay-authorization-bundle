@@ -29,7 +29,7 @@ class ResourceActionGrantProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        return $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
+        return $this->authorizationService->getResourceActionGrantsUserIsAuthorizedToRead(
             self::getResourceClassFilter($filters),
             self::getResourceIdentifierFilter($filters),
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
@@ -49,6 +49,9 @@ class ResourceActionGrantProvider extends AbstractDataProvider
 
     private static function getResourceIdentifierFilter(array $filters): ?string
     {
-        return $filters[Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER] ?? null;
+        return match ($filter = $filters[Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER] ?? null) {
+            Common::IS_NULL_FILTER => AuthorizationService::IS_NULL,
+            default => $filter,
+        };
     }
 }
