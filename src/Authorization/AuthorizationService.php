@@ -156,11 +156,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                     sprintf('dynamic group \'%s\' is undefined', $dynamicGroupIdentifier),
                     self::DYNAMIC_GROUP_UNDEFINED_ERROR_ID);
-            } else {
-                throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                    sprintf('failed to determine if current user is member of dynamic group \'%s\': %s',
-                        $dynamicGroupIdentifier, $authorizationException->getMessage()));
             }
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                sprintf('failed to determine if current user is member of dynamic group \'%s\': %s',
+                    $dynamicGroupIdentifier, $authorizationException->getMessage()));
         }
     }
 
