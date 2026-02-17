@@ -11,6 +11,7 @@ Each grant has exactly one of the 3 possible grant holder types. See [Groups](gr
 
 Actions that can be performed on a resource depend on the resource class and are defined by the application. There are two kinds
 of actions for a resource class:
+
 * resource item actions
 * resource collection actions
 
@@ -27,6 +28,7 @@ further grants ('manage' or other) for the same resource.
 A resource can be any uniquely identifiable application object (document, post, form, ...) whose access is to be controlled.
 
 The DbpRelayAuthorizationBundle distinguishes
+
 * resource items (identified by a combination of the _resource class_ and a _resource identifier_)
 * resource collections (identified by the _resource class_ and a `null` _resource identifier_)
 

@@ -42,6 +42,7 @@ to learn how to write policies.
 ### resource_classes (optional)
 
 Like for groups, you can define policies on who is initially allowed to _manage_ a resource collection. This entails the rights to
+
 * create new resource instances (i.e. POST to resource collection) 
 * issue resource collection grants to other users/groups
 

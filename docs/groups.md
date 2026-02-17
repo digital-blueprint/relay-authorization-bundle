@@ -1,6 +1,7 @@
 # Groups
 
 There are 3 types of [Resource Action Grant](./resource-action-grants) holders:
+
 * [Users](#users)
 * [Groups](#groups)
 * [Dynamic Groups](#dynamic-groups)
@@ -15,6 +16,7 @@ the respective action on the resource defined by the grant.
 ## Groups
 
 A (static) group represents a fixed set of API users. A member of a group can be either a
+
 * user with a unique identifiers or
 * another group
 

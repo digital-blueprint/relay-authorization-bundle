@@ -6,6 +6,7 @@ This event is callback used by the [Rest Web API](./rest-api.md) to get availabl
 
 Your event subscriber receives an instance of `Dbp\Relay\AuthorizationBundle\Event\GetAvailableResourceClassActionsEvent` and 
 can specify the set of available
+
 * resource item actions (like 'get' (item), 'delete')
 * resource collection actions (like 'create', 'get' (collection))
 

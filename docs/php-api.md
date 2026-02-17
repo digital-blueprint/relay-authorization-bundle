@@ -1,6 +1,7 @@
 # PHP Backend API
 
-Resources registered for access control are uniquely identified by 
+Resources registered for access control are uniquely identified by
+
 * `resourceClass` the fully qualified classname of the resource
 * `resourceIdentifier` the resource identifier uniquely identifying the resource within `resourceClass`
 

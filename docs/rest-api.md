@@ -11,6 +11,7 @@ Represents a group of users. See [Groups](./groups.md).
 ### AuthorizationGroupMember
 
 Represents a member of an `AuthorizationGroup`. A member is either
+
 * a user with an unique identifier or
 * another `AuthorizationGroup`
 
@@ -29,6 +30,7 @@ to perform an **action** on an `AuthorizationResource`. See [Resource Action Gra
 ### AuthorizationAvailableResourceClassActions
 
 Represents the set of available
+
 * resource item actions (like 'patch', 'delete', or 'read' item)
 * resource collection collection (like 'post' new resources)
 
