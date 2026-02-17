@@ -1,6 +1,6 @@
 # Groups
 
-There are 3 types of [Resource Action Grant](./resource-action-grants) holders:
+There are 3 types of [Resource Action Grant](./resource-action-grants.md) holders:
 
 * [Users](#users)
 * [Groups](#groups)
@@ -10,7 +10,7 @@ There are 3 types of [Resource Action Grant](./resource-action-grants) holders:
 
 API users are uniquely identified by their user identifier.
 
-If a user holds a [Resource Action Grant](./resource-action-grants), they are authorized to perform
+If a user holds a [Resource Action Grant](./resource-action-grants.md), they are authorized to perform
 the respective action on the resource defined by the grant.
 
 ## Groups
@@ -23,7 +23,7 @@ A (static) group represents a fixed set of API users. A member of a group can be
 i.e. groups can be defined recursively. Note that the validity of a group lineage is checked 
 when a new group member is being added to a group, in order to avoid endless recursions.
 
-If a group holds a [Resource Action Grant](./resource-action-grants), all members of that group are authorized to perform
+If a group holds a [Resource Action Grant](./resource-action-grants.md), all members of that group are authorized to perform
 the respective action on the resource defined by the grant.
 
 ## Dynamic Groups
@@ -33,7 +33,7 @@ As opposed to static groups, where the group members are defined by their user i
 evaluation of [policies](https://handbook.digital-blueprint.org/frameworks/relay/admin/access_control/#access-control-policies).
 This means that group membership may change, depending on the user attributes used in the policy expression.
 
-If a _dynamic group_ holds a [Resource Action Grant](./resource-action-grants), all users, for which the membership policy
+If a _dynamic group_ holds a [Resource Action Grant](./resource-action-grants.md), all users, for which the membership policy
 evaluates to `true` are authorized to perform the respective action on the resource defined by the grant.
 
 _Dynamic groups_ can be defined in the bundle [configuration](configuration.md/#dynamic_groups-optional).

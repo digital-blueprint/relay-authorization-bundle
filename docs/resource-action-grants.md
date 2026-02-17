@@ -20,7 +20,7 @@ are typical resource item actions.
 
 However, the only action which is defined and understood by the DbpRelayAuthorizationBundle is 'manage'. It's automatically 
 issued to the logged-in user when a new resource is registered for access control
-(see [PHP API](php-api.md/#addresourcestring-resourceclass-string-resourceidentifier-void)) and entitles the holder to issue
+(see [PHP API](php-api.md)) and entitles the holder to issue
 further grants ('manage' or other) for the same resource.
 
 ## Resource
@@ -35,10 +35,10 @@ The DbpRelayAuthorizationBundle distinguishes
 The application defines separate sets of actions for resource items and resource collections
 (see [Events](events.md/#getavailableresourceclassactionsevent) on how).
 
-Resources can be added (registered) and removed (deregistered) using the [PHP API](php-api.md/#addresourcestring-resourceclass-string-resourceidentifier-void).
+Resources can be added (registered) and removed (deregistered) using the [PHP API](php-api.md).
 The resource creator automatically becomes the manager of the resource and may issue grants for that resource. On resource 
 removal, all associated grants are removed as well.
 
 Since resource collections (like for REST) are not created and registered over the API, there must be an alternative way
 to (initially) grant resource collection actions to users (like for example to 'create' new resource items). This can be done by
-configuring _manage resource collection policies_ in the bundle [Configuration](configuration.md/#resource_classes-optional).
+configuring _manage resource collection policies_ in the bundle [Configuration](configuration.md#resource_classes-optional).
