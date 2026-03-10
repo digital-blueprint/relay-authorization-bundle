@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Replace collection resource identifier by the string `'null'` (used to be PHP `null`/SQL `NULL`), to 
+- Move update of manage resource collection policy grants from config time to migrate DB time, for efficiency and avoid 
+error when DB is not available on container load
+- Replace collection resource identifier by the string `'null'` (used to be PHP `null` / SQL `NULL`), to 
 simplify code and querying. Note: `'null'` is thus a reserved resource identifier.
 - Prepare for the sharing of resource action grants
 - Add a GET item and collection operation for the `AuthorizationResource`, where the item operation

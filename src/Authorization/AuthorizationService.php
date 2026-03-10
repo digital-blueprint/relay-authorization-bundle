@@ -18,7 +18,6 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
-use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
@@ -80,13 +79,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const DYNAMIC_GROUP_IDENTIFIER_EVERYBODY = 'everybody';
     public const MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX = '@';
     public const COLLECTION_RESOURCE_IDENTIFIER = InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER;
-    private const WERE_MANAGE_COLLECTION_GRANTS_WRITTEN_TO_DB_CACHE_KEY = 'registeredManageResourceCollectionGrants';
 
     private const GET_RESOURCE_ACTION_GRANTS = 'rag';
     private const GET_AUTHORIZATION_RESOURCES = 'ar';
     private const GET_RESOURCE_CLASSES = 'rc';
 
-    private ?CacheItemPoolInterface $cachePool = null;
     private ?array $config = null;
 
     /**
@@ -107,13 +104,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         parent::setConfig($config);
 
         $this->config = $config;
-        $this->tryConfigure();
-    }
-
-    public function setCache(?CacheItemPoolInterface $cachePool): void
-    {
-        $this->cachePool = $cachePool;
-        $this->tryConfigure();
+        $this->configure();
     }
 
     public function setDebug(bool $debug): void
@@ -130,7 +121,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function reset(): void
     {
         $this->grantedAuthorizationResourceActionsCache = [];
-        $this->cachePool->clear();
     }
 
     /**
@@ -566,6 +556,87 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $resourceClass, $resourceIdentifier, $firstResultIndex, $maxNumResults);
     }
 
+    /**
+     * Updates the manage resource collection policy grants in the grants table according to the current bundle configuration.
+     * It ensures that there is one manage grant per resource class defined in the config, whose grant holders are
+     * defined by the Configuration::MANAGE_RESOURCE_COLLECTION_POLICY.
+     */
+    public function updateManageResourceCollectionPolicyGrants(): void
+    {
+        $manageResourceCollectionPolicyNames = [];
+        foreach ($this->config[Configuration::RESOURCE_CLASSES] ?? [] as $resourceClassConfig) {
+            $manageResourceCollectionPolicyNames[] =
+                self::toManageResourceCollectionPolicyName($resourceClassConfig[Configuration::IDENTIFIER]);
+        }
+        $manageResourceCollectionPolicyNames[] =
+            self::toManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS);
+
+        $lastResourceClass = null;
+        $resourceClassGrantsMap = [];
+        foreach ($this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            null, self::COLLECTION_RESOURCE_IDENTIFIER) as $resourceActionGrant) {
+            $resourceClass = $resourceActionGrant->getResourceClass();
+            if ($lastResourceClass !== $resourceClass) {
+                $lastResourceClass = $resourceClass;
+                $resourceClassGrantsMap[$resourceClass]['other_grants'] = [];
+            }
+            $dynamicGroupIdentifier = $resourceActionGrant->getDynamicGroupIdentifier();
+            if ($dynamicGroupIdentifier !== null
+                && self::isManageResourceCollectionPolicyName($dynamicGroupIdentifier)) {
+                $resourceClassGrantsMap[$resourceClass]['policy_grant'] = $resourceActionGrant;
+            } else {
+                $resourceClassGrantsMap[$resourceClass]['other_grants'][] = $resourceActionGrant;
+            }
+        }
+
+        foreach ($resourceClassGrantsMap as $resourceClass => $resourceClassGrants) {
+            $manageResourceCollectionPolicyName = self::toManageResourceCollectionPolicyName($resourceClass);
+            $key = array_search($manageResourceCollectionPolicyName, $manageResourceCollectionPolicyNames, true);
+            $isPolicyPresentInConfig = $key !== false;
+            if ($key !== false) {
+                unset($manageResourceCollectionPolicyNames[$key]);
+            }
+            /** @var ?ResourceActionGrant $policyGrant */
+            if ($policyGrant = $resourceClassGrants['policy_grant'] ?? null) {
+                // the manage resource collection policy grant is present in the DB
+                if (false === $isPolicyPresentInConfig) {
+                    // however, the manage resource collection policy is not present in config anymore
+                    if (empty($resourceClassGrants['other_grants'])) {
+                        // (A) no other grants -> delete the authorization resource from DB
+                        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(
+                            $policyGrant->getResourceClass(), $policyGrant->getResourceIdentifier());
+                        // WORKAROUND for doctrine ORM disregarding ON DELETE CASCADE which auto-removes grants
+                        // on parent authorization resource removal. on next persist+flush it mis-interprets the removed authorization resource
+                        // it finds under the grant it still manages (but which was automatically deleted in the DB) as a new entity:
+                        // 'A new entity was found through the relationship 'Dbp\\Relay\\AuthorizationBundle\\Entity\\ResourceActionGrant#authorizationResource'
+                        // that was not configured to cascade persist operations for entity: ...':
+                        // (https://github.com/doctrine/orm/issues/11539)
+                        $policyGrant->setAuthorizationResource(null);
+                    } else {
+                        // (B) there are other (not auto-added) grants -> just remove the auto-added policy grant from DB
+                        $this->internalResourceActionGrantService->removeResourceActionGrantByIdentifier($policyGrant->getIdentifier());
+                    }
+                } // (C) otherwise we are done, since the manage resource collection policy is still present in config
+            } else {
+                // the policy grant is not present in DB (however, the authorization resource is)
+                if ($isPolicyPresentInConfig) {
+                    // (D) the manage resource collection policy is present in config -> auto-add the policy grant to DB
+                    $otherGrant = $resourceClassGrants['other_grants'][0];
+                    $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier($otherGrant->getResourceClass(),
+                        $otherGrant->getResourceIdentifier(), self::MANAGE_ACTION,
+                        null, null, $manageResourceCollectionPolicyName);
+                } // the manage resource collection policy is not present in config -> nothing to do
+            }
+        }
+
+        // remaining policies, i.e. policies of resource classes for which no collection grants are present in DB
+        foreach ($manageResourceCollectionPolicyNames as $manageResourceCollectionPolicyName) {
+            $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+                self::toResourceClass($manageResourceCollectionPolicyName), self::COLLECTION_RESOURCE_IDENTIFIER,
+                self::MANAGE_ACTION, null, null, $manageResourceCollectionPolicyName);
+        }
+    }
+
     private static function toManageResourceCollectionPolicyName(string $resourceClass): string
     {
         return self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.$resourceClass;
@@ -781,112 +852,24 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 && $this->isCurrentUserMemberOfDynamicGroup($resourceActionGrant->getDynamicGroupIdentifier()));
     }
 
-    private function tryConfigure(): void
+    private function configure(): void
     {
-        if ($this->config !== null && $this->cachePool !== null) {
-            $policies = [];
-
-            $manageResourceCollectionPolicyNames = [];
-            foreach ($this->config[Configuration::RESOURCE_CLASSES] ?? [] as $resourceClassConfig) {
-                $policies[$manageResourceCollectionPolicyName = self::toManageResourceCollectionPolicyName($resourceClassConfig[Configuration::IDENTIFIER])] =
-                    $resourceClassConfig[Configuration::MANAGE_RESOURCE_COLLECTION_POLICY];
-                $manageResourceCollectionPolicyNames[] = $manageResourceCollectionPolicyName;
-            }
-            $manageGroupCollectionPolicyName = self::toManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS);
-            $policies[$manageGroupCollectionPolicyName] = $this->config[Configuration::CREATE_GROUPS_POLICY];
-            $manageResourceCollectionPolicyNames[] = $manageGroupCollectionPolicyName;
-
-            foreach ($this->config[Configuration::DYNAMIC_GROUPS] ?? [] as $dynamicGroup) {
-                $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicGroup[Configuration::IDENTIFIER])] =
-                    $dynamicGroup[Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION];
-            }
-            $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName(self::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY)] = 'true';
-
-            $this->setUpAccessControlPolicies($policies);
-
-            $cacheItem = $this->cachePool->getItem(self::WERE_MANAGE_COLLECTION_GRANTS_WRITTEN_TO_DB_CACHE_KEY);
-            if (false === $cacheItem->isHit()) {
-                try {
-                    $this->updateManageResourceCollectionPolicyGrants($manageResourceCollectionPolicyNames);
-                    $cacheItem->set(true);
-                    $this->cachePool->save($cacheItem);
-                } catch (\Throwable) {
-                    // ignore db errors which may occur, when setConfig is called when no database is available
-                    // e.g. calling Symfony commands locally
-                }
-            }
+        $policies = [];
+        foreach ($this->config[Configuration::RESOURCE_CLASSES] ?? [] as $resourceClassConfig) {
+            $policies[self::toManageResourceCollectionPolicyName($resourceClassConfig[Configuration::IDENTIFIER])] =
+                $resourceClassConfig[Configuration::MANAGE_RESOURCE_COLLECTION_POLICY];
         }
-    }
+        $policies[self::toManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS)] =
+            $this->config[Configuration::CREATE_GROUPS_POLICY];
 
-    /**
-     * @param string[] $manageResourceCollectionPolicyNames
-     */
-    private function updateManageResourceCollectionPolicyGrants(array $manageResourceCollectionPolicyNames): void
-    {
-        $lastResourceClass = null;
-        $resourceClassGrantsMap = [];
-        foreach ($this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, self::COLLECTION_RESOURCE_IDENTIFIER) as $resourceActionGrant) {
-            $resourceClass = $resourceActionGrant->getResourceClass();
-            if ($lastResourceClass !== $resourceClass) {
-                $lastResourceClass = $resourceClass;
-                $resourceClassGrantsMap[$resourceClass]['other_grants'] = [];
-            }
-            $dynamicGroupIdentifier = $resourceActionGrant->getDynamicGroupIdentifier();
-            if ($dynamicGroupIdentifier !== null
-                && self::isManageResourceCollectionPolicyName($dynamicGroupIdentifier)) {
-                $resourceClassGrantsMap[$resourceClass]['policy_grant'] = $resourceActionGrant;
-            } else {
-                $resourceClassGrantsMap[$resourceClass]['other_grants'][] = $resourceActionGrant;
-            }
+        foreach ($this->config[Configuration::DYNAMIC_GROUPS] ?? [] as $dynamicGroup) {
+            $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicGroup[Configuration::IDENTIFIER])] =
+                $dynamicGroup[Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION];
         }
+        $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName(
+            self::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY)] = 'true';
 
-        foreach ($resourceClassGrantsMap as $resourceClass => $resourceClassGrants) {
-            $manageResourceCollectionPolicyName = self::toManageResourceCollectionPolicyName($resourceClass);
-            $key = array_search($manageResourceCollectionPolicyName, $manageResourceCollectionPolicyNames, true);
-            $isPolicyPresentInConfig = $key !== false;
-            if ($key !== false) {
-                unset($manageResourceCollectionPolicyNames[$key]);
-            }
-            /** @var ?ResourceActionGrant $policyGrant */
-            if ($policyGrant = $resourceClassGrants['policy_grant'] ?? null) {
-                // the manage resource collection policy grant is present in the DB
-                if (!$isPolicyPresentInConfig) {
-                    // however, the manage resource collection policy is not present in config anymore
-                    if (empty($resourceClassGrants['other_grants'])) {
-                        // (A) no other grants -> delete the authorization resource from DB
-                        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(
-                            $policyGrant->getResourceClass(), $policyGrant->getResourceIdentifier());
-                        // WORKAROUND for doctrine ORM disregarding ON DELETE CASCADE which auto-removes grants
-                        // on parent authorization resource removal. on next persist+flush it mis-interprets the removed authorization resource
-                        // it finds under the grant it still manages (but which was automatically deleted in the DB) as a new entity:
-                        // 'A new entity was found through the relationship 'Dbp\\Relay\\AuthorizationBundle\\Entity\\ResourceActionGrant#authorizationResource'
-                        // that was not configured to cascade persist operations for entity: ...':
-                        // (https://github.com/doctrine/orm/issues/11539)
-                        $policyGrant->setAuthorizationResource(null);
-                    } else {
-                        // (B) there are other (not auto-added) grants -> just remove the auto-added policy grant from DB
-                        $this->internalResourceActionGrantService->removeResourceActionGrantByIdentifier($policyGrant->getIdentifier());
-                    }
-                } // (C) otherwise we are done, since the manage resource collection policy is still present in config
-            } else {
-                // the policy grant is not present in DB (however, the authorization resource is)
-                if ($isPolicyPresentInConfig) {
-                    // (D) the manage resource collection policy is present in config -> auto-add the policy grant to DB
-                    $otherGrant = $resourceClassGrants['other_grants'][0];
-                    $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier($otherGrant->getResourceClass(),
-                        $otherGrant->getResourceIdentifier(), self::MANAGE_ACTION,
-                        null, null, $manageResourceCollectionPolicyName);
-                } // the manage resource collection policy is not present in config -> nothing to do
-            }
-        }
-
-        // remaining policies, i.e. policies of resource classes for which no collection grants are present in DB
-        foreach ($manageResourceCollectionPolicyNames as $manageResourceCollectionPolicyName) {
-            $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
-                self::toResourceClass($manageResourceCollectionPolicyName), self::COLLECTION_RESOURCE_IDENTIFIER,
-                self::MANAGE_ACTION, null, null, $manageResourceCollectionPolicyName);
-        }
+        $this->setUpAccessControlPolicies($policies);
     }
 
     private static function addGrantHolderCriteria(QueryBuilder $queryBuilder, string $RESOURCE_ACTION_GRANT_ALIAS,
