@@ -38,3 +38,6 @@ services:
     autowire: true
     autoconfigure: true
 
+  Dbp\Relay\AuthorizationBundle\Service\HealthCheck:
+    autowire: true
+    autoconfigure: true

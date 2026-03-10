@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.5.10
+
+- Add health check for DB connection
+
 ## v0.5.9
 
 - Move update of manage resource collection policy grants from config time to migrate DB time, for efficiency and avoid 
