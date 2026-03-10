@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.9
+
 - Move update of manage resource collection policy grants from config time to migrate DB time, for efficiency and avoid 
 error when DB is not available on container load
 - Replace collection resource identifier by the string `'null'` (used to be PHP `null` / SQL `NULL`), to 
