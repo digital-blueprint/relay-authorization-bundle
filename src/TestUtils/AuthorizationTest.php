@@ -12,6 +12,6 @@ class AuthorizationTest
     public static function setUp(ContainerInterface $container): void
     {
         TestEntityManager::setUpAuthorizationEntityManager($container);
-        $container->get(AuthorizationService::class)->updateManageResourceCollectionPolicyGrants();
+        // $container->get(AuthorizationService::class)->updateManageResourceCollectionPolicyGrants();
     }
 }

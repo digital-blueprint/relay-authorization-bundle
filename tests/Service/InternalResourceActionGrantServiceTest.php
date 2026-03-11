@@ -15,6 +15,24 @@ use Symfony\Component\Uid\Uuid;
 
 class InternalResourceActionGrantServiceTest extends AbstractInternalResourceActionGrantServiceTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+            TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_COLLECTION_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+            TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
+            TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS);
+        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
+            TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS);
+    }
+
     public function testAddResourceActionGrantByResourceClassAndIdentifier(): void
     {
         // resource item, user grant

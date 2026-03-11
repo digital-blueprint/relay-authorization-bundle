@@ -17,11 +17,44 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
     {
         parent::setUp();
 
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
+        //                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_COLLECTION_RESOURCE_CLASS,
+        //                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2,
+        //                TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS);
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_3,
+        //                TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS);
+
+        $availableResourceClassActions = [
+            self::TEST_RESOURCE_CLASS => [
+                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS,
+            ],
+            self::TEST_COLLECTION_RESOURCE_CLASS => [
+                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS,
+            ],
+            self::TEST_RESOURCE_CLASS_2 => [
+                TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS,
+            ],
+            self::TEST_RESOURCE_CLASS_3 => [
+                TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS,
+            ],
+        ];
+
         $this->authorizationService = TestResourceActionGrantServiceFactory::createTestAuthorizationService(
             $this->testEntityManager->getEntityManager(),
             $this->eventDispatcher,
             $this->internalResourceActionGrantService,
             $this->getTestConfig(),
+            $availableResourceClassActions,
             self::CURRENT_USER_IDENTIFIER,
             $this->getDefaultUserAttributes());
     }

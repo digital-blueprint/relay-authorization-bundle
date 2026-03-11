@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\AuthorizationTest;
+use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\AbstractApiTest;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -15,7 +17,15 @@ class ApiTest extends AbstractApiTest
         parent::setUp();
 
         $this->testClient->setUpUser(userAttributes: ['MAY_CREATE_GROUPS' => false]);
-        AuthorizationTest::setUp($this->testClient->getContainer());
+        // AuthorizationTest::setUp($this->testClient->getContainer());
+
+        TestResourceActionGrantServiceFactory::createTestEntityManager($this->testClient->getContainer(),
+            availableResourceClassActions: [
+                AuthorizationService::GROUP_RESOURCE_CLASS => [
+                    AuthorizationService::GROUP_ITEM_ACTIONS,
+                    AuthorizationService::GROUP_COLLECTION_ACTIONS,
+                ],
+            ]);
     }
 
     protected function tearDown(): void

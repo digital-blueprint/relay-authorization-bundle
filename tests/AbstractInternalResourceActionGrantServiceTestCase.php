@@ -49,20 +49,20 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
             $this->testEntityManager->getEntityManager(), $this->eventDispatcher);
         $this->internalResourceActionGrantService->setLogger(new NullLogger());
 
-        if ($newEntityManagerCreated) {
-            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
-                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
-            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_COLLECTION_RESOURCE_CLASS,
-                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
-            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2,
-                TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS);
-            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_3,
-                TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS);
-        }
+        //        if ($newEntityManagerCreated) {
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
+        //                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_COLLECTION_RESOURCE_CLASS,
+        //                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2,
+        //                TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS);
+        //            $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_3,
+        //                TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
+        //                TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS);
+        //        }
     }
 
     protected function tearDown(): void

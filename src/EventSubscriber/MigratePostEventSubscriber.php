@@ -10,10 +10,13 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 readonly class MigratePostEventSubscriber implements EventSubscriberInterface
 {
+    // make sure this is called after all other MigratePostEventSubscribers, which might add resource actions that we need to update here.
+    private const PRIORITY = -100;
+
     public static function getSubscribedEvents(): array
     {
         return [
-            MigratePostEvent::class => 'onMigratePostEvent',
+            MigratePostEvent::class => ['onMigratePostEvent', self::PRIORITY],
         ];
     }
 
