@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.5.11
+
+- Consolidate the setting of available resource class actions.
+
 ## v0.5.10
 
 - Add health check for DB connection
