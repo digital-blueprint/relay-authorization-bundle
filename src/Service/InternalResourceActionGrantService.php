@@ -718,8 +718,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'resource action grant is invalid: \'action\' is required', self::RESOURCE_ACTION_GRANT_INVALID_ACTION_MISSING_ERROR_ID, ['action']);
         }
-        [$itemActions, $collectionActions] = $this->getAvailableResourceClassActions(
-            $resourceActionGrant->getAuthorizationResource()->getResourceClass());
+        $resourceClass = $resourceActionGrant->getAuthorizationResource()->getResourceClass();
+        [$itemActions, $collectionActions] = $this->getAvailableResourceClassActions($resourceClass);
 
         if ($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier() !== self::COLLECTION_RESOURCE_IDENTIFIER) {
             $actionsToCheck = array_keys($itemActions ?? []);
@@ -729,7 +729,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
         if (!in_array($action, $actionsToCheck, true)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                "resource action is invalid: action '$action' is not defined for this resource class", self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [$action]);
+                "resource action is invalid: action '$action' is not defined for resource class '$resourceClass'",
+                self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [$action]);
         }
     }
 

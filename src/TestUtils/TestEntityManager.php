@@ -14,7 +14,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
-use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -29,14 +29,6 @@ class TestEntityManager extends CoreTestEntityManager
         assert($container instanceof Container);
         parent::__construct($container, DbpRelayAuthorizationExtension::AUTHORIZATION_ENTITY_MANAGER_ID);
         self::addAvailableGroupResourceClassActions($this->getEntityManager());
-    }
-
-    public static function setUpAuthorizationEntityManager(ContainerInterface $container): EntityManager
-    {
-        $entityManager = self::setUpEntityManager($container, DbpRelayAuthorizationExtension::AUTHORIZATION_ENTITY_MANAGER_ID);
-        self::addAvailableGroupResourceClassActions($entityManager);
-
-        return $entityManager;
     }
 
     public function addResourceActionGrant(AuthorizationResource $resource, string $action,
@@ -316,7 +308,7 @@ class TestEntityManager extends CoreTestEntityManager
         return $groupAuthorizationResourceMember;
     }
 
-    private static function addAvailableGroupResourceClassActions(EntityManager $entityManager): void
+    private static function addAvailableGroupResourceClassActions(EntityManagerInterface $entityManager): void
     {
         InternalResourceActionGrantService::addAvailableResourceClassActionsStatic($entityManager,
             AuthorizationService::GROUP_RESOURCE_CLASS,
