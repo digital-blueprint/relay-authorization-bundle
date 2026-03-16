@@ -132,7 +132,7 @@ class ResourceActionGrant
     private ?string $identifier = null;
 
     #[ORM\JoinColumn(name: 'authorization_resource_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
-    #[ORM\ManyToOne(targetEntity: AuthorizationResource::class)]
+    #[ORM\ManyToOne(targetEntity: AuthorizationResource::class, inversedBy: 'resourceActionGrants')]
     private ?AuthorizationResource $authorizationResource = null;
 
     #[ORM\Column(name: 'action', type: 'string', length: 40)]
