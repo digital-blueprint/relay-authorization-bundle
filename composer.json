@@ -9,7 +9,7 @@
         "api-platform/metadata": "^4.1",
         "api-platform/openapi": "^4.1",
         "beberlei/doctrineextensions": "^1.5",
-        "dbp/relay-core-bundle": "^0.1.227",
+        "dbp/relay-core-bundle": "dev-authz-variable-provider as v0.1.236",
         "doctrine/collections": "^2.2",
         "doctrine/common": "^3.4.4",
         "doctrine/dbal": "^3.8 || ^4.0",

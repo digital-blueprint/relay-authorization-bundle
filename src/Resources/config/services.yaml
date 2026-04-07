@@ -41,3 +41,11 @@ services:
   Dbp\Relay\AuthorizationBundle\Service\HealthCheck:
     autowire: true
     autoconfigure: true
+
+  Dbp\Relay\AuthorizationBundle\ExpressionVariableProvider\AuthorizationExpressionVariable:
+    autowire: true
+    autoconfigure: true
+
+  Dbp\Relay\AuthorizationBundle\ExpressionVariableProvider\AuthorizationExpressionVariableProvider:
+    autowire: true
+    autoconfigure: true
