@@ -107,7 +107,7 @@ class GroupMember
 {
     #[ORM\Id]
     #[ORM\Column(type: 'relay_authorization_uuid_binary', unique: true)]
-    #[Groups(['AuthorizationGroupMember:output'])]
+    #[Groups(['AuthorizationGroupMember:output', 'AuthorizationGroup:output'])]
     private ?string $identifier = null;
 
     #[ApiProperty(

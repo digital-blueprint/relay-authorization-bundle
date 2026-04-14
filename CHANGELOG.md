@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.5.12
+
+- Serialize nested group attribute GroupMember::identifier
+
 ## v0.5.11
 
 - Consolidate the setting of available resource class actions.

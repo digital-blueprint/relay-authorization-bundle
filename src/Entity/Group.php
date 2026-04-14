@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
 use ApiPlatform\Metadata\Get;
@@ -133,6 +134,7 @@ class Group
 
     #[ORM\OneToMany(targetEntity: GroupMember::class, mappedBy: 'group')]
     #[Groups(['AuthorizationGroup:output'])]
+    #[ApiProperty(genId: false)]
     private ?PersistentCollection $members = null;
 
     public function getIdentifier(): ?string
