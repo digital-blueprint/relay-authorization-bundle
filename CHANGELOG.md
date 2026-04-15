@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.5.13
+
+- increase the size of Group::name to 128 characters
+
 ## v0.5.12
 
 - Serialize nested group attribute GroupMember::identifier

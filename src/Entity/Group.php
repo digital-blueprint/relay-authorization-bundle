@@ -128,7 +128,7 @@ class Group
     #[Groups(['AuthorizationGroup:output'])]
     private ?string $identifier = null;
 
-    #[ORM\Column(name: 'name', type: 'string', length: 64)]
+    #[ORM\Column(name: 'name', type: 'string', length: 128)]
     #[Groups(['AuthorizationGroup:input', 'AuthorizationGroup:output'])]
     private ?string $name = null;
 
