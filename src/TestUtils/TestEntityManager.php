@@ -15,9 +15,9 @@ use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Uid\Uuid;
 
 class TestEntityManager extends CoreTestEntityManager
 {
@@ -50,7 +50,7 @@ class TestEntityManager extends CoreTestEntityManager
         string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER): AuthorizationResource
     {
         $resource = new AuthorizationResource();
-        $resource->setIdentifier(Uuid::uuid7()->toString());
+        $resource->setIdentifier(Uuid::v7()->toRfc4122());
         $resource->setResourceClass($resourceClass);
         $resource->setResourceIdentifier($resourceIdentifier);
 
@@ -174,7 +174,7 @@ class TestEntityManager extends CoreTestEntityManager
     public function addGroup(string $name = 'Testgroup'): Group
     {
         $group = new Group();
-        $group->setIdentifier(Uuid::uuid7()->toString());
+        $group->setIdentifier(Uuid::v7()->toRfc4122());
         $group->setName($name);
 
         try {
@@ -215,7 +215,7 @@ class TestEntityManager extends CoreTestEntityManager
     public function addGroupMember(Group $group, ?string $userIdentifier = null, ?Group $childGroup = null): GroupMember
     {
         $groupMember = new GroupMember();
-        $groupMember->setIdentifier(Uuid::uuid7()->toString());
+        $groupMember->setIdentifier(Uuid::v7()->toRfc4122());
         $groupMember->setGroup($group);
         $groupMember->setUserIdentifier($userIdentifier);
         $groupMember->setChildGroup($childGroup);
@@ -259,7 +259,7 @@ class TestEntityManager extends CoreTestEntityManager
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
+        $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
         $resourceActionGrant->setAuthorizationResource($resource);
         $resourceActionGrant->setAction($action);
         $resourceActionGrant->setUserIdentifier($userIdentifier);
@@ -290,7 +290,7 @@ class TestEntityManager extends CoreTestEntityManager
         string $memberResourceClass, ?string $memberResourceIdentifier): GroupAuthorizationResourceMember
     {
         $groupAuthorizationResourceMember = new GroupAuthorizationResourceMember();
-        $groupAuthorizationResourceMember->setIdentifier(Uuid::uuid7()->toString());
+        $groupAuthorizationResourceMember->setIdentifier(Uuid::v7()->toRfc4122());
         $groupAuthorizationResourceMember->setGroupAuthorizationResource(
             $this->getAuthorizationResourceByResourceClassAndIdentifier($groupResourceClass, $groupResourceIdentifier)
         );

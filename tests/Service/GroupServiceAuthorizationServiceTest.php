@@ -11,8 +11,8 @@ use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
 class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
@@ -110,7 +110,7 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
 
     public function testGetGroupItemNotFound(): void
     {
-        $this->assertNull($this->groupService->tryGetGroup(Uuid::uuid7()->toString()));
+        $this->assertNull($this->groupService->tryGetGroup(Uuid::v7()->toRfc4122()));
     }
 
     public function testGetGroupItemNotFoundInvalidId(): void
@@ -366,7 +366,7 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
 
     public function testGetGroupMemberItemNotFound(): void
     {
-        $this->assertNull($this->groupService->getGroupMember(Uuid::uuid7()->toString()));
+        $this->assertNull($this->groupService->getGroupMember(Uuid::v7()->toRfc4122()));
     }
 
     public function testGetGroupMemberItemInvalidId(): void

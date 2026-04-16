@@ -8,7 +8,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActionName;
 use Doctrine\DBAL\Schema\Schema;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Auto-generated Migration: Please modify to your needs!
@@ -40,7 +40,7 @@ final class Version20251112093200 extends EntityManagerMigration
         $this->addSql($createStatement);
 
         foreach (AuthorizationService::GROUP_COLLECTION_ACTIONS as $action => $actionNames) {
-            $identifierBinary = Uuid::uuid7()->getBytes();
+            $identifierBinary = Uuid::v7()->toBinary();
             $this->addSql("INSERT INTO $availableResourceClassActionsTable ($identifierColumn, $resourceClassColumn, $actionColumn, $actionTypeColumn) VALUES (?, ?, ?, ?)", [
                 $identifierBinary,
                 AuthorizationService::GROUP_RESOURCE_CLASS,
@@ -56,7 +56,7 @@ final class Version20251112093200 extends EntityManagerMigration
             }
         }
         foreach (AuthorizationService::GROUP_ITEM_ACTIONS as $action => $actionNames) {
-            $identifierBinary = Uuid::uuid7()->getBytes();
+            $identifierBinary = Uuid::v7()->toBinary();
             $this->addSql("INSERT INTO $availableResourceClassActionsTable ($identifierColumn, $resourceClassColumn, $actionColumn, $actionTypeColumn) VALUES (?, ?, ?, ?)", [
                 $identifierBinary,
                 AuthorizationService::GROUP_RESOURCE_CLASS,

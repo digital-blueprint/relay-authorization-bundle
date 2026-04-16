@@ -11,8 +11,8 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @internal
@@ -179,7 +179,7 @@ class GroupService
     {
         $this->validateGroup($group);
 
-        $group->setIdentifier(Uuid::uuid7()->toString());
+        $group->setIdentifier(Uuid::v7()->toRfc4122());
         try {
             $this->entityManager->persist($group);
             $this->entityManager->flush();
@@ -230,7 +230,7 @@ class GroupService
     {
         $this->validateGroupMember($groupMember);
 
-        $groupMember->setIdentifier(Uuid::uuid7()->toString());
+        $groupMember->setIdentifier(Uuid::v7()->toRfc4122());
         try {
             $this->entityManager->persist($groupMember);
             $this->entityManager->flush();

@@ -11,8 +11,8 @@ use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
 class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
 {
@@ -70,7 +70,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantItemNotFound(): void
     {
-        $this->assertNull($this->resourceActionGrantProviderTester->getItem(Uuid::uuid7()->toString()));
+        $this->assertNull($this->resourceActionGrantProviderTester->getItem(Uuid::v7()->toRfc4122()));
     }
 
     public function testGetResourceActionGrantItemForbidden(): void

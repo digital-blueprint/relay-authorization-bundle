@@ -20,9 +20,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @internal
@@ -87,7 +87,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         try {
             foreach ($availableActions as $action => $actionNames) {
                 $availableGroupResourceAction = new AvailableResourceClassAction();
-                $availableGroupResourceAction->setIdentifier(Uuid::uuid7()->toString());
+                $availableGroupResourceAction->setIdentifier(Uuid::v7()->toRfc4122());
                 $availableGroupResourceAction->setResourceClass($resourceClass);
                 $availableGroupResourceAction->setAction($action);
                 $availableGroupResourceAction->setActionType($actionType);
@@ -297,7 +297,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         $groupAuthorizationResourceMember = new GroupAuthorizationResourceMember();
-        $groupAuthorizationResourceMember->setIdentifier(Uuid::uuid7()->toString());
+        $groupAuthorizationResourceMember->setIdentifier(Uuid::v7()->toRfc4122());
         $groupAuthorizationResourceMember->setGroupAuthorizationResource(
             $this->getOrCreateAuthorizationResource($groupResourceClass, $groupResourceIdentifier)
         );
@@ -822,7 +822,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $this->validateResourceClassAndIdentifier($resourceClass, $resourceIdentifier);
             try {
                 $authorizationResource = new AuthorizationResource();
-                $authorizationResource->setIdentifier(Uuid::uuid7()->toString());
+                $authorizationResource->setIdentifier(Uuid::v7()->toRfc4122());
                 $authorizationResource->setResourceClass($resourceClass);
                 $authorizationResource->setResourceIdentifier($resourceIdentifier);
 
@@ -865,7 +865,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     {
         $this->validateResourceActionGrant($resourceActionGrant);
 
-        $resourceActionGrant->setIdentifier(Uuid::uuid7()->toString());
+        $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
         $resourceActionGrant->setCreatorId($currentUserIdentifier);
         $resourceActionGrant->setDateCreated(new \DateTime());
         try {
