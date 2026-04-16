@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Drop support for Symfony 6
+
 ## v0.5.13
 
 - increase the size of Group::name to 128 characters
