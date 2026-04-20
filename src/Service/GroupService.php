@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Service;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
@@ -56,7 +57,7 @@ class GroupService
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
             $sqlStatement->bindValue(':parent_group_identifier',
-                AuthorizationUuidBinaryType::toBinaryUuid($groupIdentifier), ParameterType::BINARY);
+                UuidUtils::toBinaryUuid($groupIdentifier), ParameterType::BINARY);
             $sqlStatement->bindValue(':user_identifier', $userIdentifier);
             $userIdentifiers = $sqlStatement->executeQuery()->fetchFirstColumn();
 
@@ -88,7 +89,7 @@ class GroupService
             $sqlStatement->bindValue(':userIdentifier', $userIdentifier);
             $groupIdentifiersBinary = $sqlStatement->executeQuery()->fetchFirstColumn();
 
-            return AuthorizationUuidBinaryType::toStringUuids($groupIdentifiersBinary);
+            return UuidUtils::toStringUuids($groupIdentifiersBinary);
         } catch (\Exception $exception) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'getting groups for user failed: '.$exception->getMessage());
@@ -160,7 +161,7 @@ class GroupService
                 ->from(Group::class, $GROUP_ENTITY_ALIAS)
                 ->where($queryBuilder->expr()->in("$GROUP_ENTITY_ALIAS.identifier", ':groupIdentifiers'))
                 ->setParameter(':groupIdentifiers',
-                    AuthorizationUuidBinaryType::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY)
+                    UuidUtils::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY)
                 ->getQuery()
                 ->setFirstResult($firstResultIndex)
                 ->setMaxResults($maxNumResults)
@@ -350,7 +351,7 @@ class GroupService
     private function isAllowedChildGroupOf(Group $childGroupCandidate, Group $group): bool
     {
         return in_array(
-            AuthorizationUuidBinaryType::toBinaryUuid($childGroupCandidate->getIdentifier()),
+            UuidUtils::toBinaryUuid($childGroupCandidate->getIdentifier()),
             $this->getDisallowedChildGroupIdentifiersBinaryInternal($group), true);
     }
 
@@ -363,7 +364,7 @@ class GroupService
         $forbiddenChildGroupIdentifiers = array_merge(
             $this->getAncestorGroupIdentifiersBinaryInternal($group),
             $this->getChildGroupIdentifiersBinary($group));
-        $forbiddenChildGroupIdentifiers[] = AuthorizationUuidBinaryType::toBinaryUuid($group->getIdentifier());
+        $forbiddenChildGroupIdentifiers[] = UuidUtils::toBinaryUuid($group->getIdentifier());
 
         return $forbiddenChildGroupIdentifiers;
     }
@@ -404,7 +405,7 @@ class GroupService
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
             $sqlStatement->bindValue(':childGroupIdentifier',
-                AuthorizationUuidBinaryType::toBinaryUuid($group->getIdentifier()), ParameterType::BINARY);
+                UuidUtils::toBinaryUuid($group->getIdentifier()), ParameterType::BINARY);
 
             return $sqlStatement->executeQuery()->fetchFirstColumn();
         } catch (\Exception $exception) {

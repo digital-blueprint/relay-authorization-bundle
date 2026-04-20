@@ -9,7 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
@@ -708,7 +708,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             }
 
             foreach ($managedAuthorizationResourceIdentifiersBinary as $binaryIdentifier) {
-                $managedAuthorizationResourceIdentifiers[AuthorizationUuidBinaryType::toStringUuid($binaryIdentifier)] = true;
+                $managedAuthorizationResourceIdentifiers[UuidUtils::toStringUuid($binaryIdentifier)] = true;
             }
 
             $resultEntities = $this->internalResourceActionGrantService->get($get === self::GET_RESOURCE_ACTION_GRANTS ?
@@ -888,7 +888,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $orClause
                 ->add($queryBuilder->expr()->in("IDENTITY($RESOURCE_ACTION_GRANT_ALIAS.group)", ':groupIdentifiers'));
             $queryBuilder->setParameter(':groupIdentifiers',
-                AuthorizationUuidBinaryType::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY);
+                UuidUtils::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY);
         }
         if ($dynamicGroupIdentifiers !== null) {
             $orClause

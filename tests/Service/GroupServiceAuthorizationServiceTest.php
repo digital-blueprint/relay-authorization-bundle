@@ -6,7 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
-use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
@@ -529,16 +529,16 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->testEntityManager->addGroupMember($group2, null, $group3);
         $this->testEntityManager->addGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
 
-        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+        $this->assertIsPermutationOf(UuidUtils::toBinaryUuids(
             [$group0->getIdentifier(), $group2->getIdentifier()]),
             $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group0->getIdentifier()));
-        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+        $this->assertIsPermutationOf(UuidUtils::toBinaryUuids(
             [$group1->getIdentifier(), $group2->getIdentifier()]),
             $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group1->getIdentifier()));
-        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+        $this->assertIsPermutationOf(UuidUtils::toBinaryUuids(
             [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()]),
             $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group2->getIdentifier()));
-        $this->assertIsPermutationOf(AuthorizationUuidBinaryType::toBinaryUuids(
+        $this->assertIsPermutationOf(UuidUtils::toBinaryUuids(
             [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()]),
             $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group3->getIdentifier()));
     }

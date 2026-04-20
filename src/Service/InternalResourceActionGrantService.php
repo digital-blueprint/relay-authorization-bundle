@@ -13,6 +13,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\ArrayParameterType;
@@ -527,7 +528,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                         $resourceActionGrant = $this->hydrateResourceActionGrant($row);
                         if ($getType === $GET_TYPE_AUTHORIZATION_RESOURCE_WITH_RESOURCE_ACTION_GRANTS) {
                             if ($currentAuthorizationResource?->getIdentifier() !==
-                                AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier'])) {
+                                UuidUtils::toStringUuid($row['effective_authorization_resource_identifier'])) {
                                 $currentAuthorizationResource = $this->hydrateAuthorizationResource($row);
                                 $results[] = $currentAuthorizationResource;
                             }
@@ -561,7 +562,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     {
         $currentAuthorizationResource = new AuthorizationResource();
         $currentAuthorizationResource->setIdentifier(
-            AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier']));
+            UuidUtils::toStringUuid($row['effective_authorization_resource_identifier']));
         $currentAuthorizationResource->setResourceClass($row['effective_resource_class']);
         $currentAuthorizationResource->setResourceIdentifier($row['effective_resource_identifier']);
 
@@ -954,7 +955,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             } else {
                 assert(is_array($groupIdentifiers));
                 $groupCriteria = "$resource_action_grant_alias.group_identifier IN (:groupIdentifiers)";
-                $parameterValues['groupIdentifiers'] = AuthorizationUuidBinaryType::toBinaryUuids($groupIdentifiers);
+                $parameterValues['groupIdentifiers'] = UuidUtils::toBinaryUuids($groupIdentifiers);
                 $parameterTypes['groupIdentifiers'] = ArrayParameterType::BINARY;
             }
         }
@@ -991,19 +992,19 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(
-            AuthorizationUuidBinaryType::toStringUuid($row['identifier']));
+            UuidUtils::toStringUuid($row['identifier']));
         $resourceActionGrant->setIsInherited(
             $row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier']);
         // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
         $resourceActionGrant->setResourceClass($row['effective_resource_class']);
         $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
         $resourceActionGrant->setAuthorizationResourceIdentifier(
-            AuthorizationUuidBinaryType::toStringUuid($row['effective_authorization_resource_identifier']));
+            UuidUtils::toStringUuid($row['effective_authorization_resource_identifier']));
         $resourceActionGrant->setAction($row['action']);
         $resourceActionGrant->setUserIdentifier($row['user_identifier']);
         $resourceActionGrant->setGroup($row['group_identifier'] ?
             $this->entityManager->getRepository(Group::class)->find(
-                AuthorizationUuidBinaryType::toStringUuid($row['group_identifier'])) : null);
+                UuidUtils::toStringUuid($row['group_identifier'])) : null);
         $resourceActionGrant->setDynamicGroupIdentifier($row['dynamic_group_identifier']);
 
         return $resourceActionGrant;
