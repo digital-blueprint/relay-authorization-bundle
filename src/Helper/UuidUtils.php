@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Helper;
 
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 class UuidUtils
 {
     public static function toBinaryUuid(string $stringUuid): string
     {
-        return Uuid::fromString($stringUuid)->getBytes();
+        return Uuid::fromString($stringUuid)->toBinary();
     }
 
     public static function toStringUuid(string $binaryUuid): string
     {
-        return Uuid::fromBytes($binaryUuid)->toString();
+        return Uuid::fromBinary($binaryUuid)->toString();
     }
 
     public static function toBinaryUuids(array $stringUuids): array
