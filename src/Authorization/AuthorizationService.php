@@ -882,9 +882,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $queryBuilder->setParameter(':userIdentifier', $userIdentifier);
         }
         if ($groupIdentifiers !== null) {
-            // There seem to be issues with doctrine and arrays of binary parameters:
-            // https://github.com/ramsey/uuid-doctrine/issues/18
-            // https://github.com/ramsey/uuid-doctrine/issues/164
             $orClause
                 ->add($queryBuilder->expr()->in("IDENTITY($RESOURCE_ACTION_GRANT_ALIAS.group)", ':groupIdentifiers'));
             $queryBuilder->setParameter(':groupIdentifiers',
