@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+## v0.5.14
+
 - Drop support for Symfony 6
+- Port away from ramsey/uuid
 
 ## v0.5.13
 
