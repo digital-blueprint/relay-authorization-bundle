@@ -47,7 +47,7 @@ Creates a new group.
 | relay:errorId                       | Status code | Description                     | relay:errorDetails    | Example                          |
 |-------------------------------------|-------------|---------------------------------|-----------------------|----------------------------------|
 | `authorization:adding-group-failed` | 500         | The group could not be created. | `message`             | `['message' => 'Error message']` |
-| `authorization:group-invalid`       | 400         | The group is invalid.           | `<invalid attribute>` | `['name']                        |
+| `authorization:group-invalid`       | 400         | The group is invalid.           | `<invalid attribute>` | `['name']`                       |
 
 ### `GET /authorization/groups`
 
@@ -84,7 +84,7 @@ Adds a new group member to a group.
 | relay:errorId                              | Status code | Description                          | relay:errorDetails    | Example                          |
 |--------------------------------------------|-------------|--------------------------------------|-----------------------|----------------------------------|
 | `authorization:adding-group-member-failed` | 500         | The group member could not be added. | `message`             | `['message' => 'Error message']` |
-| `authorization:group-member-invalid`       | 400         | The group member is invalid.         | `<invalid attribute>` | `['name']                        |
+| `authorization:group-member-invalid`       | 400         | The group member is invalid.         | `<invalid attribute>` | `['name']`                       |
 
 ### `GET /authorization/groups-members`
 
