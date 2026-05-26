@@ -36,4 +36,4 @@ This means that group membership may change, depending on the user attributes us
 If a _dynamic group_ holds a [Resource Action Grant](./resource-action-grants.md), all users, for which the membership policy
 evaluates to `true` are authorized to perform the respective action on the resource defined by the grant.
 
-_Dynamic groups_ can be defined in the bundle [configuration](configuration.md/#dynamic_groups-optional).
+_Dynamic groups_ can be defined in the bundle [configuration](configuration.md#dynamic_groups-optional).

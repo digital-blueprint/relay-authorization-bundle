@@ -33,7 +33,7 @@ The DbpRelayAuthorizationBundle distinguishes
 * resource collections (identified by the _resource class_ and a `null` _resource identifier_)
 
 The application defines separate sets of actions for resource items and resource collections
-(see [Events](events.md/#getavailableresourceclassactionsevent) on how).
+(see [Events](events.md#getavailableresourceclassactionsevent) on how).
 
 Resources can be added (registered) and removed (deregistered) using the [PHP API](php-api.md).
 The resource creator automatically becomes the manager of the resource and may issue grants for that resource. On resource 

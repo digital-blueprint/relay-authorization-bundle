@@ -56,7 +56,7 @@ permissions on the resource collection
 
 ### dynamic_groups (optional)
 
-See [Dynamic Groups](./groups.md/#dynamic-groups) and 
+See [Dynamic Groups](./groups.md#dynamic-groups) and 
 [Access Control Policies](https://handbook.digital-blueprint.org/frameworks/relay/admin/access_control/#access-control-policies) for 
 information on how to write policies.
 
