@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.15
+
 - Fix ResourceActionGrantService::getGrantedActionsPageForCurrentUser for resource pages with more than 1024 grants
 
 ## v0.5.14
