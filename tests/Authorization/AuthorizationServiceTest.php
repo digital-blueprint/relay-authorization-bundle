@@ -741,6 +741,79 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(0, $usersResourceActions);
     }
 
+    public function testGetResourceItemActionsPageForCurrentUserWithGroupResourcesMany(): void
+    {
+        $collectionResource = $this->testEntityManager->addAuthorizationResource(self::TEST_COLLECTION_RESOURCE_CLASS,
+            self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($collectionResource,
+            TestResources::READ_ACTION, 'controller_user');
+
+        $numResources = 1000;
+        for ($i = 0; $i < $numResources; ++$i) {
+            $resource = $this->testEntityManager->addAuthorizationResource(
+                TestResources::TEST_RESOURCE_CLASS, (string) $i
+            );
+            $this->testEntityManager->addResourceToGroupResource(
+                $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
+                $resource->getResourceClass(), $resource->getResourceIdentifier());
+            $this->testEntityManager->addResourceActionGrant($resource,
+                TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            $this->testEntityManager->addResourceActionGrant($resource,
+                TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            $this->testEntityManager->addResourceActionGrant($resource,
+                TestResources::DELETE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            $this->testEntityManager->getEntityManager()->clear();
+        }
+
+        $grantedResourceActions = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS,
+            maxNumResults: 2 * $numResources);
+
+        $this->assertCount($numResources, $grantedResourceActions);
+        $identifiersReturned = [];
+        foreach ($grantedResourceActions as $resourceIdentifier => $actions) {
+            $this->assertNotContains($resourceIdentifier, $identifiersReturned);
+            $identifiersReturned[] = $resourceIdentifier;
+            $this->assertIsPermutationOf([
+                TestResources::READ_ACTION,
+                TestResources::UPDATE_ACTION,
+                TestResources::DELETE_ACTION,
+            ], $actions);
+        }
+
+        // test pagination:
+        $maxNumResults = 400;
+        $grantedResourceActionsPage1 = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS,
+            firstResultIndex: 0,
+            maxNumResults: $maxNumResults);
+        $this->assertCount($maxNumResults, $grantedResourceActionsPage1);
+        $grantedResourceActionsPage2 = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS,
+            firstResultIndex: $maxNumResults,
+            maxNumResults: $maxNumResults);
+        $this->assertCount($maxNumResults, $grantedResourceActionsPage2);
+        $grantedResourceActionsPage3 = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS,
+            firstResultIndex: 2 * $maxNumResults,
+            maxNumResults: $maxNumResults);
+        $this->assertCount($numResources - (2 * $maxNumResults), $grantedResourceActionsPage3);
+
+        $grantedResourceActions = array_merge($grantedResourceActionsPage1, $grantedResourceActionsPage2, $grantedResourceActionsPage3);
+        $this->assertCount($numResources, $grantedResourceActions);
+
+        $identifiersReturned = [];
+        foreach ($grantedResourceActions as $resourceIdentifier => $actions) {
+            $this->assertNotContains($resourceIdentifier, $identifiersReturned);
+            $identifiersReturned[] = $resourceIdentifier;
+            $this->assertIsPermutationOf([
+                TestResources::READ_ACTION,
+                TestResources::UPDATE_ACTION,
+                TestResources::DELETE_ACTION,
+            ], $actions);
+        }
+    }
+
     public function testGetResourceItemActionsPageForCurrentUserWithGroupResources(): void
     {
         $testGroup = $this->testEntityManager->addGroup();

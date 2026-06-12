@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix ResourceActionGrantService::getGrantedActionsPageForCurrentUser for resource pages with more than 1024 grants
+
 ## v0.5.14
 
 - Drop support for Symfony 6

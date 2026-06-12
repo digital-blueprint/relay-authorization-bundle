@@ -32,6 +32,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
+    public const MAX_NUM_RESULTS_DEFAULT = 1024;
+
     public const COLLECTION_RESOURCE_IDENTIFIER = 'null';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
 
@@ -393,7 +395,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return $this->getInternal($get, $resourceClass, $resourceIdentifier,
             $authorizationResourceIdentifiers, $actions,
@@ -414,7 +416,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrantsForAuthorizationResourceIdentifier(
         string $authorizationResourceIdentifier,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return $this->getInternal(self::GET_RESOURCE_ACTION_GRANTS,
             null, null, $authorizationResourceIdentifier, null,
@@ -436,7 +438,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrantsForResourceClassAndIdentifier(
         ?string $resourceClass = null, ?string $resourceIdentifier = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return $this->getInternal(self::GET_RESOURCE_ACTION_GRANTS,
             $resourceClass, $resourceIdentifier, null, null,
@@ -459,7 +461,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrantsForResourceItemPage(string $resourceClass,
         ?array $whereAuthorizationResourceActionsContainAnyOf = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         // * doctrine does not yet support joins with subqueries (SELECT ... INNER JOIN (SELECT ...))
         // * our current MySQL version doesn't yet support 'LIMIT & IN/ALL/ANY/SOME subquery' (SELECT ... WHERE foo IN (SELECT .... LIMIT 10)
@@ -473,12 +475,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
                 $firstResultIndex, $maxNumResults, $options);
 
-            // then get all grants for the authorization resource ids page
+            // then get ALL grants for the authorization resource ids page
             return $this->getInternal(
                 self::GET_RESOURCE_ACTION_GRANTS,
                 authorizationResourceIdentifiers: $authorizationResourceIdPage,
                 userIdentifier: $userIdentifier, groupIdentifiers: $groupIdentifiers,
-                dynamicGroupIdentifiers: $dynamicGroupIdentifiers);
+                dynamicGroupIdentifiers: $dynamicGroupIdentifiers,
+                maxNumResults: null
+            );
         } catch (\Exception $exception) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get resource action grant collection!',
@@ -490,7 +494,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         $GET_TYPE_RESOURCE_ACTION_GRANTS = 'rag';
         $GET_TYPE_AUTHORIZATION_RESOURCES = 'ars';
@@ -579,7 +583,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
-        int $firstResultIndex = 0, int $maxNumResults = 1024, array $options = []): array
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
         $AUTHORIZATION_RESOURCE_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS;
@@ -666,6 +670,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 )
             )";
 
+        $limitAndOffset = ($maxNumResults !== null ? "LIMIT $maxNumResults" : '').
+            ($firstResultIndex > 0 ? " OFFSET $firstResultIndex" : '');
+
         $sql = "SELECT $select
                 FROM authorization_resource_action_grants $RESOURCE_ACTION_GRANT_ALIAS
                 INNER JOIN (
@@ -700,7 +707,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $additionalCriteria
                 $groupBy
                 $orderBy
-                LIMIT $maxNumResults OFFSET $firstResultIndex";
+                $limitAndOffset
+        ";
 
         return [$sql, $parameterValues, $parameterTypes];
     }

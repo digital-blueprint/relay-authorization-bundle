@@ -73,7 +73,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public const DYNAMIC_GROUP_UNDEFINED_ERROR_ID = 'authorization:dynamic-group-undefined';
 
-    public const MAX_NUM_RESULTS_DEFAULT = 1024;
+    public const MAX_NUM_RESULTS_DEFAULT = InternalResourceActionGrantService::MAX_NUM_RESULTS_DEFAULT;
     public const GROUP_SEARCH_FILTER = 'search';
     public const GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER = 'getChildGroupCandidatesForGroupIdentifier';
     public const DYNAMIC_GROUP_IDENTIFIER_EVERYBODY = 'everybody';
@@ -303,7 +303,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $resourceActions = [];
-        $currentResourceIdentifier = null;
         $currentUserIdentifier = $this->getUserIdentifier();
         $whereActionsContainAnyOf = null;
         if ($whereIsGrantedAction === self::MANAGE_ACTION) {
@@ -329,12 +328,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             self::nullIfEmpty($this->getDynamicGroupsCurrentUserIsMemberOf()),
             $firstResultIndex, $maxNumResults,
             [InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResource]) as $resourceActionGrant) {
-            // since we get grants for resource items (and not collections), we rely on the resource identifier not to be null
-            if ($currentResourceIdentifier !== $resourceActionGrant->getResourceIdentifier()) {
-                $currentResourceIdentifier = $resourceActionGrant->getResourceIdentifier();
-                $resourceActions[$currentResourceIdentifier] = [];
-            }
-            $resourceActions[$currentResourceIdentifier][] = $resourceActionGrant->getAction();
+            $resourceActions[$resourceActionGrant->getResourceIdentifier()][] = $resourceActionGrant->getAction();
         }
 
         return $resourceActions;
@@ -675,7 +669,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     private function getResourceActionGrantsCurrentUserIsAuthorizedToReadInternal(string $get = self::GET_RESOURCE_ACTION_GRANTS,
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, int $firstResultIndex = 0, int $maxNumResults = 1024): array
+        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS =
             InternalResourceActionGrantService::AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS;
