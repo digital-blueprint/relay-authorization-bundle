@@ -16,7 +16,7 @@ use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
  * @internal

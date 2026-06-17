@@ -25,7 +25,7 @@ class AvailableResourceClassAction
     public const COLLECTION_ACTION_TYPE = 1;
 
     #[ORM\Id]
-    #[ORM\Column(type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
+    #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
 
     #[ORM\Column(name: 'resource_class', type: 'string', length: 40, nullable: true)]
@@ -40,8 +40,11 @@ class AvailableResourceClassAction
     #[ORM\OneToMany(targetEntity: AvailableResourceClassActionName::class, mappedBy: 'availableResourceClassAction', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $names;
 
-    #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'action')]
+    #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'availableResourceClassAction')]
     private Collection $grants;
+
+    #[ORM\OneToMany(targetEntity: RoleAction::class, mappedBy: 'availableResourceClassAction')]
+    private Collection $roleActions;
 
     public function __construct()
     {
@@ -106,5 +109,15 @@ class AvailableResourceClassAction
     public function setGrants(Collection $grants): void
     {
         $this->grants = $grants;
+    }
+
+    public function getRoleActions(): Collection
+    {
+        return $this->roleActions;
+    }
+
+    public function setRoleActions(Collection $roleActions): void
+    {
+        $this->roleActions = $roleActions;
     }
 }
