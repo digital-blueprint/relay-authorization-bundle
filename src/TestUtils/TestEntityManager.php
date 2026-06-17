@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
@@ -15,6 +16,7 @@ use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query\Expr\Join;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Uid\Uuid;
@@ -32,9 +34,12 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addResourceActionGrant(AuthorizationResource $resource, string $action,
-        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
+        ?string $actionResourceClass = null, ?bool $isCollectionAction = null): ResourceActionGrant
     {
-        return $this->addResourceActionGrantInternal($resource, $action, $userIdentifier, $group, $dynamicGroupIdentifier);
+        return $this->addResourceActionGrantInternal(
+            $resource, $action, $userIdentifier, $group, $dynamicGroupIdentifier,
+            $actionResourceClass, $isCollectionAction);
     }
 
     public function addAuthorizationResourceAndActionGrant(
@@ -107,12 +112,19 @@ class TestEntityManager extends CoreTestEntityManager
     public function getResourceActionGrant(string $authorizationResourceIdentifier, string $action, string $userIdentifier): ?ResourceActionGrant
     {
         try {
-            return $this->entityManager->getRepository(ResourceActionGrant::class)
-                ->findOneBy([
-                    'authorizationResource' => $authorizationResourceIdentifier,
-                    'action' => $action,
-                    'userIdentifier' => $userIdentifier,
-                ]);
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->select('rag')
+                ->from(ResourceActionGrant::class, 'rag')
+                ->innerJoin(AvailableResourceClassAction::class, 'arca', Join::WITH, 'rag.availableResourceClassAction = arca.identifier')
+                ->where($queryBuilder->expr()->eq('rag.authorizationResource', ':authorizationResource'))
+                ->setParameter(':authorizationResource', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME)
+                ->andWhere($queryBuilder->expr()->eq('arca.action', ':action'))
+                ->setParameter(':action', $action);
+
+            return $queryBuilder
+                ->getQuery()
+                ->getOneOrNullResult();
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
@@ -124,15 +136,23 @@ class TestEntityManager extends CoreTestEntityManager
     public function getResourceActionGrants(string $authorizationResourceIdentifier, ?string $action = null): array
     {
         try {
-            $criteria = [
-                'authorizationResource' => $authorizationResourceIdentifier,
-            ];
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->select('rag')
+                ->from(ResourceActionGrant::class, 'rag')
+                ->innerJoin(AvailableResourceClassAction::class, 'arca', Join::WITH, 'rag.availableResourceClassAction = arca.identifier')
+                ->where($queryBuilder->expr()->eq('rag.authorizationResource', ':authorizationResource'))
+                ->setParameter(':authorizationResource', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME);
+
             if ($action !== null) {
-                $criteria['action'] = $action;
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq('arca.action', ':action'))
+                    ->setParameter(':action', $action);
             }
 
-            return $this->entityManager->getRepository(ResourceActionGrant::class)
-                ->findBy($criteria);
+            return $queryBuilder
+                ->getQuery()
+                ->getResult();
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
@@ -255,13 +275,25 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    private function addResourceActionGrantInternal(AuthorizationResource $resource, string $action,
-        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+    private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, string $action,
+        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
+        ?string $actionResourceClass = null, ?bool $isCollectionAction = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
-        $resourceActionGrant->setAuthorizationResource($resource);
+        $resourceActionGrant->setAuthorizationResource($authorizationResource);
         $resourceActionGrant->setAction($action);
+        $resourceActionGrant->setActionResourceClass($actionResourceClass);
+        $resourceActionGrant->setIsCollectionAction($isCollectionAction);
+        $resourceActionGrant->setAvailableResourceClassAction(
+            InternalResourceActionGrantService::getAvailableResourceClassActionStatic(
+                $this->entityManager,
+                $resourceActionGrant->getActionResourceClass(),
+                $action,
+                $resourceActionGrant->getActionType()
+            )
+        );
+        assert($resourceActionGrant->getAvailableResourceClassAction() !== null);
         $resourceActionGrant->setUserIdentifier($userIdentifier);
         $resourceActionGrant->setGroup($group);
         $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
@@ -310,7 +342,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     private static function addAvailableGroupResourceClassActions(EntityManagerInterface $entityManager): void
     {
-        InternalResourceActionGrantService::addAvailableResourceClassActionsStatic($entityManager,
+        InternalResourceActionGrantService::updateAvailableResourceClassActionsStatic($entityManager,
             AuthorizationService::GROUP_RESOURCE_CLASS,
             AuthorizationService::GROUP_ITEM_ACTIONS,
             AuthorizationService::GROUP_COLLECTION_ACTIONS);
