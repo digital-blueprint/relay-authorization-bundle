@@ -9,6 +9,9 @@
 
 ## v0.5.17
 
+- Only update available resource class actions, instead of clearing and re-adding them
+- ResourceActionGrant::action: Replace string action by reference to AvailableResourceClassAction entity to be able to
+  reference actions that are not available for the grant's resource, but might be for its children.
 - Add getMembersOfGroup to GroupService
 - Port to ApiTestCase
 
