@@ -18,7 +18,7 @@ use Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\GroupProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\ORM\PersistentCollection;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
     shortName: 'AuthorizationGroup',

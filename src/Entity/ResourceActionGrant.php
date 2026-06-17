@@ -17,7 +17,7 @@ use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
     shortName: 'AuthorizationResourceActionGrant',
@@ -123,22 +123,33 @@ use Symfony\Component\Serializer\Annotation\Groups;
         'groups' => ['AuthorizationResourceActionGrant:input'],
     ],
 )]
-#[ORM\Table(name: 'authorization_resource_action_grants')]
+#[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class ResourceActionGrant
 {
+    public const TABLE_NAME = 'authorization_resource_action_grants';
+
+    public const IDENTIFIER_COLUMN_NAME = 'identifier';
+    public const AUTHORIZATION_RESOURCE_IDENTIFIER_COLUMN_NAME = 'authorization_resource_identifier';
+    public const AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN_NAME = 'available_resource_class_action_identifier';
+    public const ROLE_IDENTIFIER_COLUMN_NAME = 'role_identifier';
+
     #[ORM\Id]
-    #[ORM\Column(type: 'relay_authorization_uuid_binary', unique: true)]
+    #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', unique: true)]
     #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?string $identifier = null;
 
-    #[ORM\JoinColumn(name: 'authorization_resource_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: self::AUTHORIZATION_RESOURCE_IDENTIFIER_COLUMN_NAME, referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class, inversedBy: 'resourceActionGrants')]
     private ?AuthorizationResource $authorizationResource = null;
 
-    #[ORM\JoinColumn(name: 'available_resource_class_action_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: self::AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN_NAME, referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'resourceActionGrants')]
     private ?AvailableResourceClassAction $availableResourceClassAction = null;
+
+    #[ORM\JoinColumn(name: self::ROLE_IDENTIFIER_COLUMN_NAME, referencedColumnName: Role::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
+    #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'resourceActionGrants')]
+    private ?Role $role = null;
 
     /**
      * User type grant holder.
@@ -264,6 +275,16 @@ class ResourceActionGrant
     public function getAvailableResourceClassAction(): ?AvailableResourceClassAction
     {
         return $this->availableResourceClassAction;
+    }
+
+    public function setRole(?Role $role): void
+    {
+        $this->role = $role;
+    }
+
+    public function getRole(): ?Role
+    {
+        return $this->role;
     }
 
     /**
