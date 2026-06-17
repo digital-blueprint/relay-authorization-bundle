@@ -26,7 +26,7 @@ final class Version20260616114400 extends EntityManagerMigration
         $MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
 
         $this->addSql('
-             ALTER TABLE authorization_resource_action_grants 
+             ALTER TABLE authorization_resource_action_grants
              CHANGE action action VARCHAR(40) DEFAULT NULL
         ');
 

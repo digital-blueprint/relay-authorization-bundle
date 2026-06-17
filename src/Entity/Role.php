@@ -4,10 +4,59 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\Parameter;
+use Dbp\Relay\AuthorizationBundle\Rest\RoleProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
+#[ApiResource(
+    shortName: 'AuthorizationRole',
+    operations: [
+        new Get(
+            uriTemplate: '/authorization/roles/{identifier}',
+            openapi: new Operation(
+                tags: ['Authorization']
+            ),
+            provider: RoleProvider::class
+        ),
+        new GetCollection(
+            uriTemplate: '/authorization/roles',
+            openapi: new Operation(
+                tags: ['Authorization'],
+                parameters: [
+                    new Parameter(
+                        name: 'resourceClass',
+                        in: 'query',
+                        description: 'The resource class to get roles for',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                    new Parameter(
+                        name: 'actionType',
+                        in: 'query',
+                        description: 'The action type to get roles for (0 = item actions, 1 = collection actions)',
+                        required: false,
+                        schema: [
+                            'type' => 'integer',
+                            'enum' => [0, 1],
+                        ],
+                    ),
+                ],
+            ),
+            provider: RoleProvider::class
+        ),
+    ],
+    normalizationContext: [
+        'groups' => ['AuthorizationRole:output'],
+    ],
+)]
 #[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class Role
@@ -18,9 +67,12 @@ class Role
 
     #[ORM\Id]
     #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
+    #[Groups(['AuthorizationRole:output'])]
     private ?string $identifier = null;
 
     #[ORM\OneToMany(targetEntity: RoleName::class, mappedBy: 'role', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['AuthorizationRole:output'])]
+    #[ApiProperty(genId: false)]
     private Collection $roleNames;
 
     #[ORM\OneToMany(targetEntity: RoleAction::class, mappedBy: 'role', cascade: ['persist', 'remove'], orphanRemoval: true)]
