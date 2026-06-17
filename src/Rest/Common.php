@@ -11,4 +11,5 @@ class Common
     public const RESOURCE_CLASS_QUERY_PARAMETER = 'resourceClass';
     public const RESOURCE_IDENTIFIER_QUERY_PARAMETER = 'resourceIdentifier';
     public const REQUIRED_PARAMETER_MISSION_ERROR_ID = 'authorization:required-parameter-missing';
+    public const ACTION_TYPE_QUERY_PARAMETER = 'actionType';
 }
