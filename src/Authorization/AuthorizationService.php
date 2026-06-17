@@ -10,6 +10,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
@@ -889,5 +890,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         if ($orClause->count() > 0) {
             $queryBuilder->andWhere($orClause);
         }
+    }
+
+    public function addRole(array $localizedRoleNames, array $roleActions): Role
+    {
+        return $this->internalResourceActionGrantService->addRole($localizedRoleNames, $roleActions);
     }
 }

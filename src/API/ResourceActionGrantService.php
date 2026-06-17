@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\API;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 
 class ResourceActionGrantService
 {
     public const COLLECTION_RESOURCE_IDENTIFIER = AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
+
     public const MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
+
+    public const ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
+    public const COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;
+
     public const MAX_NUM_RESULTS_DEFAULT = 30;
     public const MAX_NUM_RESULTS_MAX = 1024;
 
@@ -39,6 +46,20 @@ class ResourceActionGrantService
     {
         $this->authorizationService->setAvailableResourceClassActions(
             $resourceClass, $itemActions, $collectionActions);
+    }
+
+    public static function createRoleAction(string $resourceClass, string $action, int $actionType): array
+    {
+        return [
+            'resourceClass' => $resourceClass,
+            'action' => $action,
+            'actionType' => $actionType,
+        ];
+    }
+
+    public function addRole(array $localizedRoleNames, array $roleActions): Role
+    {
+        return $this->authorizationService->addRole($localizedRoleNames, $roleActions);
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -19,14 +20,21 @@ class Role
     #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
 
-    #[ORM\OneToMany(targetEntity: RoleName::class, mappedBy: 'role')]
-    private Collection $names;
+    #[ORM\OneToMany(targetEntity: RoleName::class, mappedBy: 'role', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $roleNames;
 
-    #[ORM\OneToMany(targetEntity: AvailableResourceClassAction::class, mappedBy: 'role')]
-    private Collection $actions;
+    #[ORM\OneToMany(targetEntity: RoleAction::class, mappedBy: 'role', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $roleActions;
 
-    #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'role')]
-    private Collection $grants;
+    #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'role', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $resourceActionGrants;
+
+    public function __construct()
+    {
+        $this->roleNames = new ArrayCollection();
+        $this->roleActions = new ArrayCollection();
+        $this->resourceActionGrants = new ArrayCollection();
+    }
 
     public function getIdentifier(): ?string
     {
@@ -38,33 +46,33 @@ class Role
         $this->identifier = $identifier;
     }
 
-    public function getNames(): Collection
+    public function getRoleNames(): Collection
     {
-        return $this->names;
+        return $this->roleNames;
     }
 
-    public function setNames(Collection $names): void
+    public function setRoleNames(Collection $roleNames): void
     {
-        $this->names = $names;
+        $this->roleNames = $roleNames;
     }
 
-    public function getActions(): Collection
+    public function getRoleActions(): Collection
     {
-        return $this->actions;
+        return $this->roleActions;
     }
 
-    public function setActions(Collection $actions): void
+    public function setRoleActions(Collection $roleActions): void
     {
-        $this->actions = $actions;
+        $this->roleActions = $roleActions;
     }
 
-    public function getGrants(): Collection
+    public function getResourceActionGrants(): Collection
     {
-        return $this->grants;
+        return $this->resourceActionGrants;
     }
 
-    public function setGrants(Collection $grants): void
+    public function setResourceActionGrants(Collection $resourceActionGrants): void
     {
-        $this->grants = $grants;
+        $this->resourceActionGrants = $resourceActionGrants;
     }
 }
