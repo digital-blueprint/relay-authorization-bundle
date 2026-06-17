@@ -17,6 +17,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\RoleName;
 use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
+use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\ArrayParameterType;
@@ -27,6 +28,7 @@ use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Uid\UuidV7;
 
 /**
  * @internal
@@ -75,6 +77,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public const RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING_ERROR_ID =
         'authorization:resource-action-grant-invalid-authorization-resource-missing';
     private const ADDING_ROLE_FAILED_ERROR_ID = 'authorization:adding-role-failed';
+    private const GETTING_ROLE_ITEM_FAILED_ERROR_ID = 'authorization:getting-role-item-failed';
+    private const GETTING_ROLE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-role-collection-failed';
 
     private const GROUP_AUTHORIZATION_RESOURCE_MEMBER_ALIAS = 'garm';
     private const AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
@@ -237,6 +241,77 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         return $role;
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function getRoleByIdentifier(string $identifier): ?Role
+    {
+        try {
+            return UuidV7::isValid($identifier) ?
+                $this->entityManager->getRepository(Role::class)->find($identifier) :
+                null;
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get role by identifier: '.$throwable->getMessage(), [
+                'identifier' => $identifier,
+                'exception' => $throwable,
+            ]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get role',
+                self::GETTING_ROLE_ITEM_FAILED_ERROR_ID);
+        }
+    }
+
+    /**
+     * @return Role[]
+     *
+     * @throws ApiError
+     */
+    public function getRoles(int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT, array $filters = []): array
+    {
+        $ROLE_ALIAS = 'r';
+        $ROLE_ACTION_ALIAS = 'ra';
+        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
+
+        $resourceClass = $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
+        $actionType = $filters[Common::ACTION_TYPE_QUERY_PARAMETER] ?? null;
+
+        try {
+            // only get roles that have at least one role action for the given resource class and action type
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder->select($ROLE_ALIAS)
+                ->from(Role::class, $ROLE_ALIAS)
+                ->innerJoin(RoleAction::class, $ROLE_ACTION_ALIAS,
+                    Join::WITH, "$ROLE_ALIAS.identifier = $ROLE_ACTION_ALIAS.role")
+                ->innerJoin(AvailableResourceClassAction::class, $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS,
+                    Join::WITH, "
+                    $ROLE_ACTION_ALIAS.availableResourceClassAction = $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.identifier");
+
+            if (null !== $resourceClass) {
+                $queryBuilder
+                    ->where($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass', ':resourceClass'))
+                    ->setParameter(':resourceClass', $resourceClass);
+            }
+            if (null !== $actionType) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.actionType', ':actionType'))
+                    ->setParameter(':actionType', $actionType);
+            }
+
+            return $queryBuilder
+                ->getQuery()
+                ->setFirstResult($firstItemIndex)
+                ->setMaxResults($maxNumItemsPerPage)
+                ->getResult();
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get roles: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+                'resourceClass' => $resourceClass,
+                'actionType' => $actionType,
+            ]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get roles',
+                self::GETTING_ROLE_COLLECTION_FAILED_ERROR_ID);
+        }
     }
 
     /**
@@ -489,7 +564,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function getResourceActionGrantByIdentifier(string $identifier): ?ResourceActionGrant
     {
         try {
-            return Uuid::isValid($identifier) ? $this->entityManager
+            return UuidV7::isValid($identifier) ? $this->entityManager
                 ->getRepository(ResourceActionGrant::class)
                 ->find($identifier) : null;
         } catch (\Exception $e) {
