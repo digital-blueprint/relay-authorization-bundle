@@ -18,7 +18,7 @@ class RoleName
 
     #[ORM\Id]
     #[ORM\JoinColumn(name: self::ROLE_IDENTIFIER_COLUMN, referencedColumnName: Role::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
-    #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'names')]
+    #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'roleNames')]
     private ?Role $role = null;
 
     #[ORM\Id]
