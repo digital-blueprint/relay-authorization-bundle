@@ -89,17 +89,15 @@ class ResourceActionGrantService
     /**
      * Use self::COLLECTION_RESOURCE_IDENTIFIER as resourceIdentifier for collection actions.
      *
-     * @param bool $ignoreActionAvailability if true, grants are returned if the granted action is not available for the resource class
-     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, bool $ignoreActionAvailability = false): array
+        string $resourceClass, string $resourceIdentifier): array
     {
         return $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier, $ignoreActionAvailability);
+            $resourceClass, $resourceIdentifier);
     }
 
     /**

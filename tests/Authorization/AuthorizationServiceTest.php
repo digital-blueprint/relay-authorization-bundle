@@ -454,7 +454,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertEmpty($resourceCollectionActions);
 
         $this->testEntityManager->addResourceActionGrant($collectionResource,
-            TestResources::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER.'_2');
+            TestResources::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER.'_2',
+            actionResourceClass: TestResources::TEST_RESOURCE_CLASS,
+            isCollectionAction: true);
 
         $resourceCollectionActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(
             self::TEST_RESOURCE_CLASS,
