@@ -15,6 +15,7 @@ use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 
@@ -135,9 +136,9 @@ class ResourceActionGrant
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class, inversedBy: 'resourceActionGrants')]
     private ?AuthorizationResource $authorizationResource = null;
 
-    #[ORM\Column(name: 'action', type: 'string', length: 40)]
-    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
-    private ?string $action = null;
+    #[ORM\JoinColumn(name: 'available_resource_class_action_identifier', referencedColumnName: 'identifier', onDelete: 'CASCADE')]
+    #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'resourceActionGrants')]
+    private ?AvailableResourceClassAction $availableResourceClassAction = null;
 
     /**
      * User type grant holder.
@@ -203,6 +204,26 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceIdentifier = null;
 
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    private ?string $action = null;
+
+    /**
+     * The resource class the action belongs to. Needed in situations where grants are issued for group resources,
+     * which pass it on to their children (of different resource class).
+     * If not provided, the resourceClass of this grant is used.
+     */
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    private ?string $actionResourceClass = null;
+
+    /**
+     * Whether the action is a collection action (e.g. "create" on a resource class) or an item action (e.g. "read" on a specific resource).
+     * Needed in situations where grants are issued for group resources, which pass it on to their children
+     * (where collection/item resource type does not match between parent and children).
+     * If not provided, the action type is determined from the resourceIdentifier of this grant.
+     */
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    private ?bool $isCollectionAction = null;
+
     #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?array $grantedActions = null;
 
@@ -235,6 +256,16 @@ class ResourceActionGrant
         $this->authorizationResource = $authorizationResource;
     }
 
+    public function setAvailableResourceClassAction(?AvailableResourceClassAction $availableResourceClassAction): void
+    {
+        $this->availableResourceClassAction = $availableResourceClassAction;
+    }
+
+    public function getAvailableResourceClassAction(): ?AvailableResourceClassAction
+    {
+        return $this->availableResourceClassAction;
+    }
+
     /**
      * Can be used for cases where authorizationResource is not hydrated automatically, i.e. in custom sql queries.
      */
@@ -255,12 +286,32 @@ class ResourceActionGrant
 
     public function getAction(): ?string
     {
-        return $this->action;
+        return $this->availableResourceClassAction?->getAction() ?? $this->action;
     }
 
     public function setAction(?string $action): void
     {
         $this->action = $action;
+    }
+
+    public function getActionResourceClass(): ?string
+    {
+        return $this->actionResourceClass ?? $this->availableResourceClassAction?->getResourceClass() ?? $this->getResourceClass();
+    }
+
+    public function setActionResourceClass(?string $actionResourceClass): void
+    {
+        $this->actionResourceClass = $actionResourceClass;
+    }
+
+    public function isCollectionAction(): ?bool
+    {
+        return $this->isCollectionAction;
+    }
+
+    public function setIsCollectionAction(?bool $isCollectionAction): void
+    {
+        $this->isCollectionAction = $isCollectionAction;
     }
 
     public function getUserIdentifier(): ?string
@@ -371,6 +422,17 @@ class ResourceActionGrant
     public function setIsInherited(bool $isInherited): void
     {
         $this->isInherited = $isInherited;
+    }
+
+    public function getActionType(): int
+    {
+        if ($this->isCollectionAction !== null) {
+            return $this->isCollectionAction ? AvailableResourceClassAction::COLLECTION_ACTION_TYPE : AvailableResourceClassAction::ITEM_ACTION_TYPE;
+        }
+
+        return $this->getResourceIdentifier() === InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER ?
+            AvailableResourceClassAction::COLLECTION_ACTION_TYPE :
+            AvailableResourceClassAction::ITEM_ACTION_TYPE;
     }
 
     public function __toString(): string
