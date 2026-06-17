@@ -12,7 +12,7 @@ use Dbp\Relay\AuthorizationBundle\Rest\AuthorizationResourceProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\Ignore;
 
 /**
@@ -53,15 +53,19 @@ use Symfony\Component\Serializer\Attribute\Ignore;
 #[ORM\Entity]
 class AuthorizationResource
 {
+    public const IDENTIFIER_COLUMN_NAME = 'identifier';
+    public const RESOURCE_CLASS_COLUMN_NAME = 'resource_class';
+    public const RESOURCE_IDENTIFIER_COLUMN_NAME = 'resource_identifier';
+
     #[ORM\Id]
-    #[ORM\Column(type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
+    #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
 
-    #[ORM\Column(name: 'resource_class', type: 'string', length: 40)]
+    #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN_NAME, type: 'string', length: 40)]
     #[Groups(['AuthorizationResource:output'])]
     private ?string $resourceClass = null;
 
-    #[ORM\Column(name: 'resource_identifier', type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: self::RESOURCE_IDENTIFIER_COLUMN_NAME, type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationResource:output'])]
     private ?string $resourceIdentifier = null;
 

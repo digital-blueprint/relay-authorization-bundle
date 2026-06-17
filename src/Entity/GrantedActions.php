@@ -11,7 +11,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Link;
 use ApiPlatform\OpenApi\Model\Operation;
 use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
-use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
     shortName: 'AuthorizationGrantedActions',
