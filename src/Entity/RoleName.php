@@ -4,8 +4,17 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
+#[ApiResource(
+    shortName: 'AuthorizationRoleName',
+    operations: [],
+    normalizationContext: [
+        'groups' => ['AuthorizationRoleName:output'],
+    ],
+)]
 #[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class RoleName
@@ -23,9 +32,11 @@ class RoleName
 
     #[ORM\Id]
     #[ORM\Column(name: self::LANGUAGE_TAG_COLUMN_NAME, type: 'string', length: 2)]
+    #[Groups(['AuthorizationRoleName:output', 'AuthorizationRole:output'])]
     private ?string $languageTag = null;
 
     #[ORM\Column(name: self::NAME_COLUMN_NAME, type: 'string', length: 64)]
+    #[Groups(['AuthorizationRoleName:output', 'AuthorizationRole:output'])]
     private ?string $name = null;
 
     public function getRole(): ?Role
