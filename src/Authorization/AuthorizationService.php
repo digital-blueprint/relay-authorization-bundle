@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
@@ -130,6 +131,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function setAvailableResourceClassActions(string $resourceClass,
         array $itemActions, array $collectionActions): void
     {
+        $this->internalResourceActionGrantService->ensureManageActionsAreAvailable();
         $this->internalResourceActionGrantService->setAvailableResourceClassActions(
             $resourceClass, $itemActions, $collectionActions);
     }
@@ -240,22 +242,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
-     * @param bool $ignoreActionAvailability if true, grants are returned if the granted action is not available for the resource class
-     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, bool $ignoreActionAvailability = false): array
+        string $resourceClass, string $resourceIdentifier): array
     {
-        $options = [];
-        if ($ignoreActionAvailability) {
-            $options[InternalResourceActionGrantService::IGNORE_ACTION_AVAILABILITY_OPTION] = true;
-        }
-
         return $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier, options: $options);
+            $resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -360,6 +355,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $GROUP_ALIAS = 'g';
         $AUTHORIZATION_RESOURCE_ALIAS = 'arm';
         $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
+        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
 
         $queryBuilder = $this->internalResourceActionGrantService->getEntityManager()->createQueryBuilder();
         $queryBuilder->select($GROUP_ALIAS)
@@ -370,11 +366,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             ->innerJoin(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS, Join::WITH,
                 "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource = $AUTHORIZATION_RESOURCE_ALIAS.identifier"
             )
+            ->innerJoin(AvailableResourceClassAction::class, $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS, Join::WITH,
+                "$RESOURCE_ACTION_GRANT_ALIAS.availableResourceClassAction = $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.identifier"
+            )
             ->andWhere("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass = :resourceClass")
             ->setParameter(':resourceClass', self::GROUP_RESOURCE_CLASS)
             ->andWhere("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier IS NOT NULL") // group items only
             ->andWhere($queryBuilder->expr()->in(
-                "$RESOURCE_ACTION_GRANT_ALIAS.action",
+                "$AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action",
                 [self::MANAGE_ACTION, self::READ_GROUP_ACTION]));
 
         if ($groupNameLike = $filters[self::GROUP_SEARCH_FILTER] ?? null) {
