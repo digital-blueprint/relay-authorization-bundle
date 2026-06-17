@@ -20,7 +20,7 @@ class RoleAction
         name: self::ROLE_IDENTIFIER_COLUMN,
         referencedColumnName: Role::IDENTIFIER_COLUMN_NAME,
         onDelete: 'CASCADE')]
-    #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'actions')]
+    #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'roleActions')]
     private ?Role $role = null;
 
     #[ORM\Id]
