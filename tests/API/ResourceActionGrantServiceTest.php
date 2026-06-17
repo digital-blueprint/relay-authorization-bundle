@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
+use Symfony\Component\Uid\UuidV7;
 
 class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCase
 {
@@ -532,5 +533,34 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_CLASS_2);
         $this->assertCount(0, $rags);
+    }
+
+    public function testAddRole(): void
+    {
+        $roleActions = [];
+        $roleActions[] = ResourceActionGrantService::createRoleAction(
+            TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE);
+        $roleActions[] = ResourceActionGrantService::createRoleAction(
+            TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE);
+        $localizedRoleNames = [
+            'en' => 'Creator',
+            'de' => 'Ersteller',
+        ];
+        $role = $this->resourceActionGrantService->addRole($localizedRoleNames, $roleActions);
+        $this->assertTrue(UuidV7::isValid($role->getIdentifier()));
+        $roleNameEntities = $role->getRoleNames();
+        $this->assertCount(2, $roleNameEntities);
+        $this->assertEquals('en', $roleNameEntities[0]->getLanguageTag());
+        $this->assertEquals('Creator', $roleNameEntities[0]->getName());
+        $this->assertEquals('de', $roleNameEntities[1]->getLanguageTag());
+        $this->assertEquals('Ersteller', $roleNameEntities[1]->getName());
+        $roleActionEntities = $role->getRoleActions();
+        $this->assertCount(2, $roleActionEntities);
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[0]->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals(TestResources::READ_ACTION, $roleActionEntities[0]->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(ResourceActionGrantService::ITEM_ACTION_TYPE, $roleActionEntities[0]->getAvailableResourceClassAction()->getActionType());
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[1]->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals(TestResources::CREATE_ACTION, $roleActionEntities[1]->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(ResourceActionGrantService::COLLECTION_ACTION_TYPE, $roleActionEntities[1]->getAvailableResourceClassAction()->getActionType());
     }
 }

@@ -12,6 +12,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
@@ -99,13 +100,23 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
+    public function getRoleByIdentifier(string $identifier): ?Role
+    {
+        try {
+            return $this->entityManager->getRepository(Role::class)
+                ->findOneBy(['identifier' => $identifier]);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException('failed to get role: '.$exception->getMessage());
+        }
+    }
+
     public function getResourceActionGrantByIdentifier(string $identifier): ?ResourceActionGrant
     {
         try {
             return $this->entityManager->getRepository(ResourceActionGrant::class)
                 ->findOneBy(['identifier' => $identifier]);
         } catch (\Exception $exception) {
-            throw new \RuntimeException($exception->getMessage());
+            throw new \RuntimeException('failed to get resource action grant: '.$exception->getMessage());
         }
     }
 
