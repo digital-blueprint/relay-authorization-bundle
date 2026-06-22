@@ -56,5 +56,13 @@ final class Version20260617135600 extends EntityManagerMigration
             ADD CONSTRAINT FK_role_action_available_resource_class_action_identifier FOREIGN KEY (available_resource_class_action_identifier)
                 REFERENCES authorization_available_resource_class_actions(identifier) ON DELETE CASCADE
         ');
+
+        // add role_identifier column to authorization_resource_action_grants table
+        $this->addSql('
+            ALTER TABLE authorization_resource_action_grants
+            ADD COLUMN role_identifier BINARY(16) DEFAULT NULL,
+            ADD CONSTRAINT FK_grant_role_identifier FOREIGN KEY (role_identifier)
+                REFERENCES authorization_roles(identifier) ON DELETE CASCADE
+        ');
     }
 }
