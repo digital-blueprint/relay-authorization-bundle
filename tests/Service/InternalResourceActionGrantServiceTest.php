@@ -746,6 +746,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_2);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceClass2ResourceActionGrant);
+        $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant, $resource1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant, $resourceCollection);
