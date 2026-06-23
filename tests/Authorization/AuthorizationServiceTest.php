@@ -166,14 +166,15 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testGetDynamicGroupsCurrentUserIsMemberOf(): void
     {
-        // create some noise by letting manage_resource_collection_policy of self::TEST_RESOURCE_CLASS evaluate to true
+        $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
+        $this->assertEquals(['everybody'], $currentUsersDynamicGroups);
+
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
         $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
-        $this->assertCount(1, $currentUsersDynamicGroups);
-        $this->assertEquals('everybody', $currentUsersDynamicGroups[0]);
+        $this->assertIsPermutationOf(['everybody', '@resourceClass'], $currentUsersDynamicGroups);
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_STUDENT'] = true;
@@ -311,6 +312,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $resourceItemActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertEquals([TestResources::READ_ACTION], $resourceItemActions);
+
+        $this->login(userIdentifier: null);
+        $resourceItemActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertEquals([TestResources::READ_ACTION], $resourceItemActions);
     }
 
     public function testGetResourceItemActionsForCurrentUserWithGroupResources(): void
@@ -415,6 +421,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertIsPermutationOf([
             TestResources::READ_ACTION,
         ], $resourceItemActions);
+
+        // ----------------------------------------------------------------
+        $this->login(userIdentifier: null);
+        $resourceItemActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertIsPermutationOf([
+            TestResources::READ_ACTION,
+        ], $resourceItemActions);
     }
 
     public function testGetResourceCollectionActionsForCurrentUserWithGroupResources(): void
@@ -462,6 +476,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals([TestResources::CREATE_ACTION], $resourceCollectionActions);
+
+        $this->login(userIdentifier: null);
+        $this->assertEmpty($this->authorizationService->getGrantedResourceActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS,
+            AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER));
     }
 
     public function testGetResourceItemActionsPageForCurrentUser(): void
@@ -738,6 +757,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // user 6:
         // any action
         $this->login(self::CURRENT_USER_IDENTIFIER.'_6');
+        $usersResourceActions = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS);
+        $this->assertCount(0, $usersResourceActions);
+
+        // ----------------------------------------------------------------
+        $this->login(userIdentifier: null);
         $usersResourceActions = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
             self::TEST_RESOURCE_CLASS);
         $this->assertCount(0, $usersResourceActions);
@@ -1114,6 +1139,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS);
         $this->assertCount(0, $usersResourceActions);
 
+        // ----------------------------------------------------------------
         $this->login('controller_user');
         $usersResourceActions = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
             self::TEST_RESOURCE_CLASS);
@@ -1142,6 +1168,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $usersResourceActions = $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
             self::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION);
         $this->assertCount(0, $usersResourceActions);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
+        $this->assertEmpty($this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
+            self::TEST_RESOURCE_CLASS));
     }
 
     public function testGetResourceCollectionActionGrantsForCurrentUser(): void
@@ -1265,6 +1296,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContains(TestResources::READ_ACTION, $resourceCollectionActions);
         $this->assertContains(TestResources::CREATE_ACTION, $resourceCollectionActions);
         $this->assertContains(TestResources::DELETE_ALL_ACTION, $resourceCollectionActions);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
+        $this->assertEmpty($this->authorizationService->getGrantedResourceActionsForCurrentUser(
+            self::TEST_RESOURCE_CLASS_2,
+            AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER)
+        );
     }
 
     public function testGetResourceActionGrantsByResourceClassAndIdentifier(): void
@@ -1343,6 +1381,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // ----------------------------------------------------------------
         // user 3:
         $this->login(self::CURRENT_USER_IDENTIFIER.'_3');
+        $resourceCollectionActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(
+            AuthorizationService::GROUP_RESOURCE_CLASS,
+            AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
+        $this->assertEmpty($resourceCollectionActions);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
         $resourceCollectionActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(
             AuthorizationService::GROUP_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
@@ -1481,9 +1526,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContainsResource($resource2, $authorizationResources);
         $this->assertContainsResource($resource3, $authorizationResources);
         $this->assertContainsResource($resourceCollection, $authorizationResources);
-        // ----------------------------------------------------------------
 
+        // ----------------------------------------------------------------
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
+        $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(0, $authorizationResources);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
         $authorizationResources = $this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead();
         $this->assertCount(0, $authorizationResources);
     }
@@ -1631,6 +1681,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         // -------------------------------------------------------------------------------------------
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead();
+        $this->assertCount(0, $resourceActionsGrants);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
         $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead();
         $this->assertCount(0, $resourceActionsGrants);
     }
@@ -1817,6 +1872,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $rags = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead();
         $this->assertCount(1, $rags);
         $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
+        $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead();
+        $this->assertCount(0, $resourceActionsGrants);
     }
 
     public function testGetResourceClassesCurrentUserIsAuthorizedToRead(): void
@@ -1899,6 +1959,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertCount(0, $resourceClasses);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
+        $resourceActionsGrants = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(0, $resourceActionsGrants);
     }
 
     public function testGetResourceClassesCurrentUserIsAuthorizedToReadWithGroupResources(): void
@@ -1986,6 +2051,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_foo');
         $resourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertCount(0, $resourceClasses);
+
+        // ----------------------------------------------------------------
+        $this->login(null);
+        $resourceActionsGrants = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
+        $this->assertCount(0, $resourceActionsGrants);
     }
 
     public function testUpdateManageResourceCollectionPolicyGrantsA(): void
@@ -2253,6 +2323,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userAttributes['MAY_CREATE_GROUPS'] = true;
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
         $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToAddGroups());
+
+        $this->login(null);
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToAddGroups());
     }
 
     public function testIsCurrentUserAuthorizedToUpdateGroup(): void
@@ -2268,6 +2341,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($group));
 
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($group));
+
+        $this->login(null);
         $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($group));
     }
 
@@ -2285,6 +2361,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
         $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($group));
+
+        $this->login(null);
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($group));
     }
 
     public function testIsCurrentUserAuthorizedToReadGroup(): void
@@ -2300,6 +2379,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToReadGroup($group));
 
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadGroup($group));
+
+        $this->login(null);
         $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadGroup($group));
     }
 
