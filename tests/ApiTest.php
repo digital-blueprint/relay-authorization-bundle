@@ -96,7 +96,7 @@ class ApiTest extends AbstractApiTest
 
         $group = json_decode($response->getContent(), true);
 
-        $this->testClient->setUpUser('another user');
+        $this->testClient->setUpUser('another user', ['MAY_CREATE_GROUPS' => false]);
         $response = $this->testClient->get('/authorization/groups/'.$group['identifier']);
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
     }

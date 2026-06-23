@@ -44,6 +44,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     public const COLLECTION_RESOURCE_IDENTIFIER = 'null';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
+    public const FALSE = '@@@ __false__ @@@';
 
     public const GROUP_BY_RESOURCE_CLASS_OPTION = 'group_by_resource_class';
     public const SELECT_OPTION = 'select';
@@ -1125,8 +1126,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     {
         $userCriteria = null;
         if ($userIdentifier !== null) {
-            $userCriteria = "$resource_action_grant_alias.user_identifier = :userIdentifier";
-            $parameterValues['userIdentifier'] = $userIdentifier;
+            if ($userIdentifier === self::FALSE) {
+                $userCriteria = 'false';
+            } else {
+                $userCriteria = "$resource_action_grant_alias.user_identifier = :userIdentifier";
+                $parameterValues['userIdentifier'] = $userIdentifier;
+            }
         }
 
         $groupCriteria = null;
@@ -1135,9 +1140,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $groupCriteria = "$resource_action_grant_alias.group_identifier is not null";
             } else {
                 assert(is_array($groupIdentifiers));
-                $groupCriteria = "$resource_action_grant_alias.group_identifier IN (:groupIdentifiers)";
-                $parameterValues['groupIdentifiers'] = UuidUtils::toBinaryUuids($groupIdentifiers);
-                $parameterTypes['groupIdentifiers'] = ArrayParameterType::BINARY;
+                if ([] === $groupIdentifiers) {
+                    $groupCriteria = 'false';
+                } else {
+                    $groupCriteria = "$resource_action_grant_alias.group_identifier IN (:groupIdentifiers)";
+                    $parameterValues['groupIdentifiers'] = UuidUtils::toBinaryUuids($groupIdentifiers);
+                    $parameterTypes['groupIdentifiers'] = ArrayParameterType::BINARY;
+                }
             }
         }
 
@@ -1147,9 +1156,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $dynamicGroupCriteria = "$resource_action_grant_alias.dynamic_group_identifier is not null";
             } else {
                 assert(is_array($dynamicGroupIdentifiers));
-                $dynamicGroupCriteria = "$resource_action_grant_alias.dynamic_group_identifier IN (:dynamicGroupIdentifiers)";
-                $parameterValues['dynamicGroupIdentifiers'] = $dynamicGroupIdentifiers;
-                $parameterTypes['dynamicGroupIdentifiers'] = ArrayParameterType::STRING;
+                if ([] === $dynamicGroupIdentifiers) {
+                    $dynamicGroupCriteria = 'false';
+                } else {
+                    $dynamicGroupCriteria = "$resource_action_grant_alias.dynamic_group_identifier IN (:dynamicGroupIdentifiers)";
+                    $parameterValues['dynamicGroupIdentifiers'] = $dynamicGroupIdentifiers;
+                    $parameterTypes['dynamicGroupIdentifiers'] = ArrayParameterType::STRING;
+                }
             }
         }
 
