@@ -1326,6 +1326,70 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             }));
     }
 
+    public function testGetResourceActionGrantsByResourceClassAndIdentifierWithRoles(): void
+    {
+        $group = $this->testEntityManager->addGroup();
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resourceCollection = $this->testEntityManager->addAuthorizationResource(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
+
+        // add manager role:
+        $roleManager = $this->internalResourceActionGrantService->addRole(
+            ['en' => 'Manager', 'de' => 'Verwalter'],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+            ]);
+        $roleReader = $this->internalResourceActionGrantService->addRole(
+            ['en' => 'Reader', 'de' => 'Leser'],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+            ]
+        );
+        $roleCreator = $this->internalResourceActionGrantService->addRole(
+            ['en' => 'Creator', 'de' => 'Ersteller'],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
+            ]
+        );
+
+        $rag_1_manage = $this->testEntityManager->addResourceActionGrant($resource,
+            role: $roleManager,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER
+        );
+        $rag_1_read = $this->testEntityManager->addResourceActionGrant($resource,
+            group: $group,
+            role: $roleReader
+        );
+        $rag_coll_create = $this->testEntityManager->addResourceActionGrant($resourceCollection,
+            dynamicGroupIdentifier: 'everybody',
+            role: $roleCreator
+        );
+
+        $rags = $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_manage);
+        $this->assertContainsResourceActionGrant($rags, $rag_1_read);
+
+        $rags = $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag_coll_create);
+        $this->assertCount(1, $this->selectWhere($rags,
+            function (ResourceActionGrant $rag): bool {
+                return $rag->getAction() === AuthorizationService::MANAGE_ACTION
+                    && $rag->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $rag->getResourceIdentifier() === AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
+                    && $rag->getUserIdentifier() === null
+                    && $rag->getGroup() === null
+                    && $rag->getDynamicGroupIdentifier() === AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS;
+            }));
+    }
+
     public function testGetGroupCollectionActionGrants(): void
     {
         $resourceCollectionActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(

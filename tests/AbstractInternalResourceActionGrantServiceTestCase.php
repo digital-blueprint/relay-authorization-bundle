@@ -109,6 +109,8 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
                     && $rag->getResourceClass() === $ragExpected->getResourceClass()
                     && $rag->getResourceIdentifier() === $ragExpected->getResourceIdentifier()
                     && $rag->getAction() === $ragExpected->getAction()
+                    && $rag->getActionResourceClass() === $ragExpected->getActionResourceClass()
+                    && $rag->getActionType() === $ragExpected->getActionType()
                     && $rag->getUserIdentifier() === $ragExpected->getUserIdentifier()
                     && $rag->getGroup() === $ragExpected->getGroup()
                     && $rag->getDynamicGroupIdentifier() === $ragExpected->getDynamicGroupIdentifier()
