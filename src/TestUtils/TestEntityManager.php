@@ -34,22 +34,27 @@ class TestEntityManager extends CoreTestEntityManager
         self::addAvailableGroupResourceClassActions($this->getEntityManager());
     }
 
-    public function addResourceActionGrant(AuthorizationResource $resource, string $action,
+    public function addResourceActionGrant(AuthorizationResource $resource, ?string $action = null,
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?bool $isCollectionAction = null): ResourceActionGrant
+        ?string $actionResourceClass = null, ?bool $isCollectionAction = null, ?Role $role = null): ResourceActionGrant
     {
         return $this->addResourceActionGrantInternal(
             $resource, $action, $userIdentifier, $group, $dynamicGroupIdentifier,
-            $actionResourceClass, $isCollectionAction);
+            $actionResourceClass, $isCollectionAction, $role
+        );
     }
 
     public function addAuthorizationResourceAndActionGrant(
-        string $resourceClass, string $resourceIdentifier, string $action,
-        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+        string $resourceClass, string $resourceIdentifier, ?string $action = null,
+        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
+        ?string $actionResourceClass = null, ?bool $isCollectionAction = null, ?Role $role = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
 
-        return $this->addResourceActionGrant($authorizationResource, $action, $userIdentifier, $group, $dynamicGroupIdentifier);
+        return $this->addResourceActionGrant($authorizationResource,
+            $action, $userIdentifier, $group, $dynamicGroupIdentifier,
+            $actionResourceClass, $isCollectionAction, $role
+        );
     }
 
     public function addAuthorizationResource(string $resourceClass = self::DEFAULT_RESOURCE_CLASS,
@@ -286,9 +291,10 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, string $action,
+    private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, ?string $action,
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?bool $isCollectionAction = null): ResourceActionGrant
+        ?string $actionResourceClass = null, ?bool $isCollectionAction = null,
+        ?Role $role = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
@@ -296,15 +302,18 @@ class TestEntityManager extends CoreTestEntityManager
         $resourceActionGrant->setAction($action);
         $resourceActionGrant->setActionResourceClass($actionResourceClass);
         $resourceActionGrant->setIsCollectionAction($isCollectionAction);
-        $resourceActionGrant->setAvailableResourceClassAction(
-            InternalResourceActionGrantService::getAvailableResourceClassActionStatic(
-                $this->entityManager,
-                $resourceActionGrant->getActionResourceClass(),
-                $action,
-                $resourceActionGrant->getActionType()
-            )
-        );
-        assert($resourceActionGrant->getAvailableResourceClassAction() !== null);
+        if ($action !== null) {
+            $resourceActionGrant->setAvailableResourceClassAction(
+                InternalResourceActionGrantService::getAvailableResourceClassActionStatic(
+                    $this->entityManager,
+                    $resourceActionGrant->getActionResourceClass(),
+                    $action,
+                    $resourceActionGrant->getActionType()
+                )
+            );
+            assert($resourceActionGrant->getAvailableResourceClassAction() !== null);
+        }
+        $resourceActionGrant->setRole($role);
         $resourceActionGrant->setUserIdentifier($userIdentifier);
         $resourceActionGrant->setGroup($group);
         $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);

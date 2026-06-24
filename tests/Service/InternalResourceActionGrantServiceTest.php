@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 
+use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractInternalResourceActionGrantServiceTestCase;
@@ -151,7 +153,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier(), $resourceActionGrantPersistence->getAuthorizationResource()->getResourceIdentifier());
     }
 
-    public function testAddResourceActionGrant(): void
+    public function testAddResourceActionGrantWithAction(): void
     {
         $authorizationResource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
 
@@ -166,12 +168,19 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $resourceActionGrant->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $resourceActionGrant->getResourceIdentifier());
         $this->assertEquals(AuthorizationService::MANAGE_ACTION, $resourceActionGrant->getAction());
+        $this->assertEquals(AvailableResourceClassAction::ITEM_ACTION_TYPE, $resourceActionGrant->getActionType());
+        $this->assertEquals(false, $resourceActionGrant->isCollectionAction());
+        $this->assertEquals(self::TEST_RESOURCE_CLASS, $resourceActionGrant->getActionResourceClass());
+        $this->assertEquals(null, $resourceActionGrant->getAvailableResourceClassAction()->getResourceClass()); // only for manage action
+        $this->assertEquals(AuthorizationService::MANAGE_ACTION, $resourceActionGrant->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(AvailableResourceClassAction::ITEM_ACTION_TYPE, $resourceActionGrant->getAvailableResourceClassAction()->getActionType());
+        $this->assertEquals(null, $resourceActionGrant->getRole());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $resourceActionGrant->getUserIdentifier());
         $this->assertEquals(null, $resourceActionGrant->getGroup());
         $this->assertEquals(null, $resourceActionGrant->getDynamicGroupIdentifier());
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $resourceActionGrant->getAuthorizationResource()->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $resourceActionGrant->getAuthorizationResource()->getResourceIdentifier());
-        $this->assertTrue(Uuid::isValid($resourceActionGrant->getAuthorizationResource()->getIdentifier()));
+        $this->assertEquals($authorizationResource->getIdentifier(), $resourceActionGrant->getAuthorizationResource()->getIdentifier());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $resourceActionGrant->getCreatorId());
         $this->assertNotNull($resourceActionGrant->getDateCreated());
         $this->assertFalse($resourceActionGrant->getShareable());
@@ -182,6 +191,13 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertEquals($resourceActionGrant->getResourceClass(), $resourceActionGrantPersistence->getResourceClass());
         $this->assertEquals($resourceActionGrant->getResourceIdentifier(), $resourceActionGrantPersistence->getResourceIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantPersistence->getAction());
+        $this->assertEquals($resourceActionGrant->getActionType(), $resourceActionGrantPersistence->getActionType());
+        $this->assertEquals($resourceActionGrant->isCollectionAction(), $resourceActionGrantPersistence->isCollectionAction());
+        $this->assertEquals($resourceActionGrant->getActionResourceClass(), $resourceActionGrantPersistence->getActionResourceClass());
+        $this->assertEquals($resourceActionGrant->getAvailableResourceClassAction()->getResourceClass(), $resourceActionGrantPersistence->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals($resourceActionGrant->getAvailableResourceClassAction()->getAction(), $resourceActionGrantPersistence->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals($resourceActionGrant->getAvailableResourceClassAction()->getActionType(), $resourceActionGrantPersistence->getAvailableResourceClassAction()->getActionType());
+        $this->assertEquals($resourceActionGrant->getRole(), $resourceActionGrantPersistence->getRole());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantPersistence->getUserIdentifier());
         $this->assertEquals($resourceActionGrant->getGroup(), $resourceActionGrantPersistence->getGroup());
         $this->assertEquals($resourceActionGrant->getDynamicGroupIdentifier(), $resourceActionGrantPersistence->getDynamicGroupIdentifier());
@@ -233,6 +249,68 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         );
     }
 
+    public function testAddResourceActionGrantWithRole(): void
+    {
+        $roleReader = $this->internalResourceActionGrantService->addRole(
+            ['en' => 'Reader', 'de' => 'Leser'],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+            ]
+        );
+
+        $authorizationResource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setAuthorizationResource($authorizationResource);
+        $resourceActionGrant->setRole($roleReader);
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        $resourceActionGrant = $this->internalResourceActionGrantService->addResourceActionGrant(
+            $resourceActionGrant, self::CURRENT_USER_IDENTIFIER);
+        $this->assertTrue(Uuid::isValid($resourceActionGrant->getIdentifier()));
+        $this->assertEquals(self::TEST_RESOURCE_CLASS, $resourceActionGrant->getResourceClass());
+        $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $resourceActionGrant->getResourceIdentifier());
+        $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $resourceActionGrant->getCreatorId());
+        $this->assertEquals(null, $resourceActionGrant->getAction());
+        $this->assertEquals(null, $resourceActionGrant->getActionType());
+        $this->assertEquals(null, $resourceActionGrant->isCollectionAction());
+        $this->assertEquals(null, $resourceActionGrant->getActionResourceClass());
+        $this->assertEquals(null, $resourceActionGrant->getAvailableResourceClassAction());
+        $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $resourceActionGrant->getUserIdentifier());
+        $this->assertEquals(null, $resourceActionGrant->getGroup());
+        $this->assertEquals(null, $resourceActionGrant->getDynamicGroupIdentifier());
+        $this->assertEquals(self::TEST_RESOURCE_CLASS, $resourceActionGrant->getAuthorizationResource()->getResourceClass());
+        $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $resourceActionGrant->getAuthorizationResource()->getResourceIdentifier());
+        $this->assertEquals($authorizationResource->getIdentifier(), $resourceActionGrant->getAuthorizationResource()->getIdentifier());
+        $this->assertNotNull($resourceActionGrant->getDateCreated());
+        $role = $resourceActionGrant->getRole();
+        $this->assertEquals($roleReader->getIdentifier(), $role->getIdentifier());
+        $this->assertEquals($roleReader->getRoleNames(), $role->getRoleNames());
+        $this->assertEquals($roleReader->getRoleActions(), $role->getRoleActions());
+
+        $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantPersistence->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getResourceClass(), $resourceActionGrantPersistence->getResourceClass());
+        $this->assertEquals($resourceActionGrant->getResourceIdentifier(), $resourceActionGrantPersistence->getResourceIdentifier());
+        $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantPersistence->getAction());
+        $this->assertEquals($resourceActionGrant->getActionType(), $resourceActionGrantPersistence->getActionType());
+        $this->assertEquals($resourceActionGrant->isCollectionAction(), $resourceActionGrantPersistence->isCollectionAction());
+        $this->assertEquals($resourceActionGrant->getActionResourceClass(), $resourceActionGrantPersistence->getActionResourceClass());
+        $this->assertEquals($resourceActionGrant->getAvailableResourceClassAction(), $resourceActionGrantPersistence->getAvailableResourceClassAction());
+        $this->assertEquals($resourceActionGrant->getRole()->getIdentifier(), $resourceActionGrantPersistence->getRole()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getRole()->getRoleNames(), $resourceActionGrantPersistence->getRole()->getRoleNames());
+        $this->assertEquals($resourceActionGrant->getRole()->getRoleActions(), $resourceActionGrantPersistence->getRole()->getRoleActions());
+        $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantPersistence->getUserIdentifier());
+        $this->assertEquals($resourceActionGrant->getGroup(), $resourceActionGrantPersistence->getGroup());
+        $this->assertEquals($resourceActionGrant->getDynamicGroupIdentifier(), $resourceActionGrantPersistence->getDynamicGroupIdentifier());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantPersistence->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getResourceClass(), $resourceActionGrantPersistence->getAuthorizationResource()->getResourceClass());
+        $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier(), $resourceActionGrantPersistence->getAuthorizationResource()->getResourceIdentifier());
+        $this->assertEquals($resourceActionGrant->getCreatorId(), $resourceActionGrantPersistence->getCreatorId());
+        $this->assertEquals($resourceActionGrant->getShareable(), $resourceActionGrantPersistence->getShareable());
+    }
+
     public function testAddResourceInvalidActionMissing(): void
     {
         $authorizationResource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -246,7 +324,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
-            $this->assertEquals(InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ACTION_MISSING_ERROR_ID, $apiError->getErrorId());
+            $this->assertEquals(InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ACTION_AND_ROLE_MISSING_ERROR_ID, $apiError->getErrorId());
         }
     }
 
