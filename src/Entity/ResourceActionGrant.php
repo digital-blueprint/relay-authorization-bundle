@@ -317,7 +317,12 @@ class ResourceActionGrant
 
     public function getActionResourceClass(): ?string
     {
-        return $this->actionResourceClass ?? $this->availableResourceClassAction?->getResourceClass() ?? $this->getResourceClass();
+        if (null === $this->action) {
+            return null;
+        }
+
+        return $this->actionResourceClass ??
+            $this->availableResourceClassAction?->getResourceClass() ?? $this->getResourceClass();
     }
 
     public function setActionResourceClass(?string $actionResourceClass): void
@@ -327,7 +332,12 @@ class ResourceActionGrant
 
     public function isCollectionAction(): ?bool
     {
-        return $this->isCollectionAction;
+        if (null === $this->action) {
+            return null;
+        }
+
+        return $this->isCollectionAction ??
+            $this->getResourceIdentifier() === InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER;
     }
 
     public function setIsCollectionAction(?bool $isCollectionAction): void
@@ -445,15 +455,11 @@ class ResourceActionGrant
         $this->isInherited = $isInherited;
     }
 
-    public function getActionType(): int
+    public function getActionType(): ?int
     {
-        if ($this->isCollectionAction !== null) {
-            return $this->isCollectionAction ? AvailableResourceClassAction::COLLECTION_ACTION_TYPE : AvailableResourceClassAction::ITEM_ACTION_TYPE;
-        }
-
-        return $this->getResourceIdentifier() === InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER ?
-            AvailableResourceClassAction::COLLECTION_ACTION_TYPE :
-            AvailableResourceClassAction::ITEM_ACTION_TYPE;
+        return ($isCollectionAction = $this->isCollectionAction()) !== null ?
+            ($isCollectionAction ? AvailableResourceClassAction::COLLECTION_ACTION_TYPE :
+                AvailableResourceClassAction::ITEM_ACTION_TYPE) : null;
     }
 
     public function __toString(): string
