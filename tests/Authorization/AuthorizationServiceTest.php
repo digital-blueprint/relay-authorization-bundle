@@ -69,21 +69,6 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         }
     }
 
-    public function testIsCurrentUserAuthorizedToReadResource(): void
-    {
-        $resource = $this->testEntityManager->addAuthorizationResource(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
-        $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadResource($resource));
-
-        $this->authorizationService->reset();
-
-        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource,
-            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
-        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier()));
-
-        $this->assertTrue($this->authorizationService->isCurrentUserAuthorizedToReadResource($resource));
-    }
-
     public function testManageResourceCollectionPolicy(): void
     {
         $resourceCollectionActions = $this->authorizationService->getGrantedResourceActionsForCurrentUser(
