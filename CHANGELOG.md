@@ -9,6 +9,7 @@
 
 ## v0.5.17
 
+- Evaluate roles when granted actions are queried
 - Add role get item and collection endpoints
 - Add roles to db
 - Only update available resource class actions, instead of clearing and re-adding them
