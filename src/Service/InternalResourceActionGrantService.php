@@ -68,7 +68,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     private const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
-    public const RESOURCE_ACTION_GRANT_INVALID_ACTION_MISSING_ERROR_ID = 'authorization:resource-action-grant-invalid-action-missing';
+    public const RESOURCE_ACTION_GRANT_INVALID_ACTION_AND_ROLE_MISSING_ERROR_ID = 'authorization:resource-action-grant-invalid-action-and-role-missing';
     public const RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID = 'authorization:resource_action_grant-invalid-action-undefined';
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
@@ -805,6 +805,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $select = "DISTINCT
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,
                     $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier";
+                $additionalJoinStatements = "
+                    LEFT JOIN authorization_role_actions $ROLE_ACTION_ALIAS
+                        ON $ROLE_ACTION_ALIAS.role_identifier = $RESOURCE_ACTION_GRANT_ALIAS.role_identifier";
                 break;
             case self::GET_RESOURCE_ACTION_GRANTS:
                 $select = "DISTINCT
@@ -812,15 +815,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier, 
                     $RESOURCE_ACTION_GRANT_ALIAS.user_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.group_identifier, 
-                    $RESOURCE_ACTION_GRANT_ALIAS.dynamic_group_identifier, 
-                    $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,
+                    $RESOURCE_ACTION_GRANT_ALIAS.dynamic_group_identifier,
+                    $RESOURCE_ACTION_GRANT_ALIAS.role_identifier, 
+                    $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,                
                     $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class, 
                     $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier,
                     $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier";
-                $additionalJoinStatements = "
-                    LEFT JOIN authorization_role_actions $ROLE_ACTION_ALIAS
-                        ON $ROLE_ACTION_ALIAS.role_identifier = $RESOURCE_ACTION_GRANT_ALIAS.role_identifier
-                ";
                 break;
 
             case self::GET_AUTHORIZATION_RESOURCES:
@@ -857,7 +857,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         $actionsAvailabilityCriteria = "
-            (
+            $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier IS NULL
+            OR (
                 $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier = 'null' 
                 AND $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type = 1
             ) OR (
@@ -914,7 +915,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 ) AS $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS
                     ON $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.group_authorization_resource_identifier
                         OR $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier
-                INNER JOIN authorization_available_resource_class_actions $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS
+                LEFT JOIN authorization_available_resource_class_actions $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS
                     ON $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.identifier = $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier
                 $additionalJoinStatements
                 WHERE (
@@ -941,23 +942,26 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         $action = $resourceActionGrant->getAction();
-        if (!$action) {
+        if (!$action && null === $resourceActionGrant->getRole()) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'resource action grant is invalid: \'action\' is required', self::RESOURCE_ACTION_GRANT_INVALID_ACTION_MISSING_ERROR_ID, ['action']);
+                'resource action grant is invalid: either \'action\' or \'role\' are required',
+                self::RESOURCE_ACTION_GRANT_INVALID_ACTION_AND_ROLE_MISSING_ERROR_ID);
         }
 
-        $availableResourceClassAction = $this->getAvailableResourceClassAction(
-            $actionResourceClass = $resourceActionGrant->getActionResourceClass(),
-            $action,
-            $resourceActionGrant->getActionType()
-        );
+        if ($action) {
+            $availableResourceClassAction = $this->getAvailableResourceClassAction(
+                $actionResourceClass = $resourceActionGrant->getActionResourceClass(),
+                $action,
+                $resourceActionGrant->getActionType()
+            );
 
-        if (null === $availableResourceClassAction) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                "resource action is invalid: action '$action' is not defined for resource class '$actionResourceClass'",
-                self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [$action]);
+            if (null === $availableResourceClassAction) {
+                throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                    "resource action is invalid: action '$action' is not defined for resource class '$actionResourceClass'",
+                    self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [$action]);
+            }
+            $resourceActionGrant->setAvailableResourceClassAction($availableResourceClassAction);
         }
-        $resourceActionGrant->setAvailableResourceClassAction($availableResourceClassAction);
     }
 
     public function getAvailableResourceClassActions(string $resourceClass): array
@@ -1103,13 +1107,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);
         }
 
-        $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent(
-            $resourceActionGrant->getAuthorizationResource()->getResourceClass(),
-            $resourceActionGrant->getAuthorizationResource()->getResourceIdentifier(),
-            $resourceActionGrant->getAction(),
-            $resourceActionGrant->getUserIdentifier(),
-            $resourceActionGrant->getGroup()?->getIdentifier(),
-            $resourceActionGrant->getDynamicGroupIdentifier()));
+        $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent($resourceActionGrant));
 
         return $resourceActionGrant;
     }
@@ -1242,10 +1240,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $resourceActionGrant->setAuthorizationResourceIdentifier(
             UuidUtils::toStringUuid($row['effective_authorization_resource_identifier']));
         $resourceActionGrant->setAction($row['action']);
+        $resourceActionGrant->setRole(($role_identifier = $row['role_identifier']) !== null ?
+            $this->entityManager->getRepository(Role::class)->find(
+                UuidUtils::toStringUuid($role_identifier)) : null);
         $resourceActionGrant->setUserIdentifier($row['user_identifier']);
-        $resourceActionGrant->setGroup($row['group_identifier'] ?
+        $resourceActionGrant->setGroup(($groupIdentifier = $row['group_identifier']) ?
             $this->entityManager->getRepository(Group::class)->find(
-                UuidUtils::toStringUuid($row['group_identifier'])) : null);
+                UuidUtils::toStringUuid($groupIdentifier)) : null);
         $resourceActionGrant->setDynamicGroupIdentifier($row['dynamic_group_identifier']);
 
         return $resourceActionGrant;
