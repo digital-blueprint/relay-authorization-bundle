@@ -387,11 +387,11 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->testEntityManager->addResourceActionGrant($resource2,
             TestResources::DELETE_ACTION, dynamicGroupIdentifier: 'everybody');
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource();
         $this->assertCount(7, $resourceActionGrants);
 
         $this->internalResourceActionGrantService->removeResourceActionGrants();
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource();
         $this->assertCount(0, $resourceActionGrants);
 
         $this->testEntityManager->addResourceActionGrant($resource1_1,
@@ -411,12 +411,12 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->testEntityManager->addResourceActionGrant($resource2,
             TestResources::UPDATE_ACTION, dynamicGroupIdentifier: 'everybody');
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS);
         $this->assertCount(5, $resourceActionGrants);
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS);
         $this->assertCount(0, $resourceActionGrants);
 
@@ -432,13 +432,13 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->testEntityManager->addResourceActionGrant($resource1_2,
             TestResources::UPDATE_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(3, $resourceActionGrants);
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(0, $resourceActionGrants);
 
@@ -449,13 +449,13 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->testEntityManager->addResourceActionGrant($resource1_1,
             TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             null, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(5, $resourceActionGrants);
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(null,
             self::TEST_RESOURCE_IDENTIFIER);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             null, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(0, $resourceActionGrants);
 
@@ -472,18 +472,18 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             TestResources::UPDATE_ACTION, dynamicGroupIdentifier: 'everybody');
 
         $this->assertCount(3,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER));
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER, [TestResources::READ_ACTION]);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($updateGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER, [TestResources::UPDATE_ACTION]);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(0, $resourceActionGrants);
 
@@ -496,14 +496,14 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER, userIdentifier: self::CURRENT_USER_IDENTIFIER);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($anotherUserGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER, userIdentifier: self::ANOTHER_USER_IDENTIFIER);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(0, $resourceActionGrants);
 
@@ -517,7 +517,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->internalResourceActionGrantService->removeResourceActionGrants(self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER, [TestResources::READ_ACTION],
             self::CURRENT_USER_IDENTIFIER);
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(2, $resourceActionGrants);
         $this->assertCount(1, $this->selectWhere($resourceActionGrants, function (ResourceActionGrant $arg) use ($anotherUserGrant) {
@@ -528,19 +528,19 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         }));
 
         $this->assertCount(1,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 groupIdentifiers: [$group->getIdentifier()]));
         $this->internalResourceActionGrantService->removeResourceActionGrants(groupIdentifiers: [$group->getIdentifier()]);
         $this->assertCount(0,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 groupIdentifiers: [$group->getIdentifier()]));
 
         $this->assertCount(1,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 dynamicGroupIdentifiers: ['everybody']));
         $this->internalResourceActionGrantService->removeResourceActionGrants(dynamicGroupIdentifiers: ['everybody']);
         $this->assertCount(0,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 dynamicGroupIdentifiers: ['everybody']));
 
         $this->testEntityManager->addResourceActionGrant($resource2,
@@ -549,26 +549,26 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             TestResources::UPDATE_ACTION, dynamicGroupIdentifier: 'everybody');
 
         $this->assertCount(1,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER,
                 groupIdentifiers: [$group->getIdentifier()]));
         $this->internalResourceActionGrantService->removeResourceActionGrants(
             self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER,
             groupIdentifiers: [$group->getIdentifier()]);
         $this->assertCount(0,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER,
                 groupIdentifiers: [$group->getIdentifier()]));
 
         $this->assertCount(1,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER,
                 dynamicGroupIdentifiers: ['everybody']));
         $this->internalResourceActionGrantService->removeResourceActionGrants(
             self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER,
             dynamicGroupIdentifiers: ['everybody']);
         $this->assertCount(0,
-            $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
                 self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER,
                 dynamicGroupIdentifiers: ['everybody']));
     }
@@ -587,7 +587,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $collectionResource = $this->testEntityManager->addAuthorizationResource(
             self::TEST_COLLECTION_RESOURCE_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource();
         $this->assertCount(0, $resourceActionGrants);
 
         $resourceActionGrant1_1 = $this->testEntityManager->addResourceActionGrant($resource1,
@@ -605,7 +605,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $resourceClass2ResourceActionGrant = $this->testEntityManager->addResourceActionGrant($resourceClass2Resource,
             AuthorizationService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER.'_2');
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource();
         $this->assertCount(7, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_2);
@@ -615,7 +615,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_2);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceClass2ResourceActionGrant);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS);
         $this->assertCount(6, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
@@ -625,60 +625,68 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_2);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             'resourceClass_2');
         $this->assertCount(1, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceClass2ResourceActionGrant);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             'resourceClass_3');
         $this->assertCount(0, $resourceActionGrants);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(2, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_2);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2');
         $this->assertCount(2, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant2_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant2_2);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertCount(2, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_2);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, 'resourceIdentifier_3');
         $this->assertCount(0, $resourceActionGrants);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, null, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            null, null,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(3, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant2_2);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_1);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, 'userIdentifier_2');
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            userIdentifier: 'userIdentifier_2');
         $this->assertCount(0, $resourceActionGrants);
 
         // test pagination:
-        $resourceActionGrantPage1 = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, null, self::CURRENT_USER_IDENTIFIER, null, null, 0, 2);
+        $resourceActionGrantPage1 = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            null, null,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            firstResultIndex: 0,
+            maxNumResults: 2);
         $this->assertCount(2, $resourceActionGrantPage1);
 
-        $resourceActionGrantPage2 = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, null, self::CURRENT_USER_IDENTIFIER, null, null, 2, 2);
+        $resourceActionGrantPage2 = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            firstResultIndex: 2,
+            maxNumResults: 2);
         $this->assertCount(1, $resourceActionGrantPage2);
 
         $resourceActionGrants = array_merge($resourceActionGrantPage1, $resourceActionGrantPage2);
@@ -711,7 +719,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
         );
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource();
         $this->assertCount(0, $resourceActionGrants);
 
         $resourceActionGrant1_1 = $this->testEntityManager->addResourceActionGrant($resource1,
@@ -739,7 +747,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $collectionResourceCollectionActionGrant = $this->testEntityManager->addResourceActionGrant($collectionResourceCollection,
             TestResources::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier();
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource();
         $this->assertCount(9, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_2);
@@ -751,7 +759,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant, $resourceCollection);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS);
         $this->assertCount(6, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
@@ -761,80 +769,89 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant, $resource1);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant, $resourceCollection);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS_2);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceClass2ResourceActionGrant);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_COLLECTION_RESOURCE_CLASS);
         $this->assertCount(2, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_COLLECTION_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             'resourceClass_3');
         $this->assertCount(0, $resourceActionGrants);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(3, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_2);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant, $resource1);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertCount(3, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_2);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, 'resourceIdentifier_3');
         $this->assertCount(0, $resourceActionGrants);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, null, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            null, null,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(4, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_1);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceCollectionActionGrant, $resourceCollection);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, null, self::ANOTHER_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            null, null,
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER);
         $this->assertCount(3, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_2);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant, $resource1);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            self::TEST_RESOURCE_CLASS, null, self::ANOTHER_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            self::TEST_RESOURCE_CLASS, null,
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER);
         $this->assertCount(2, $resourceActionGrants);
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrant1_2);
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $collectionResourceActionGrant, $resource1);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, 'userIdentifier_2');
         $this->assertCount(0, $resourceActionGrants);
 
         // test pagination:
-        $resourceActionGrantPage1 = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, null, self::ANOTHER_USER_IDENTIFIER, null, null, 0, 2);
+        $resourceActionGrantPage1 = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER,
+            maxNumResults: 2
+        );
         $this->assertCount(2, $resourceActionGrantPage1);
 
-        $resourceActionGrantPage2 = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            null, null, self::ANOTHER_USER_IDENTIFIER, null, null, 2, 2);
+        $resourceActionGrantPage2 = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER,
+            firstResultIndex: 2,
+            maxNumResults: 2
+        );
         $this->assertCount(1, $resourceActionGrantPage2);
 
         $resourceActionGrants = array_merge($resourceActionGrantPage1, $resourceActionGrantPage2);
@@ -856,52 +873,71 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $dynamicGroupResourceActionGrant = $this->testEntityManager->addResourceActionGrant($resource,
             'read', null, null, 'dynamicGroup');
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertCount(3, $resourceActionGrants);
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($userResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, null, [$group->getIdentifier()]);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            groupIdentifiers: [$group->getIdentifier()]);
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
-            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER, null, null, ['dynamicGroup']);
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            dynamicGroupIdentifiers: ['dynamicGroup']
+        );
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($dynamicGroupResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
 
         // user, group and dynamic group ID criteria is combined with OR conjunction
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            self::CURRENT_USER_IDENTIFIER, [$group->getIdentifier()], ['dynamicGroup']);
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            groupIdentifiers: [$group->getIdentifier()],
+            dynamicGroupIdentifiers: ['dynamicGroup']
+        );
         $this->assertCount(3, $resourceActionGrants);
         $this->assertEquals($userResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
         $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrants[1]->getIdentifier());
         $this->assertEquals($dynamicGroupResourceActionGrant->getIdentifier(), $resourceActionGrants[2]->getIdentifier());
 
-        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            null, [$group->getIdentifier()], ['dynamicGroup']);
+            groupIdentifiers: [$group->getIdentifier()],
+            dynamicGroupIdentifiers: ['dynamicGroup']
+        );
         $this->assertCount(2, $resourceActionGrants);
         $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrants[0]->getIdentifier());
         $this->assertEquals($dynamicGroupResourceActionGrant->getIdentifier(), $resourceActionGrants[1]->getIdentifier());
 
         // test pagination:
-        $resourceActionGrantPage1 = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrantPage1 = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            self::CURRENT_USER_IDENTIFIER, [$group->getIdentifier()], ['dynamicGroup'], 0, 2);
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            groupIdentifiers: [$group->getIdentifier()],
+            dynamicGroupIdentifiers: ['dynamicGroup'],
+            firstResultIndex: 0,
+            maxNumResults: 2
+        );
         $this->assertCount(2, $resourceActionGrantPage1);
         $this->assertEquals($userResourceActionGrant->getIdentifier(), $resourceActionGrantPage1[0]->getIdentifier());
         $this->assertEquals($groupResourceActionGrant->getIdentifier(), $resourceActionGrantPage1[1]->getIdentifier());
 
-        $resourceActionGrantPage2 = $this->internalResourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+        $resourceActionGrantPage2 = $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            self::CURRENT_USER_IDENTIFIER, [$group->getIdentifier()], ['dynamicGroup'], 2, 2);
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            groupIdentifiers: [$group->getIdentifier()],
+            dynamicGroupIdentifiers: ['dynamicGroup'],
+            firstResultIndex: 2,
+            maxNumResults: 2
+        );
         $this->assertCount(1, $resourceActionGrantPage2);
         $this->assertEquals($dynamicGroupResourceActionGrant->getIdentifier(), $resourceActionGrantPage2[0]->getIdentifier());
     }
