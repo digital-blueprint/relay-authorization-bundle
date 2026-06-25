@@ -36,24 +36,24 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addResourceActionGrant(AuthorizationResource $resource, ?string $action = null,
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?bool $isCollectionAction = null, ?Role $role = null): ResourceActionGrant
+        ?string $actionResourceClass = null, ?int $actionType = null, ?Role $role = null): ResourceActionGrant
     {
         return $this->addResourceActionGrantInternal(
             $resource, $action, $userIdentifier, $group, $dynamicGroupIdentifier,
-            $actionResourceClass, $isCollectionAction, $role
+            $actionResourceClass, $actionType, $role
         );
     }
 
     public function addAuthorizationResourceAndActionGrant(
         string $resourceClass, string $resourceIdentifier, ?string $action = null,
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?bool $isCollectionAction = null, ?Role $role = null): ResourceActionGrant
+        ?string $actionResourceClass = null, ?int $actionType = null, ?Role $role = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
 
         return $this->addResourceActionGrant($authorizationResource,
             $action, $userIdentifier, $group, $dynamicGroupIdentifier,
-            $actionResourceClass, $isCollectionAction, $role
+            $actionResourceClass, $actionType, $role
         );
     }
 
@@ -293,7 +293,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, ?string $action,
         ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?bool $isCollectionAction = null,
+        ?string $actionResourceClass = null, ?int $actionType = null,
         ?Role $role = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
@@ -301,7 +301,7 @@ class TestEntityManager extends CoreTestEntityManager
         $resourceActionGrant->setAuthorizationResource($authorizationResource);
         $resourceActionGrant->setAction($action);
         $resourceActionGrant->setActionResourceClass($actionResourceClass);
-        $resourceActionGrant->setIsCollectionAction($isCollectionAction);
+        $resourceActionGrant->setActionType($actionType);
         if ($action !== null) {
             $resourceActionGrant->setAvailableResourceClassAction(
                 InternalResourceActionGrantService::getAvailableResourceClassActionStatic(
@@ -311,6 +311,9 @@ class TestEntityManager extends CoreTestEntityManager
                     $resourceActionGrant->getActionType()
                 )
             );
+            if ($resourceActionGrant->getAvailableResourceClassAction() === null) {
+                dump($resourceActionGrant->getActionResourceClass(), $action, $resourceActionGrant->getActionType());
+            }
             assert($resourceActionGrant->getAvailableResourceClassAction() !== null);
         }
         $resourceActionGrant->setRole($role);

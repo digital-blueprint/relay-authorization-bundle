@@ -28,13 +28,13 @@ class AvailableResourceClassAction
     #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
 
-    #[ORM\Column(name: 'resource_class', type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN_NAME, type: 'string', length: 40, nullable: true)]
     private ?string $resourceClass = null;
 
-    #[ORM\Column(name: 'action', type: 'string', length: 40, nullable: false)]
+    #[ORM\Column(name: self::ACTION_COLUMN_NAME, type: 'string', length: 40, nullable: false)]
     private ?string $action = null;
 
-    #[ORM\Column(name: 'action_type', type: 'smallint', nullable: true)]
+    #[ORM\Column(name: self::ACTION_TYPE_COLUMN_NAME, type: 'smallint', nullable: true)]
     private ?int $actionType = null;
 
     #[ORM\OneToMany(targetEntity: AvailableResourceClassActionName::class, mappedBy: 'availableResourceClassAction', cascade: ['persist', 'remove'], orphanRemoval: true)]
