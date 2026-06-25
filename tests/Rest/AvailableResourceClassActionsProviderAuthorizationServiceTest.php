@@ -104,7 +104,10 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
             TestResources::CREATE_ACTION, null, $group1);
 
         $this->testEntityManager->addResourceActionGrant($collectionResource,
-            TestResources::WRITE_ACTION, group: $group3);
+            TestResources::WRITE_ACTION,
+            group: $group3,
+            actionResourceClass: TestResources::TEST_RESOURCE_CLASS
+        );
 
         $testResourceClassActions = $this->internalResourceActionGrantService->getAvailableResourceClassActions(
             TestResources::TEST_RESOURCE_CLASS);
