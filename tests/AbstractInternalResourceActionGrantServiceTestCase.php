@@ -19,7 +19,7 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
     protected const ANOTHER_USER_IDENTIFIER = 'anotherUserIdentifier';
 
     protected const TEST_RESOURCE_CLASS = TestResources::TEST_RESOURCE_CLASS;
-    protected const TEST_COLLECTION_RESOURCE_CLASS = TestResources::TEST_COLLECTION_RESOURCE_CLASS;
+    protected const TEST_RESOURCE_GROUP_CLASS = TestResources::TEST_COLLECTION_RESOURCE_CLASS;
     protected const TEST_RESOURCE_CLASS_2 = TestResources::TEST_RESOURCE_CLASS_2;
     protected const TEST_RESOURCE_CLASS_3 = TestResources::TEST_RESOURCE_CLASS_3;
 
@@ -89,9 +89,21 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
 
     protected function assertIsPermutationOf(array $array1, array $array2): void
     {
-        $this->assertTrue($this->isPermutationOf($array1, $array2),
-            'arrays are no permutations of each other: '.
-            (print_r(array_diff($array1, $array2), true).' vs. '.print_r(array_diff($array2, $array1), true)));
+        $message = '';
+        $isPermutation = $this->isPermutationOf($array1, $array2);
+        if (false === $isPermutation) {
+            $missing = array_diff($array1, $array2);
+            $wronglyPresent = array_diff($array2, $array1);
+            $message = 'Arrays are not permutations of each other.';
+            if (!empty($missing)) {
+                $message .= ' Missing elements: '.implode(', ', $missing).'.';
+            }
+            if (!empty($wronglyPresent)) {
+                $message .= ' Wrongly present elements: '.implode(', ', $wronglyPresent).'.';
+            }
+            $this->fail($message);
+        }
+        $this->assertTrue(true);
     }
 
     protected function isPermutationOf(array $array1, array $array2): bool

@@ -22,9 +22,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
                 TestResources::TEST_RESOURCE_ITEM_ACTIONS,
                 TestResources::TEST_RESOURCE_COLLECTION_ACTIONS,
             ],
-            self::TEST_COLLECTION_RESOURCE_CLASS => [
-                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS,
+            self::TEST_RESOURCE_GROUP_CLASS => [
             ],
             self::TEST_RESOURCE_CLASS_2 => [
                 TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,

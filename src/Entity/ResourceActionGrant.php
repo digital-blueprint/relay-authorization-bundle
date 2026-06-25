@@ -233,7 +233,7 @@ class ResourceActionGrant
      * If not provided, the action type is determined from the resourceIdentifier of this grant.
      */
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
-    private ?bool $isCollectionAction = null;
+    private ?int $actionType = null;
 
     #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?array $grantedActions = null;
@@ -317,12 +317,8 @@ class ResourceActionGrant
 
     public function getActionResourceClass(): ?string
     {
-        if (null === $this->action) {
-            return null;
-        }
-
-        return $this->actionResourceClass ??
-            $this->availableResourceClassAction?->getResourceClass() ?? $this->getResourceClass();
+        return $this->actionResourceClass ?? $this->availableResourceClassAction?->getResourceClass() ??
+            (null === $this->action ? null : $this->getResourceClass());
     }
 
     public function setActionResourceClass(?string $actionResourceClass): void
@@ -330,19 +326,18 @@ class ResourceActionGrant
         $this->actionResourceClass = $actionResourceClass;
     }
 
-    public function isCollectionAction(): ?bool
+    public function getActionType(): ?int
     {
-        if (null === $this->action) {
-            return null;
-        }
-
-        return $this->isCollectionAction ??
-            $this->getResourceIdentifier() === InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER;
+        return $this->actionType ?? $this->availableResourceClassAction?->getActionType() ??
+            (null === $this->action ? null :
+                ($this->getResourceIdentifier() === InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER ?
+                    AvailableResourceClassAction::COLLECTION_ACTION_TYPE : AvailableResourceClassAction::ITEM_ACTION_TYPE)
+            );
     }
 
-    public function setIsCollectionAction(?bool $isCollectionAction): void
+    public function setActionType(?int $actionType): void
     {
-        $this->isCollectionAction = $isCollectionAction;
+        $this->actionType = $actionType;
     }
 
     public function getUserIdentifier(): ?string
@@ -453,13 +448,6 @@ class ResourceActionGrant
     public function setIsInherited(bool $isInherited): void
     {
         $this->isInherited = $isInherited;
-    }
-
-    public function getActionType(): ?int
-    {
-        return ($isCollectionAction = $this->isCollectionAction()) !== null ?
-            ($isCollectionAction ? AvailableResourceClassAction::COLLECTION_ACTION_TYPE :
-                AvailableResourceClassAction::ITEM_ACTION_TYPE) : null;
     }
 
     public function __toString(): string
