@@ -29,6 +29,8 @@ class TestResources
 
     public const TEST_RESOURCE_COLLECTION_ACTIONS = [
         self::CREATE_ACTION => self::CREATE_NAMES,
+        self::READ_ACTION => self::READ_NAMES,
+        self::UPDATE_ACTION => self::UPDATE_NAMES,
     ];
 
     public const TEST_RESOURCE_2_ITEM_ACTIONS = [

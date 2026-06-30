@@ -24,7 +24,7 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
     protected const TEST_RESOURCE_CLASS_3 = TestResources::TEST_RESOURCE_CLASS_3;
 
     protected const TEST_RESOURCE_IDENTIFIER = 'resourceIdentifier';
-    protected const TEST_COLLECTION_RESOURCE_IDENTIFIER = 'collectionResourceIdentifier';
+    protected const TEST_RESOURCE_GROUP_IDENTIFIER = 'collectionResourceIdentifier';
     protected const TEST_RESOURCE_IDENTIFIER_2 = 'resourceIdentifier_2';
 
     protected ?TestEntityManager $testEntityManager = null;
@@ -89,7 +89,6 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
 
     protected function assertIsPermutationOf(array $array1, array $array2): void
     {
-        $message = '';
         $isPermutation = $this->isPermutationOf($array1, $array2);
         if (false === $isPermutation) {
             $missing = array_diff($array1, $array2);
