@@ -348,7 +348,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($collectionResource);
         // action is only defined for resource items -> fail
-        $resourceActionGrant->setAction(TestResources::READ_ACTION);
+        $resourceActionGrant->setAction(TestResources::WRITE_ACTION);
         $resourceActionGrant->setUserIdentifier('userIdentifier');
 
         try {
@@ -659,7 +659,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             'resourceClass_2', self::TEST_RESOURCE_IDENTIFIER);
 
         $collectionResource = $this->testEntityManager->addAuthorizationResource(
-            self::TEST_RESOURCE_GROUP_CLASS, self::TEST_COLLECTION_RESOURCE_IDENTIFIER);
+            self::TEST_RESOURCE_GROUP_CLASS, self::TEST_RESOURCE_GROUP_IDENTIFIER);
 
         $resourceActionGrants = $this->internalResourceActionGrantService->getResourceActionGrantsForResource();
         $this->assertCount(0, $resourceActionGrants);
@@ -786,7 +786,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
 
         $collectionResource = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_GROUP_CLASS,
-            self::TEST_COLLECTION_RESOURCE_IDENTIFIER
+            self::TEST_RESOURCE_GROUP_IDENTIFIER
         );
         $collectionResourceCollection = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_GROUP_CLASS,
