@@ -30,8 +30,10 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
     {
         $resourceClass = $id;
 
-        if (empty($this->authorizationService->getAuthorizationResourcesCurrentUserIsAuthorizedToRead($resourceClass,
-            maxNumResults: 1))) {
+        if (false === in_array(
+            $resourceClass,
+            $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead(maxNumResults: 1),
+            true)) {
             return null;
         }
 

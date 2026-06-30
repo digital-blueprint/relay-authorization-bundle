@@ -62,16 +62,16 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
 
     public function testGetAvailableResourceClassActionsCollection(): void
     {
-        $group1 = $this->testEntityManager->addGroup();
-        $group2 = $this->testEntityManager->addGroup();
-        $group3 = $this->testEntityManager->addGroup();
+        $group1 = $this->testEntityManager->addUserGroup();
+        $group2 = $this->testEntityManager->addUserGroup();
+        $group3 = $this->testEntityManager->addUserGroup();
 
         $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group3, self::ANOTHER_USER_IDENTIFIER.'_3');
 
         // noise:
-        $group4 = $this->testEntityManager->addGroup();
+        $group4 = $this->testEntityManager->addUserGroup();
         $this->testEntityManager->addGroupMember($group4, self::ANOTHER_USER_IDENTIFIER.'_4');
         // -----
 
@@ -105,7 +105,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
 
         $this->testEntityManager->addResourceActionGrant($collectionResource,
             TestResources::WRITE_ACTION,
-            group: $group3,
+            userGroup: $group3,
             actionResourceClass: TestResources::TEST_RESOURCE_CLASS
         );
 

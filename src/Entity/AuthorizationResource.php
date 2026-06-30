@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\OpenApi\Model\Operation;
-use Dbp\Relay\AuthorizationBundle\Rest\AuthorizationResourceProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -18,37 +13,6 @@ use Symfony\Component\Serializer\Attribute\Ignore;
 /**
  * @internal
  */
-#[ApiResource(
-    shortName: 'AuthorizationResource',
-    operations: [
-        new Get(
-            uriTemplate: '/authorization/resource/{resourceClass}/{resourceIdentifier}',
-            openapi: new Operation(
-                tags: ['Authorization'],
-            ),
-            normalizationContext: [
-                'groups' => [
-                    'AuthorizationResource:output',
-                    'AuthorizationResource:get_item_only_output',
-                    'AuthorizationResourceActionGrant:output',
-                ],
-                'jsonld_embed_context' => true,
-            ],
-            provider: AuthorizationResourceProvider::class,
-        ),
-        new GetCollection(
-            uriTemplate: '/authorization/resource/{resourceClass}',
-            openapi: new Operation(
-                tags: ['Authorization'],
-            ),
-            provider: AuthorizationResourceProvider::class
-        ),
-    ],
-    normalizationContext: [
-        'groups' => ['AuthorizationResource:output'],
-        'jsonld_embed_context' => true,
-    ],
-)]
 #[ORM\Table(name: 'authorization_resources')]
 #[ORM\Entity]
 class AuthorizationResource

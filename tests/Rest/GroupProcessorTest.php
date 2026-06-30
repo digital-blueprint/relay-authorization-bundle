@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Rest\UserGroupProcessor;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,23 +20,23 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
     {
         parent::setUp();
 
-        $groupProcessor = new GroupProcessor(
+        $groupProcessor = new UserGroupProcessor(
             $this->groupService, $this->authorizationService);
-        $this->groupProcessorTester = DataProcessorTester::create($groupProcessor, Group::class);
+        $this->groupProcessorTester = DataProcessorTester::create($groupProcessor, UserGroup::class);
     }
 
     public function testCreateGroupItemWithManageGrant(): void
     {
         $this->addManageGroupCollectionGrantForCurrentUser();
 
-        $group = new Group();
-        $group->setName(self::TEST_GROUP_NAME);
+        $userGroup = new UserGroup();
+        $userGroup->setName(self::TEST_GROUP_NAME);
 
-        $group = $this->groupProcessorTester->addItem($group);
-        $groupPersistence = $this->testEntityManager->getGroup($group->getIdentifier());
-        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+        $userGroup = $this->groupProcessorTester->addItem($userGroup);
+        $groupPersistence = $this->testEntityManager->getUserGroup($userGroup->getIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $groupPersistence->getIdentifier());
         $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
-        $this->assertEmpty($group->getMembers());
+        $this->assertEmpty($userGroup->getMembers());
     }
 
     public function testCreateGroupItemWithCreateGrant(): void
@@ -46,14 +46,14 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(), AuthorizationService::CREATE_GROUPS_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $group = new Group();
-        $group->setName(self::TEST_GROUP_NAME);
+        $userGroup = new UserGroup();
+        $userGroup->setName(self::TEST_GROUP_NAME);
 
-        $group = $this->groupProcessorTester->addItem($group);
-        $groupPersistence = $this->testEntityManager->getGroup($group->getIdentifier());
-        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+        $userGroup = $this->groupProcessorTester->addItem($userGroup);
+        $groupPersistence = $this->testEntityManager->getUserGroup($userGroup->getIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $groupPersistence->getIdentifier());
         $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
-        $this->assertEmpty($group->getMembers());
+        $this->assertEmpty($userGroup->getMembers());
     }
 
     public function testCreateGroupItemWithPolicy(): void
@@ -61,23 +61,23 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
         // give the current user the required user attribute for the 'create group' policy to evaluate to 'true'
         $this->login(self::CURRENT_USER_IDENTIFIER, ['MAY_CREATE_GROUPS' => true]);
 
-        $group = new Group();
-        $group->setName(self::TEST_GROUP_NAME);
+        $userGroup = new UserGroup();
+        $userGroup->setName(self::TEST_GROUP_NAME);
 
-        $group = $this->groupProcessorTester->addItem($group);
-        $groupPersistence = $this->testEntityManager->getGroup($group->getIdentifier());
-        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+        $userGroup = $this->groupProcessorTester->addItem($userGroup);
+        $groupPersistence = $this->testEntityManager->getUserGroup($userGroup->getIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $groupPersistence->getIdentifier());
         $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
-        $this->assertEmpty($group->getMembers());
+        $this->assertEmpty($userGroup->getMembers());
     }
 
     public function testCreateGroupItemForbidden(): void
     {
-        $group = new Group();
-        $group->setName(self::TEST_GROUP_NAME);
+        $userGroup = new UserGroup();
+        $userGroup->setName(self::TEST_GROUP_NAME);
 
         try {
-            $this->groupProcessorTester->addItem($group);
+            $this->groupProcessorTester->addItem($userGroup);
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
@@ -86,39 +86,39 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
 
     public function testUpdateGroupItemWithManageGrant(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $this->assertEquals(self::TEST_GROUP_NAME, $this->testEntityManager->getGroup($group->getIdentifier())->getName());
-        $previousGroup = clone $group;
-        $group->setName(self::TEST_GROUP_NAME.'_updated');
-        $this->groupProcessorTester->updateItem($group->getIdentifier(), $group, $previousGroup);
-        $this->assertEquals(self::TEST_GROUP_NAME.'_updated', $this->testEntityManager->getGroup($group->getIdentifier())->getName());
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $this->assertEquals(self::TEST_GROUP_NAME, $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getName());
+        $previousGroup = clone $userGroup;
+        $userGroup->setName(self::TEST_GROUP_NAME.'_updated');
+        $this->groupProcessorTester->updateItem($userGroup->getIdentifier(), $userGroup, $previousGroup);
+        $this->assertEquals(self::TEST_GROUP_NAME.'_updated', $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getName());
     }
 
     public function testUpdateGroupItemWithUpdateGrant(): void
     {
-        [$group, $manageGroupGrant] = $this->addGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        [$userGroup, $manageGroupGrant] = $this->addGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
 
         $this->testEntityManager->addResourceActionGrant($manageGroupGrant->getAuthorizationResource(),
             AuthorizationService::UPDATE_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $this->assertEquals(self::TEST_GROUP_NAME, $this->testEntityManager->getGroup($group->getIdentifier())->getName());
-        $previousGroup = clone $group;
-        $group->setName(self::TEST_GROUP_NAME.'_updated');
-        $this->groupProcessorTester->updateItem($group->getIdentifier(), $group, $previousGroup);
-        $this->assertEquals(self::TEST_GROUP_NAME.'_updated', $this->testEntityManager->getGroup($group->getIdentifier())->getName());
+        $this->assertEquals(self::TEST_GROUP_NAME, $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getName());
+        $previousGroup = clone $userGroup;
+        $userGroup->setName(self::TEST_GROUP_NAME.'_updated');
+        $this->groupProcessorTester->updateItem($userGroup->getIdentifier(), $userGroup, $previousGroup);
+        $this->assertEquals(self::TEST_GROUP_NAME.'_updated', $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getName());
     }
 
     public function testUpdateGroupItemForbidden(): void
     {
-        $group = $this->addGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME)[0];
+        $userGroup = $this->addGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME)[0];
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $this->assertEquals(self::TEST_GROUP_NAME, $this->testEntityManager->getGroup($group->getIdentifier())->getName());
-        $previousGroup = clone $group;
-        $group->setName(self::TEST_GROUP_NAME.'_updated');
+        $this->assertEquals(self::TEST_GROUP_NAME, $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getName());
+        $previousGroup = clone $userGroup;
+        $userGroup->setName(self::TEST_GROUP_NAME.'_updated');
         try {
-            $this->groupProcessorTester->updateItem($group->getIdentifier(), $group, $previousGroup);
+            $this->groupProcessorTester->updateItem($userGroup->getIdentifier(), $userGroup, $previousGroup);
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
@@ -127,32 +127,32 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
 
     public function testDeleteGroupItemWithManageGrant(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $this->assertNotNull($this->testEntityManager->getGroup($group->getIdentifier()));
-        $this->groupProcessorTester->removeItem($group->getIdentifier(), $group);
-        $this->assertNull($this->testEntityManager->getGroup($group->getIdentifier()));
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $this->assertNotNull($this->testEntityManager->getUserGroup($userGroup->getIdentifier()));
+        $this->groupProcessorTester->removeItem($userGroup->getIdentifier(), $userGroup);
+        $this->assertNull($this->testEntityManager->getUserGroup($userGroup->getIdentifier()));
     }
 
     public function testDeleteGroupItemWithDeleteGrant(): void
     {
-        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
-        $manageGrant = $this->authorizationService->addGroup($group->getIdentifier());
-        $this->assertNotNull($this->testEntityManager->getGroup($group->getIdentifier()));
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $manageGrant = $this->authorizationService->addUserGroup($userGroup->getIdentifier());
+        $this->assertNotNull($this->testEntityManager->getUserGroup($userGroup->getIdentifier()));
 
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             AuthorizationService::DELETE_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $this->groupProcessorTester->removeItem($group->getIdentifier(), $group);
-        $this->assertNull($this->testEntityManager->getGroup($group->getIdentifier()));
+        $this->groupProcessorTester->removeItem($userGroup->getIdentifier(), $userGroup);
+        $this->assertNull($this->testEntityManager->getUserGroup($userGroup->getIdentifier()));
     }
 
     public function testDeleteGroupItemForbidden(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
         $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
         try {
-            $this->groupProcessorTester->removeItem($group->getIdentifier(), $group);
+            $this->groupProcessorTester->removeItem($userGroup->getIdentifier(), $userGroup);
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());

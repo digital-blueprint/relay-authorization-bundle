@@ -8,11 +8,11 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
-use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
@@ -35,24 +35,24 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addResourceActionGrant(AuthorizationResource $resource, ?string $action = null,
-        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
+        ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         ?string $actionResourceClass = null, ?int $actionType = null, ?Role $role = null): ResourceActionGrant
     {
         return $this->addResourceActionGrantInternal(
-            $resource, $action, $userIdentifier, $group, $dynamicGroupIdentifier,
+            $resource, $action, $userIdentifier, $userGroup, $dynamicUserGroupIdentifier,
             $actionResourceClass, $actionType, $role
         );
     }
 
     public function addAuthorizationResourceAndActionGrant(
         string $resourceClass, string $resourceIdentifier, ?string $action = null,
-        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
+        ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicGroupIdentifier = null,
         ?string $actionResourceClass = null, ?int $actionType = null, ?Role $role = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
 
         return $this->addResourceActionGrant($authorizationResource,
-            $action, $userIdentifier, $group, $dynamicGroupIdentifier,
+            $action, $userIdentifier, $userGroup, $dynamicGroupIdentifier,
             $actionResourceClass, $actionType, $role
         );
     }
@@ -207,20 +207,20 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function addGroup(string $name = 'Testgroup'): Group
+    public function addUserGroup(string $name = 'Testgroup'): UserGroup
     {
-        $group = new Group();
-        $group->setIdentifier(Uuid::v7()->toRfc4122());
-        $group->setName($name);
+        $userGroup = new UserGroup();
+        $userGroup->setIdentifier(Uuid::v7()->toRfc4122());
+        $userGroup->setName($name);
 
         try {
-            $this->entityManager->persist($group);
+            $this->entityManager->persist($userGroup);
             $this->entityManager->flush();
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
 
-        return $group;
+        return $userGroup;
     }
 
     public function deleteGroup(string $identifier): void
@@ -228,7 +228,7 @@ class TestEntityManager extends CoreTestEntityManager
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder
-                ->delete(Group::class, 'g')
+                ->delete(UserGroup::class, 'g')
                 ->where($queryBuilder->expr()->eq('g.identifier', ':identifier'))
                 ->setParameter(':identifier', $identifier, AuthorizationUuidBinaryType::NAME)
                 ->getQuery()
@@ -238,21 +238,21 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function getGroup(string $identifier)
+    public function getUserGroup(string $identifier)
     {
         try {
-            return $this->entityManager->getRepository(Group::class)
+            return $this->entityManager->getRepository(UserGroup::class)
                 ->findOneBy(['identifier' => $identifier]);
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
     }
 
-    public function addGroupMember(Group $group, ?string $userIdentifier = null, ?Group $childGroup = null): GroupMember
+    public function addGroupMember(UserGroup $userGroup, ?string $userIdentifier = null, ?UserGroup $childGroup = null): UserGroupMember
     {
-        $groupMember = new GroupMember();
+        $groupMember = new UserGroupMember();
         $groupMember->setIdentifier(Uuid::v7()->toRfc4122());
-        $groupMember->setGroup($group);
+        $groupMember->setUserGroup($userGroup);
         $groupMember->setUserIdentifier($userIdentifier);
         $groupMember->setChildGroup($childGroup);
 
@@ -271,7 +271,7 @@ class TestEntityManager extends CoreTestEntityManager
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder
-                ->delete(GroupMember::class, 'gm')
+                ->delete(UserGroupMember::class, 'gm')
                 ->where($queryBuilder->expr()->eq('gm.identifier', ':identifier'))
                 ->setParameter(':identifier', $identifier, AuthorizationUuidBinaryType::NAME)
                 ->getQuery()
@@ -281,10 +281,10 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function getGroupMember(string $identifier): ?GroupMember
+    public function getGroupMember(string $identifier): ?UserGroupMember
     {
         try {
-            return $this->entityManager->getRepository(GroupMember::class)
+            return $this->entityManager->getRepository(UserGroupMember::class)
                 ->findOneBy(['identifier' => $identifier]);
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
@@ -292,7 +292,7 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, ?string $action,
-        ?string $userIdentifier = null, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
+        ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         ?string $actionResourceClass = null, ?int $actionType = null,
         ?Role $role = null): ResourceActionGrant
     {
@@ -318,8 +318,8 @@ class TestEntityManager extends CoreTestEntityManager
         }
         $resourceActionGrant->setRole($role);
         $resourceActionGrant->setUserIdentifier($userIdentifier);
-        $resourceActionGrant->setGroup($group);
-        $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
+        $resourceActionGrant->setUserGroup($userGroup);
+        $resourceActionGrant->setDynamicUserGroupIdentifier($dynamicUserGroupIdentifier);
 
         try {
             $this->entityManager->persist($resourceActionGrant);
