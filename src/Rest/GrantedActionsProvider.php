@@ -24,6 +24,8 @@ class GrantedActionsProvider extends AbstractDataProvider
     }
 
     /**
+     * @retrun GrantedActions|null
+     *
      * @throws ApiError
      */
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
@@ -42,6 +44,11 @@ class GrantedActionsProvider extends AbstractDataProvider
         return $grantedActions;
     }
 
+    /**
+     * @return GrantedActions[]
+     *
+     * @throws ApiError
+     */
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
         $resourceClass = $this->getCurrentUriVariables()[Common::RESOURCE_CLASS_URI_VARIABLE_NAME];
