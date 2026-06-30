@@ -7,13 +7,13 @@ namespace Dbp\Relay\AuthorizationBundle\Authorization;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
-use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
-use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -73,7 +73,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         ],
     ];
 
-    public const DYNAMIC_GROUP_UNDEFINED_ERROR_ID = 'authorization:dynamic-group-undefined';
+    public const DYNAMIC_GROUP_UNDEFINED_ERROR_ID = 'authorization:dynamic-user-group-undefined';
 
     public const MAX_NUM_RESULTS_DEFAULT = InternalResourceActionGrantService::MAX_NUM_RESULTS_DEFAULT;
     public const GROUP_SEARCH_FILTER = 'search';
@@ -86,7 +86,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public function __construct(
         private readonly InternalResourceActionGrantService $internalResourceActionGrantService,
-        private readonly GroupService $groupService,
+        private readonly UserGroupService $groupService,
         private bool $debug = false)
     {
         parent::__construct();
@@ -130,19 +130,19 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function isCurrentUserMemberOfDynamicGroup(string $dynamicGroupIdentifier): bool
+    public function isCurrentUserMemberOfDynamicGroup(string $dynamicUserGroupIdentifier): bool
     {
         try {
-            return $this->isGrantedRole(self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicGroupIdentifier));
+            return $this->isGrantedRole(self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicUserGroupIdentifier));
         } catch (AuthorizationException $authorizationException) {
             if ($authorizationException->getCode() === AuthorizationException::ATTRIBUTE_UNDEFINED) {
                 throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                    sprintf('dynamic group \'%s\' is undefined', $dynamicGroupIdentifier),
+                    sprintf('dynamic user group \'%s\' is undefined', $dynamicUserGroupIdentifier),
                     self::DYNAMIC_GROUP_UNDEFINED_ERROR_ID);
             }
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                sprintf('failed to determine if current user is member of dynamic group \'%s\': %s',
-                    $dynamicGroupIdentifier, $authorizationException->getMessage()));
+                sprintf('failed to determine if current user is member of dynamic user group \'%s\': %s',
+                    $dynamicUserGroupIdentifier, $authorizationException->getMessage()));
         }
     }
 
@@ -174,14 +174,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
-        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
+        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicUserGroupIdentifier = null): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
         $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $action, $userIdentifier,
-            $groupIdentifier !== null ? $this->groupService->getGroup($groupIdentifier) : null,
-            $dynamicGroupIdentifier);
+            $groupIdentifier !== null ? $this->groupService->getUserGroup($groupIdentifier) : null,
+            $dynamicUserGroupIdentifier);
     }
 
     /**
@@ -307,7 +307,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $whereActionsContainAnyOf,
             $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
             $currentUserIdentifier !== null ?
-                $this->groupService->getGroupsUserIsMemberOf($currentUserIdentifier) : [],
+                $this->groupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
             $this->getDynamicGroupsCurrentUserIsMemberOf(),
             $firstResultIndex, $maxNumResults,
             [InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResource]);
@@ -316,7 +316,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function addGroup(string $groupIdentifier): ResourceActionGrant
+    public function addUserGroup(string $groupIdentifier): ResourceActionGrant
     {
         return $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
             self::GROUP_RESOURCE_CLASS, $groupIdentifier,
@@ -326,24 +326,24 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function removeGroup(string $groupIdentifier): void
+    public function removeUserGroup(string $groupIdentifier): void
     {
         $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(self::GROUP_RESOURCE_CLASS, $groupIdentifier);
     }
 
     /**
-     * @return Group[]
+     * @return UserGroup[]
      */
-    public function getGroupsCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults, array $filters = []): array
+    public function getUserGroupsCurrentUserIsAuthorizedToRead(int $firstResultIndex, int $maxNumResults, array $filters = []): array
     {
-        $GROUP_ALIAS = 'g';
+        $GROUP_ALIAS = 'ug';
         $AUTHORIZATION_RESOURCE_ALIAS = 'arm';
         $RESOURCE_ACTION_GRANT_ALIAS = 'rag';
         $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
 
         $queryBuilder = $this->internalResourceActionGrantService->getEntityManager()->createQueryBuilder();
         $queryBuilder->select($GROUP_ALIAS)
-            ->from(Group::class, $GROUP_ALIAS)
+            ->from(UserGroup::class, $GROUP_ALIAS)
             ->innerJoin(AuthorizationResource::class, $AUTHORIZATION_RESOURCE_ALIAS, Join::WITH,
                 "UNHEX(REPLACE($AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier, '-', '')) = $GROUP_ALIAS.identifier"
             )
@@ -380,7 +380,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         self::addGrantHolderCriteria($queryBuilder, $RESOURCE_ACTION_GRANT_ALIAS,
             $userIdentifier !== null ? $userIdentifier : InternalResourceActionGrantService::FALSE,
             $userIdentifier !== null ?
-                $this->groupService->getGroupsUserIsMemberOf($userIdentifier) : [],
+                $this->groupService->getUserGroupsUserIsMemberOf($userIdentifier) : [],
             $this->getDynamicGroupsCurrentUserIsMemberOf());
 
         try {
@@ -389,6 +389,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 ->setMaxResults($maxNumResults)
                 ->execute();
         } catch (\Throwable $throwable) {
+            dump($throwable);
             $this->logger->error('Failed to get groups: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get groups!');
@@ -401,41 +402,43 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             self::COLLECTION_RESOURCE_IDENTIFIER, self::CREATE_GROUPS_ACTION);
     }
 
-    public function isCurrentUserAuthorizedToRemoveGroup(Group $group): bool
+    public function isCurrentUserAuthorizedToRemoveGroup(UserGroup $userGroup): bool
     {
         return $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
-            $group->getIdentifier(), self::DELETE_GROUP_ACTION);
+            $userGroup->getIdentifier(), self::DELETE_GROUP_ACTION);
     }
 
-    public function isCurrentUserAuthorizedToUpdateGroup(Group $group): bool
+    public function isCurrentUserAuthorizedToUpdateGroup(UserGroup $userGroup): bool
     {
         return $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
-            $group->getIdentifier(), self::UPDATE_GROUP_ACTION);
+            $userGroup->getIdentifier(), self::UPDATE_GROUP_ACTION);
     }
 
-    public function isCurrentUserAuthorizedToReadGroup(Group $group): bool
+    public function isCurrentUserAuthorizedToReadGroup(UserGroup $userGroup): bool
     {
         return $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
-            $group->getIdentifier(), self::READ_GROUP_ACTION);
+            $userGroup->getIdentifier(), self::READ_GROUP_ACTION);
     }
 
-    public function isCurrentUserAuthorizedToAddGroupMember(GroupMember $groupMember): bool
+    public function isCurrentUserAuthorizedToAddGroupMember(UserGroupMember $groupMember): bool
     {
-        return $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
-            $groupMember->getGroup()->getIdentifier(),
-            self::ADD_GROUP_MEMBERS_GROUP_ACTION);
+        return ($userGroup = $groupMember->getUserGroup()) === null // --> 400
+            || $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
+                $userGroup->getIdentifier(),
+                self::ADD_GROUP_MEMBERS_GROUP_ACTION);
     }
 
-    public function isCurrentUserAuthorizedToRemoveGroupMember(GroupMember $groupMember): bool
+    public function isCurrentUserAuthorizedToRemoveGroupMember(UserGroupMember $groupMember): bool
     {
-        return $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
-            $groupMember->getGroup()->getIdentifier(),
-            self::DELETE_GROUP_MEMBERS_GROUP_ACTION);
+        return ($userGroup = $groupMember->getUserGroup()) === null // --> 400
+            || $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
+                $userGroup->getIdentifier(),
+                self::DELETE_GROUP_MEMBERS_GROUP_ACTION);
     }
 
-    public function isCurrentUserAuthorizedToReadGroupMember(GroupMember $item): bool
+    public function isCurrentUserAuthorizedToReadUserGroupMember(UserGroupMember $item): bool
     {
-        return $this->isCurrentUserAuthorizedToReadGroup($item->getGroup());
+        return $this->isCurrentUserAuthorizedToReadGroup($item->getUserGroup());
     }
 
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool
@@ -552,9 +555,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 $lastResourceClass = $resourceClass;
                 $resourceClassGrantsMap[$resourceClass]['other_grants'] = [];
             }
-            $dynamicGroupIdentifier = $resourceActionGrant->getDynamicGroupIdentifier();
-            if ($dynamicGroupIdentifier !== null
-                && self::isManageResourceCollectionPolicyName($dynamicGroupIdentifier)) {
+            $dynamicUserGroupIdentifier = $resourceActionGrant->getDynamicUserGroupIdentifier();
+            if ($dynamicUserGroupIdentifier !== null
+                && self::isManageResourceCollectionPolicyName($dynamicUserGroupIdentifier)) {
                 $resourceClassGrantsMap[$resourceClass]['policy_grant'] = $resourceActionGrant;
             } else {
                 $resourceClassGrantsMap[$resourceClass]['other_grants'][] = $resourceActionGrant;
@@ -619,19 +622,19 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return substr($manageResourceCollectionPolicyName, strlen(self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX));
     }
 
-    private static function isManageResourceCollectionPolicyName(string $dynamicGroupIdentifier): bool
+    private static function isManageResourceCollectionPolicyName(string $dynamicUserGroupIdentifier): bool
     {
-        return str_starts_with($dynamicGroupIdentifier, self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX);
+        return str_starts_with($dynamicUserGroupIdentifier, self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX);
     }
 
-    private static function toIsCurrentUserMemberOfDynamicGroupPolicyName(string $dynamicGroupIdentifier): string
+    private static function toIsCurrentUserMemberOfDynamicGroupPolicyName(string $dynamicUserGroupIdentifier): string
     {
-        return $dynamicGroupIdentifier;
+        return $dynamicUserGroupIdentifier;
     }
 
-    private static function isCurrentUserMemberOfDynamicGroupPolicyName(string $dynamicGroupIdentifier): bool
+    private static function isCurrentUserMemberOfDynamicGroupPolicyName(string $dynamicUserGroupIdentifier): bool
     {
-        return false === str_starts_with($dynamicGroupIdentifier, self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX);
+        return false === str_starts_with($dynamicUserGroupIdentifier, self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX);
     }
 
     /**
@@ -649,8 +652,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             InternalResourceActionGrantService::AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS;
 
         $userIdentifier = $this->getUserIdentifier() !== null ? $this->getUserIdentifier() : InternalResourceActionGrantService::FALSE;
-        $groupIdentifiers = $this->getUserIdentifier() !== null ? $this->groupService->getGroupsUserIsMemberOf($userIdentifier) : [];
-        $dynamicGroupIdentifiers = $this->getDynamicGroupsCurrentUserIsMemberOf();
+        $groupIdentifiers = $this->getUserIdentifier() !== null ? $this->groupService->getUserGroupsUserIsMemberOf($userIdentifier) : [];
+        $dynamicUserGroupIdentifiers = $this->getDynamicGroupsCurrentUserIsMemberOf();
 
         // Get all grants
         // * that the user is a holder of (personally or by static/dynamic group)
@@ -660,7 +663,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $managedAuthorizationResourceIdentifiersBinary = $this->internalResourceActionGrantService->get(
                 InternalResourceActionGrantService::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS,
                 $resourceClass, $resourceIdentifier, null, [AuthorizationService::MANAGE_ACTION],
-                $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers);
+                $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers);
 
             $options = [
                 InternalResourceActionGrantService::ADDITIONAL_CRITERIA_OPTION => [
@@ -676,7 +679,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
             $results = $this->internalResourceActionGrantService->get($get,
                 $resourceClass, $resourceIdentifier, null, null,
-                $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+                $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
                 $firstResultIndex, $maxNumResults, $options);
 
             switch ($get) {
@@ -754,7 +757,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
             $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier,
             $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
-            $currentUserIdentifier !== null ? $this->groupService->getGroupsUserIsMemberOf($currentUserIdentifier) : [],
+            $currentUserIdentifier !== null ? $this->groupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
             $this->getDynamicGroupsCurrentUserIsMemberOf());
     }
 
@@ -769,7 +772,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->internalResourceActionGrantService->getGrantedActionsForResource(
             $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier,
             $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
-            $currentUserIdentifier !== null ? $this->groupService->getGroupsUserIsMemberOf($currentUserIdentifier) : [],
+            $currentUserIdentifier !== null ? $this->groupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
             $this->getDynamicGroupsCurrentUserIsMemberOf()
         );
     }
@@ -783,10 +786,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         return ($userIdentifier !== null
                 && ($resourceActionGrant->getUserIdentifier() === $userIdentifier
-                    || ($resourceActionGrant->getGroup() !== null
-                        && $this->groupService->isUserMemberOfGroup($userIdentifier, $resourceActionGrant->getGroup()->getIdentifier()))))
-            || ($resourceActionGrant->getDynamicGroupIdentifier() !== null
-                && $this->isCurrentUserMemberOfDynamicGroup($resourceActionGrant->getDynamicGroupIdentifier()));
+                    || ($resourceActionGrant->getUserGroup() !== null
+                        && $this->groupService->isUserMemberOfUserGroup($userIdentifier, $resourceActionGrant->getUserGroup()->getIdentifier()))))
+            || ($resourceActionGrant->getDynamicUserGroupIdentifier() !== null
+                && $this->isCurrentUserMemberOfDynamicGroup($resourceActionGrant->getDynamicUserGroupIdentifier()));
     }
 
     private function configure(): void
@@ -799,9 +802,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $policies[self::toManageResourceCollectionPolicyName(self::GROUP_RESOURCE_CLASS)] =
             $this->config[Configuration::CREATE_GROUPS_POLICY];
 
-        foreach ($this->config[Configuration::DYNAMIC_GROUPS] ?? [] as $dynamicGroup) {
-            $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicGroup[Configuration::IDENTIFIER])] =
-                $dynamicGroup[Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION];
+        foreach ($this->config[Configuration::DYNAMIC_GROUPS] ?? [] as $dynamicUserGroup) {
+            $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName($dynamicUserGroup[Configuration::IDENTIFIER])] =
+                $dynamicUserGroup[Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION];
         }
         $policies[self::toIsCurrentUserMemberOfDynamicGroupPolicyName(
             self::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY)] = 'true';
@@ -810,29 +813,39 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     private static function addGrantHolderCriteria(QueryBuilder $queryBuilder, string $RESOURCE_ACTION_GRANT_ALIAS,
-        ?string $userIdentifier, ?array $groupIdentifiers, ?array $dynamicGroupIdentifiers): void
+        ?string $userIdentifier, ?array $userGroupIdentifiers, ?array $dynamicUserGroupIdentifiers): void
     {
         $orClause = $queryBuilder->expr()->orX();
         if ($userIdentifier !== null) {
             if ($userIdentifier === InternalResourceActionGrantService::FALSE) {
                 $orClause
-                    ->add('false');
+                    ->add('0 = 1');
             } else {
                 $orClause
                     ->add($queryBuilder->expr()->eq("$RESOURCE_ACTION_GRANT_ALIAS.userIdentifier", ':userIdentifier'));
                 $queryBuilder->setParameter(':userIdentifier', $userIdentifier);
             }
         }
-        if ($groupIdentifiers !== null) {
-            $orClause
-                ->add($queryBuilder->expr()->in("IDENTITY($RESOURCE_ACTION_GRANT_ALIAS.group)", ':groupIdentifiers'));
-            $queryBuilder->setParameter(':groupIdentifiers',
-                UuidUtils::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY);
+        if ($userGroupIdentifiers !== null) {
+            if ([] === $userGroupIdentifiers) {
+                $orClause
+                    ->add('0 = 1');
+            } else {
+                $orClause
+                    ->add($queryBuilder->expr()->in("IDENTITY($RESOURCE_ACTION_GRANT_ALIAS.userGroup)", ':userGroupIdentifiers'));
+                $queryBuilder->setParameter(':userGroupIdentifiers',
+                    UuidUtils::toBinaryUuids($userGroupIdentifiers), ArrayParameterType::BINARY);
+            }
         }
-        if ($dynamicGroupIdentifiers !== null) {
-            $orClause
-                ->add($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.dynamicGroupIdentifier", ':dynamicGroupIdentifiers'));
-            $queryBuilder->setParameter(':dynamicGroupIdentifiers', $dynamicGroupIdentifiers);
+        if ($dynamicUserGroupIdentifiers !== null) {
+            if ([] === $dynamicUserGroupIdentifiers) {
+                $orClause
+                    ->add('0 = 1');
+            } else {
+                $orClause
+                    ->add($queryBuilder->expr()->in("$RESOURCE_ACTION_GRANT_ALIAS.dynamicUserGroupIdentifier", ':dynamicUserGroupIdentifiers'));
+                $queryBuilder->setParameter(':dynamicUserGroupIdentifiers', $dynamicUserGroupIdentifiers);
+            }
         }
         if ($orClause->count() > 0) {
             $queryBuilder->andWhere($orClause);

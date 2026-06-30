@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
-use Dbp\Relay\AuthorizationBundle\Service\GroupService;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
 /**
- * @extends AbstractDataProvider<Group>
+ * @extends AbstractDataProvider<UserGroup>
  *
  * @internal
  */
-class GroupProvider extends AbstractDataProvider
+class UserGroupProvider extends AbstractDataProvider
 {
     public function __construct(
-        private readonly GroupService $groupService,
+        private readonly UserGroupService $groupService,
         private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
@@ -26,18 +26,22 @@ class GroupProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->groupService->tryGetGroup($id);
+        // dump($id);
+        $userGroup = $this->groupService->tryGetUserGroup($id);
+        // dump($userGroup);
+
+        return $userGroup;
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        return $this->authorizationService->getGroupsCurrentUserIsAuthorizedToRead(
+        return $this->authorizationService->getUserGroupsCurrentUserIsAuthorizedToRead(
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage, $filters);
     }
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
     {
-        assert($item instanceof Group);
+        assert($item instanceof UserGroup);
 
         return $this->authorizationService->isCurrentUserAuthorizedToReadGroup($item);
     }

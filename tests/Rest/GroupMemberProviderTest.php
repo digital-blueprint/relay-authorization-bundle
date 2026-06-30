@@ -6,7 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
-use Dbp\Relay\AuthorizationBundle\Rest\GroupMemberProvider;
+use Dbp\Relay\AuthorizationBundle\Rest\UserGroupMemberProvider;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Proxies\__CG__\Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
@@ -20,15 +20,15 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
     {
         parent::setUp();
 
-        $groupMemberProcessor = new GroupMemberProvider(
+        $groupMemberProcessor = new UserGroupMemberProvider(
             $this->groupService, $this->authorizationService);
         $this->groupMemberProviderTester = DataProviderTester::create($groupMemberProcessor, GroupMember::class);
     }
 
     public function testGetGroupMemberItemWithManageGroupGrant(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $groupMember = $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
 
         $groupMemberPersistence = $this->groupMemberProviderTester->getItem($groupMember->getIdentifier());
 
@@ -39,9 +39,9 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
 
     public function testGetGroupMemberItemWithReadGroupGrant(): void
     {
-        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
-        $manageGrant = $this->authorizationService->addGroup($group->getIdentifier());
-        $groupMember = $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $manageGrant = $this->authorizationService->addUserGroup($userGroup->getIdentifier());
+        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
@@ -55,8 +55,8 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
 
     public function testGetGroupMemberItemForbidden(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $groupMember = $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         try {
@@ -69,23 +69,23 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
 
     public function testGetGroupMemberCollection(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
         // add some noise:
         $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
 
         $groupMembers = $this->groupMemberProviderTester->getCollection(
-            [GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier()]);
+            [UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $userGroup->getIdentifier()]);
         $this->assertCount(0, $groupMembers);
 
-        $groupMemberA = $this->testEntityManager->addGroupMember($group, 'a');
-        $groupMemberB = $this->testEntityManager->addGroupMember($group, 'b');
-        $groupMemberC = $this->testEntityManager->addGroupMember($group, 'c');
+        $groupMemberA = $this->testEntityManager->addGroupMember($userGroup, 'a');
+        $groupMemberB = $this->testEntityManager->addGroupMember($userGroup, 'b');
+        $groupMemberC = $this->testEntityManager->addGroupMember($userGroup, 'c');
 
         // add some noise:
         $this->testEntityManager->addGroupMember($group2, 'd');
 
         $groupMembers = $this->groupMemberProviderTester->getCollection(
-            [GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier()]);
+            [UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $userGroup->getIdentifier()]);
         $this->assertCount(3, $groupMembers);
         $this->assertCount(1, $this->selectWhere($groupMembers, function ($groupMember) use ($groupMemberA) {
             return $groupMember->getIdentifier() === $groupMemberA->getIdentifier();
@@ -99,14 +99,14 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
 
         // test pagination
         $groupMemberPage1 = $this->groupMemberProviderTester->getCollection([
-            GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier(),
+            UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $userGroup->getIdentifier(),
             'page' => 1,
             'perPage' => 2,
         ]);
         $this->assertCount(2, $groupMemberPage1);
 
         $groupMemberPage2 = $this->groupMemberProviderTester->getCollection([
-            GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier(),
+            UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $userGroup->getIdentifier(),
             'page' => 2,
             'perPage' => 2,
         ]);
@@ -139,7 +139,7 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
     {
         try {
             $this->groupMemberProviderTester->getCollection([
-                GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => '404',
+                UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => '404',
             ]);
             $this->fail('Expected exception not thrown');
         } catch (ApiError $apiError) {
@@ -149,10 +149,10 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
 
     public function testGetMemberCollectionGroupAccessForbidden(): void
     {
-        $group = $this->testEntityManager->addGroup();
+        $userGroup = $this->testEntityManager->addUserGroup();
         try {
             $this->groupMemberProviderTester->getCollection([
-                GroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $group->getIdentifier(),
+                UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $userGroup->getIdentifier(),
             ]);
             $this->fail('Expected exception not thrown');
         } catch (ApiError $apiError) {
