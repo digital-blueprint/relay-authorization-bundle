@@ -5,26 +5,26 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
-use Dbp\Relay\AuthorizationBundle\Service\GroupService;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
+use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * @extends AbstractDataProvider<GroupMember>
+ * @extends AbstractDataProvider<UserGroupMember>
  *
  * @internal
  */
-class GroupMemberProvider extends AbstractDataProvider
+class UserGroupMemberProvider extends AbstractDataProvider
 {
-    public const GROUP_IDENTIFIER_QUERY_PARAMETER = 'groupIdentifier';
+    public const GROUP_IDENTIFIER_QUERY_PARAMETER = 'userGroupIdentifier';
 
-    public const GROUP_NOT_FOUND_ERROR_ID = 'authorization:group-not-found';
+    public const GROUP_NOT_FOUND_ERROR_ID = 'authorization:user-group-not-found';
 
     public function __construct(
-        private readonly GroupService $groupService,
+        private readonly UserGroupService $groupService,
         private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
@@ -32,7 +32,7 @@ class GroupMemberProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->groupService->getGroupMember($id);
+        return $this->groupService->getUserGroupMember($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
@@ -43,24 +43,24 @@ class GroupMemberProvider extends AbstractDataProvider
                 Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::GROUP_IDENTIFIER_QUERY_PARAMETER]);
         }
 
-        $group = $this->groupService->tryGetGroup($groupIdentifier);
-        if ($group === null) {
+        $userGroup = $this->groupService->tryGetUserGroup($groupIdentifier);
+        if ($userGroup === null) {
             throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
                 "Group with ID '$groupIdentifier' not found", self::GROUP_NOT_FOUND_ERROR_ID, [$groupIdentifier]);
         }
-        if (!$this->authorizationService->isCurrentUserAuthorizedToReadGroup($group)) {
+        if (!$this->authorizationService->isCurrentUserAuthorizedToReadGroup($userGroup)) {
             throw new ApiError(Response::HTTP_FORBIDDEN, 'forbidden');
         }
 
-        return $this->groupService->getGroupMembers(
+        return $this->groupService->getUserGroupMembers(
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage, $groupIdentifier);
     }
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
     {
-        assert($item instanceof GroupMember);
+        assert($item instanceof UserGroupMember);
 
-        return $this->authorizationService->isCurrentUserAuthorizedToReadGroupMember($item);
+        return $this->authorizationService->isCurrentUserAuthorizedToReadUserGroupMember($item);
     }
 
     protected function isCurrentUserAuthorizedToGetCollection(array $filters): bool

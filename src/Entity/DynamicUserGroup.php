@@ -8,37 +8,37 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
-use Dbp\Relay\AuthorizationBundle\Rest\DynamicGroupProvider;
+use Dbp\Relay\AuthorizationBundle\Rest\DynamicUserGroupProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 /**
  * @internal
  */
 #[ApiResource(
-    shortName: 'AuthorizationDynamicGroup',
+    shortName: 'AuthorizationDynamicUserGroup',
     operations: [
         new Get(
-            uriTemplate: '/authorization/dynamic-groups/{identifier}',
+            uriTemplate: '/authorization/dynamic-user-groups/{identifier}',
             openapi: new Operation(
                 tags: ['Authorization']
             ),
-            provider: DynamicGroupProvider::class
+            provider: DynamicUserGroupProvider::class
         ),
         new GetCollection(
-            uriTemplate: '/authorization/dynamic-groups',
+            uriTemplate: '/authorization/dynamic-user-groups',
             openapi: new Operation(
                 tags: ['Authorization']
             ),
-            provider: DynamicGroupProvider::class
+            provider: DynamicUserGroupProvider::class
         ),
     ],
     normalizationContext: [
-        'groups' => ['AuthorizationDynamicGroup:output'],
+        'groups' => ['AuthorizationDynamicUserGroup:output'],
     ],
 )]
-class DynamicGroup
+class DynamicUserGroup
 {
-    #[Groups(['AuthorizationDynamicGroup:output'])]
+    #[Groups(['AuthorizationDynamicUserGroup:output'])]
     private ?string $identifier;
 
     public function __construct(?string $identifier = null)

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
-use Dbp\Relay\AuthorizationBundle\Rest\GroupProvider;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Rest\UserGroupProvider;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,19 +19,19 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
     {
         parent::setUp();
 
-        $groupProvider = new GroupProvider(
+        $groupProvider = new UserGroupProvider(
             $this->groupService, $this->authorizationService);
-        $this->groupProviderTester = DataProviderTester::create($groupProvider, Group::class);
+        $this->groupProviderTester = DataProviderTester::create($groupProvider, UserGroup::class);
     }
 
     public function testGetGroupItem(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $this->testEntityManager->addGroupMember($group, self::CURRENT_USER_IDENTIFIER);
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->clear(); // prevent re-use of cached group entity
-        $groupPersistence = $this->groupProviderTester->getItem($group->getIdentifier());
+        $groupPersistence = $this->groupProviderTester->getItem($userGroup->getIdentifier());
 
-        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $groupPersistence->getIdentifier());
         $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
         $this->assertCount(1, $groupPersistence->getMembers());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $groupPersistence->getMembers()[0]->getUserIdentifier());
@@ -39,18 +39,18 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
 
     public function testGetGroupItemWithReadGrant(): void
     {
-        $group = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME);
-        $childGroup = $this->testEntityManager->addGroup('child group');
-        $this->testEntityManager->addGroupMember($group, childGroup: $childGroup);
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $childGroup = $this->testEntityManager->addUserGroup('child group');
+        $this->testEntityManager->addGroupMember($userGroup, childGroup: $childGroup);
 
-        $manageGrant = $this->authorizationService->addGroup($group->getIdentifier());
+        $manageGrant = $this->authorizationService->addUserGroup($userGroup->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
         $this->testEntityManager->clear(); // prevent re-use of cached group entity
-        $groupPersistence = $this->groupProviderTester->getItem($group->getIdentifier());
-        $this->assertEquals($group->getIdentifier(), $groupPersistence->getIdentifier());
+        $groupPersistence = $this->groupProviderTester->getItem($userGroup->getIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $groupPersistence->getIdentifier());
         $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
         $this->assertCount(1, $groupPersistence->getMembers());
         $this->assertEquals($childGroup->getIdentifier(), $groupPersistence->getMembers()[0]->getChildGroup()->getIdentifier());
@@ -64,11 +64,11 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
 
     public function testGetGroupItemForbidden(): void
     {
-        $group = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         try {
-            $this->groupProviderTester->getItem($group->getIdentifier());
+            $this->groupProviderTester->getItem($userGroup->getIdentifier());
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
@@ -82,7 +82,7 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         $group1 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_1');
         $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_2');
 
-        $childGroup = $this->testEntityManager->addGroup('child group');
+        $childGroup = $this->testEntityManager->addUserGroup('child group');
 
         $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addGroupMember($group2, childGroup: $childGroup);
@@ -90,15 +90,15 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
 
         // another user has manage grants for groups 3, 4, and 5
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $group3 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_3');
-        $group3ManageGrant = $this->authorizationService->addGroup($group3->getIdentifier());
+        $group3 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_3');
+        $group3ManageGrant = $this->authorizationService->addUserGroup($group3->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($group3ManageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $group4 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_4');
 
-        $group5 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_5');
-        $group5ManageGrant = $this->authorizationService->addGroup($group5->getIdentifier());
+        $group5 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_5');
+        $group5ManageGrant = $this->authorizationService->addUserGroup($group5->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($group5ManageGrant->getAuthorizationResource(),
             AuthorizationService::DELETE_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
@@ -109,25 +109,25 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         ]);
         $this->assertCount(3, $groups);
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group1): bool {
-                return $group->getIdentifier() === $group1->getIdentifier()
-                    && $group->getName() === $group1->getName()
-                    && count($group->getMembers()) === 1
-                    && $group->getMembers()[0]->getUserIdentifier() === self::CURRENT_USER_IDENTIFIER;
+            function (UserGroup $userGroup) use ($group1): bool {
+                return $userGroup->getIdentifier() === $group1->getIdentifier()
+                    && $userGroup->getName() === $group1->getName()
+                    && count($userGroup->getMembers()) === 1
+                    && $userGroup->getMembers()[0]->getUserIdentifier() === self::CURRENT_USER_IDENTIFIER;
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group2, $childGroup): bool {
-                return $group->getIdentifier() === $group2->getIdentifier()
-                    && $group->getName() === $group2->getName()
-                    && count($group->getMembers()) === 1
-                    && $group->getMembers()[0]->getChildGroup() !== null
-                    && $group->getMembers()[0]->getChildGroup()->getIdentifier() === $childGroup->getIdentifier();
+            function (UserGroup $userGroup) use ($group2, $childGroup): bool {
+                return $userGroup->getIdentifier() === $group2->getIdentifier()
+                    && $userGroup->getName() === $group2->getName()
+                    && count($userGroup->getMembers()) === 1
+                    && $userGroup->getMembers()[0]->getChildGroup() !== null
+                    && $userGroup->getMembers()[0]->getChildGroup()->getIdentifier() === $childGroup->getIdentifier();
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group3): bool {
-                return $group->getIdentifier() === $group3->getIdentifier()
-                    && $group->getName() === $group3->getName()
-                    && count($group->getMembers()) === 0;
+            function (UserGroup $userGroup) use ($group3): bool {
+                return $userGroup->getIdentifier() === $group3->getIdentifier()
+                    && $userGroup->getName() === $group3->getName()
+                    && count($userGroup->getMembers()) === 0;
             }));
 
         // test pagination
@@ -146,16 +146,16 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         $groups = array_merge($groupPage1, $groupPage2);
         $this->assertCount(3, $groups);
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group1): bool {
-                return $group->getIdentifier() === $group1->getIdentifier();
+            function (UserGroup $userGroup) use ($group1): bool {
+                return $userGroup->getIdentifier() === $group1->getIdentifier();
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group2): bool {
-                return $group->getIdentifier() === $group2->getIdentifier();
+            function (UserGroup $userGroup) use ($group2): bool {
+                return $userGroup->getIdentifier() === $group2->getIdentifier();
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group3): bool {
-                return $group->getIdentifier() === $group3->getIdentifier();
+            function (UserGroup $userGroup) use ($group3): bool {
+                return $userGroup->getIdentifier() === $group3->getIdentifier();
             }));
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
@@ -165,22 +165,22 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         ]);
         $this->assertCount(3, $groups);
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group3): bool {
-                return $group->getIdentifier() === $group3->getIdentifier()
-                    && $group->getName() === $group3->getName()
-                    && count($group->getMembers()) === 0;
+            function (UserGroup $userGroup) use ($group3): bool {
+                return $userGroup->getIdentifier() === $group3->getIdentifier()
+                    && $userGroup->getName() === $group3->getName()
+                    && count($userGroup->getMembers()) === 0;
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group4): bool {
-                return $group->getIdentifier() === $group4->getIdentifier()
-                    && $group->getName() === $group4->getName()
-                    && count($group->getMembers()) === 0;
+            function (UserGroup $userGroup) use ($group4): bool {
+                return $userGroup->getIdentifier() === $group4->getIdentifier()
+                    && $userGroup->getName() === $group4->getName()
+                    && count($userGroup->getMembers()) === 0;
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group5): bool {
-                return $group->getIdentifier() === $group5->getIdentifier()
-                    && $group->getName() === $group5->getName()
-                    && count($group->getMembers()) === 0;
+            function (UserGroup $userGroup) use ($group5): bool {
+                return $userGroup->getIdentifier() === $group5->getIdentifier()
+                    && $userGroup->getName() === $group5->getName()
+                    && count($userGroup->getMembers()) === 0;
             }));
     }
 
@@ -193,15 +193,15 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
 
         // another user has manage grants for groups 3, 4, and 5
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $group3 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_3');
-        $group3ManageGrant = $this->authorizationService->addGroup($group3->getIdentifier());
+        $group3 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_3');
+        $group3ManageGrant = $this->authorizationService->addUserGroup($group3->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($group3ManageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $group4 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_4');
 
-        $group5 = $this->testEntityManager->addGroup(self::TEST_GROUP_NAME.'_5');
-        $group5ManageGrant = $this->authorizationService->addGroup($group5->getIdentifier());
+        $group5 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_5');
+        $group5ManageGrant = $this->authorizationService->addUserGroup($group5->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($group5ManageGrant->getAuthorizationResource(),
             AuthorizationService::DELETE_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
@@ -236,12 +236,12 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         // 1, 3 allowed
         $this->assertCount(2, $groups);
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group1): bool {
-                return $group->getIdentifier() === $group1->getIdentifier();
+            function (UserGroup $userGroup) use ($group1): bool {
+                return $userGroup->getIdentifier() === $group1->getIdentifier();
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group3): bool {
-                return $group->getIdentifier() === $group3->getIdentifier();
+            function (UserGroup $userGroup) use ($group3): bool {
+                return $userGroup->getIdentifier() === $group3->getIdentifier();
             }));
 
         $groups = $this->groupProviderTester->getCollection([
@@ -250,12 +250,12 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         // 0. 3 allowed
         $this->assertCount(2, $groups);
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group0): bool {
-                return $group->getIdentifier() === $group0->getIdentifier();
+            function (UserGroup $userGroup) use ($group0): bool {
+                return $userGroup->getIdentifier() === $group0->getIdentifier();
             }));
         $this->assertCount(1, $this->selectWhere($groups,
-            function (Group $group) use ($group3): bool {
-                return $group->getIdentifier() === $group3->getIdentifier();
+            function (UserGroup $userGroup) use ($group3): bool {
+                return $userGroup->getIdentifier() === $group3->getIdentifier();
             }));
 
         $groups = $this->groupProviderTester->getCollection([

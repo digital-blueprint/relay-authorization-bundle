@@ -14,24 +14,25 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
-use Dbp\Relay\AuthorizationBundle\Rest\GroupProcessor;
-use Dbp\Relay\AuthorizationBundle\Rest\GroupProvider;
+use Dbp\Relay\AuthorizationBundle\Rest\UserGroupProcessor;
+use Dbp\Relay\AuthorizationBundle\Rest\UserGroupProvider;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\ORM\PersistentCollection;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
-    shortName: 'AuthorizationGroup',
+    shortName: 'AuthorizationUserGroup',
     operations: [
         new Get(
-            uriTemplate: '/authorization/groups/{identifier}',
+            uriTemplate: '/authorization/user-groups/{identifier}',
             openapi: new Operation(
                 tags: ['Authorization']
             ),
-            provider: GroupProvider::class
+            provider: UserGroupProvider::class
         ),
         new GetCollection(
-            uriTemplate: '/authorization/groups',
+            uriTemplate: '/authorization/user-groups',
             openapi: new Operation(
                 tags: ['Authorization'],
                 parameters: [
@@ -51,10 +52,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     ),
                 ]
             ),
-            provider: GroupProvider::class,
+            provider: UserGroupProvider::class,
         ),
         new Post(
-            uriTemplate: '/authorization/groups',
+            uriTemplate: '/authorization/user-groups',
             openapi: new Operation(
                 tags: ['Authorization'],
                 requestBody: new RequestBody(
@@ -76,10 +77,10 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     ]),
                 ),
             ),
-            processor: GroupProcessor::class
+            processor: UserGroupProcessor::class
         ),
         new Patch(
-            uriTemplate: '/authorization/groups/{identifier}',
+            uriTemplate: '/authorization/user-groups/{identifier}',
             openapi: new Operation(
                 tags: ['Authorization'],
                 requestBody: new RequestBody(
@@ -100,42 +101,49 @@ use Symfony\Component\Serializer\Attribute\Groups;
                     ]),
                 )
             ),
-            provider: GroupProvider::class,
-            processor: GroupProcessor::class
+            provider: UserGroupProvider::class,
+            processor: UserGroupProcessor::class
         ),
         new Delete(
-            uriTemplate: '/authorization/groups/{identifier}',
+            uriTemplate: '/authorization/user-groups/{identifier}',
             openapi: new Operation(
                 tags: ['Authorization']
             ),
-            provider: GroupProvider::class,
-            processor: GroupProcessor::class
+            provider: UserGroupProvider::class,
+            processor: UserGroupProcessor::class
         ),
     ],
     normalizationContext: [
-        'groups' => ['AuthorizationGroup:output'],
+        'groups' => ['AuthorizationUserGroup:output'],
     ],
     denormalizationContext: [
-        'groups' => ['AuthorizationGroup:input'],
+        'groups' => ['AuthorizationUserGroup:input'],
     ],
 )]
-#[ORM\Table(name: 'authorization_groups')]
+#[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
-class Group
+class UserGroup
 {
+    public const TABLE_NAME = 'authorization_user_groups';
+
     #[ORM\Id]
     #[ORM\Column(type: 'relay_authorization_uuid_binary', unique: true)]
-    #[Groups(['AuthorizationGroup:output'])]
+    #[Groups(['AuthorizationUserGroup:output'])]
     private ?string $identifier = null;
 
     #[ORM\Column(name: 'name', type: 'string', length: 128)]
-    #[Groups(['AuthorizationGroup:input', 'AuthorizationGroup:output'])]
+    #[Groups(['AuthorizationUserGroup:input', 'AuthorizationUserGroup:output'])]
     private ?string $name = null;
 
-    #[ORM\OneToMany(targetEntity: GroupMember::class, mappedBy: 'group')]
-    #[Groups(['AuthorizationGroup:output'])]
+    #[ORM\OneToMany(targetEntity: UserGroupMember::class, mappedBy: 'userGroup')]
+    #[Groups(['AuthorizationUserGroup:output'])]
     #[ApiProperty(genId: false)]
-    private ?PersistentCollection $members = null;
+    private Collection $members;
+
+    public function __construct()
+    {
+        $this->members = new ArrayCollection();
+    }
 
     public function getIdentifier(): ?string
     {
@@ -157,12 +165,12 @@ class Group
         $this->name = $name;
     }
 
-    public function getMembers(): PersistentCollection|array
+    public function getMembers(): Collection
     {
-        return $this->members ?? [];
+        return $this->members;
     }
 
-    public function setMembers(?PersistentCollection $members): void
+    public function setMembers(Collection $members): void
     {
         $this->members = $members;
     }

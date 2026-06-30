@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\DynamicGroup;
+use Dbp\Relay\AuthorizationBundle\Entity\DynamicUserGroup;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
 /**
- * @extends AbstractDataProvider<DynamicGroup>
+ * @extends AbstractDataProvider<DynamicUserGroup>
  *
  * @internal
  */
-class DynamicGroupProvider extends AbstractDataProvider
+class DynamicUserGroupProvider extends AbstractDataProvider
 {
     public function __construct(private readonly AuthorizationService $authorizationService)
     {
@@ -25,7 +25,7 @@ class DynamicGroupProvider extends AbstractDataProvider
     {
         $dynamicGroup = null;
         if (in_array($id, $this->authorizationService->getDynamicGroupsCurrentUserIsAuthorizedToRead(), true)) {
-            $dynamicGroup = new DynamicGroup($id);
+            $dynamicGroup = new DynamicUserGroup($id);
         }
 
         return $dynamicGroup;
@@ -36,7 +36,7 @@ class DynamicGroupProvider extends AbstractDataProvider
         $dynamicGroups = [];
         foreach (array_slice($this->authorizationService->getDynamicGroupsCurrentUserIsAuthorizedToRead(),
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage) as $dynamicGroup) {
-            $dynamicGroups[] = new DynamicGroup($dynamicGroup);
+            $dynamicGroups[] = new DynamicUserGroup($dynamicGroup);
         }
 
         return $dynamicGroups;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
-use Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -20,22 +20,22 @@ use Symfony\Component\Uid\Uuid;
 /**
  * @internal
  */
-class GroupService implements LoggerAwareInterface
+class UserGroupService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-group-failed';
-    private const UPDATING_GROUP_FAILED_ERROR_ID = 'authorization:updating-group-failed';
-    private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-group-failed';
-    private const GROUP_INVALID_ERROR_ID = 'authorization:group-invalid';
-    private const GROUP_NOT_FOUND_ERROR_ID = 'authorization:group-not-found';
-    private const GETTING_GROUP_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-group-collection-failed';
-    private const GETTING_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-group-item-failed';
-    private const REMOVING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-group-member-failed';
-    private const ADDING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:adding-group-member-failed';
-    public const GROUP_MEMBER_INVALID_ERROR_ID = 'authorization:group-member-invalid';
-    private const GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID = 'authorization:getting-group-member-item-failed';
-    private const GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-group-member-collection-failed';
+    private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-user-group-failed';
+    private const UPDATING_GROUP_FAILED_ERROR_ID = 'authorization:updating-user-group-failed';
+    private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-user-group-failed';
+    private const GROUP_INVALID_ERROR_ID = 'authorization:user-group-invalid';
+    private const GROUP_NOT_FOUND_ERROR_ID = 'authorization:user-group-not-found';
+    private const GETTING_GROUP_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-collection-failed';
+    private const GETTING_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-item-failed';
+    private const REMOVING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-user-group-member-failed';
+    private const ADDING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:adding-user-group-member-failed';
+    public const GROUP_MEMBER_INVALID_ERROR_ID = 'authorization:user-group-member-invalid';
+    private const GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-member-item-failed';
+    private const GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-member-collection-failed';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager)
@@ -45,31 +45,33 @@ class GroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function isUserMemberOfGroup(string $userIdentifier, string $groupIdentifier): bool
+    public function isUserMemberOfUserGroup(string $userIdentifier, string $userGroupIdentifier): bool
     {
         $sql = 'with recursive cte as (
-             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
-              from       authorization_group_members agm_1
-              where      agm_1.parent_group_identifier = :parent_group_identifier
+             select      agm_1.user_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+              from       authorization_user_group_members agm_1
+              where      agm_1.user_group_identifier = :user_group_identifier
               union all
-              select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
-              from       authorization_group_members agm_2
+              select     agm_2.user_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+              from       authorization_user_group_members agm_2
               inner join cte
-                      on agm_2.parent_group_identifier = cte.child_group_identifier)
+                      on agm_2.user_group_identifier = cte.child_group_identifier)
              select user_identifier from cte where user_identifier = :user_identifier;';
 
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
-            $sqlStatement->bindValue(':parent_group_identifier',
-                UuidUtils::toBinaryUuid($groupIdentifier), ParameterType::BINARY);
+            $sqlStatement->bindValue(':user_group_identifier',
+                UuidUtils::toBinaryUuid($userGroupIdentifier), ParameterType::BINARY);
             $sqlStatement->bindValue(':user_identifier', $userIdentifier);
             $userIdentifiers = $sqlStatement->executeQuery()->fetchFirstColumn();
 
             return count($userIdentifiers) > 0;
-        } catch (\Throwable $exception) {
-            $this->logger->error('getting user groups for user failed', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to check if user is member of group: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'getting user groups for user failed');
+                'Failed to check if user is member of group');
         }
     }
 
@@ -78,18 +80,18 @@ class GroupService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function getGroupsUserIsMemberOf(string $userIdentifier): array
+    public function getUserGroupsUserIsMemberOf(string $userIdentifier): array
     {
         $sql = 'with recursive cte as (
-             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
-                 from       authorization_group_members agm_1
+             select      agm_1.user_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+                 from       authorization_user_group_members agm_1
                  where      agm_1.user_identifier = :userIdentifier
                  union all
-                 select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
-                 from       authorization_group_members agm_2
+                 select     agm_2.user_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+                 from       authorization_user_group_members agm_2
                  inner join cte
-                 on agm_2.child_group_identifier = cte.parent_group_identifier)
-             select parent_group_identifier from cte group by parent_group_identifier;';
+                 on agm_2.child_group_identifier = cte.user_group_identifier)
+             select user_group_identifier from cte group by user_group_identifier;';
 
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
@@ -97,10 +99,12 @@ class GroupService implements LoggerAwareInterface
             $groupIdentifiersBinary = $sqlStatement->executeQuery()->fetchFirstColumn();
 
             return UuidUtils::toStringUuids($groupIdentifiersBinary);
-        } catch (\Throwable $exception) {
-            $this->logger->error('getting user groups for user failed', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get groups user is member of: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'getting user groups for user failed');
+                'Failed to get groups user is member of');
         }
     }
 
@@ -109,7 +113,7 @@ class GroupService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function getMembersOfGroup(string $groupIdentifier): array
+    public function getMembersOfUserGroup(string $userGroupIdentifier): array
     {
         $sql = 'with recursive cte as (
              select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
@@ -138,27 +142,27 @@ class GroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function tryGetGroup(string $identifier): ?Group
+    public function tryGetUserGroup(string $identifier): ?UserGroup
     {
-        return $this->tryGetGroupInternal($identifier);
+        return $this->tryGetUserGroupInternal($identifier);
     }
 
     /**
      * @throws ApiError
      */
-    public function getGroup(string $identifier): Group
+    public function getUserGroup(string $identifier): UserGroup
     {
-        $group = $this->tryGetGroupInternal($identifier);
-        if ($group === null) {
+        $userGroup = $this->tryGetUserGroupInternal($identifier);
+        if ($userGroup === null) {
             throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'Group not found', self::GROUP_NOT_FOUND_ERROR_ID,
                 ['identifier' => $identifier]);
         }
 
-        return $group;
+        return $userGroup;
     }
 
     /**
-     * @return Group[]
+     * @return UserGroup[]
      *
      * @throws ApiError
      *
@@ -171,26 +175,26 @@ class GroupService implements LoggerAwareInterface
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder()
                 ->select($GROUP_ENTITY_ALIAS)
-                ->from(Group::class, $GROUP_ENTITY_ALIAS);
+                ->from(UserGroup::class, $GROUP_ENTITY_ALIAS);
 
             return $queryBuilder
                 ->getQuery()
                 ->setFirstResult($firstResultIndex)
                 ->setMaxResults($maxNumResults)
                 ->getResult();
-        } catch (\Throwable $e) {
-            $this->logger->error('Failed to get group collection', ['exception' => $e]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get groups', ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group collection',
                 self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
         }
     }
 
     /**
-     * @return Group[]
+     * @return UserGroup[]
      *
      * @throws ApiError
      */
-    public function getGroupsByIdentifiers(array $groupIdentifiers, int $firstResultIndex, int $maxNumResults): array
+    public function getUserGroupsByIdentifiers(array $userGroupIdentifiers, int $firstResultIndex, int $maxNumResults): array
     {
         try {
             $GROUP_ENTITY_ALIAS = 'g';
@@ -198,16 +202,18 @@ class GroupService implements LoggerAwareInterface
 
             return $queryBuilder
                 ->select($GROUP_ENTITY_ALIAS)
-                ->from(Group::class, $GROUP_ENTITY_ALIAS)
+                ->from(UserGroup::class, $GROUP_ENTITY_ALIAS)
                 ->where($queryBuilder->expr()->in("$GROUP_ENTITY_ALIAS.identifier", ':groupIdentifiers'))
                 ->setParameter(':groupIdentifiers',
-                    UuidUtils::toBinaryUuids($groupIdentifiers), ArrayParameterType::BINARY)
+                    UuidUtils::toBinaryUuids($userGroupIdentifiers), ArrayParameterType::BINARY)
                 ->getQuery()
                 ->setFirstResult($firstResultIndex)
                 ->setMaxResults($maxNumResults)
                 ->getResult();
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to get group collection', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get group collection by identifiers: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get group collection',
                 self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
@@ -217,52 +223,59 @@ class GroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function addGroup(Group $group): Group
+    public function addUserGroup(UserGroup $userGroup): UserGroup
     {
-        $this->validateGroup($group);
+        $this->validateUserGroup($userGroup);
 
-        $group->setIdentifier(Uuid::v7()->toRfc4122());
+        $userGroup->setIdentifier(Uuid::v7()->toRfc4122());
         try {
-            $this->entityManager->persist($group);
+            $this->entityManager->persist($userGroup);
             $this->entityManager->flush();
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to add group', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to add group: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be added',
                 self::ADDING_GROUP_FAILED_ERROR_ID);
         }
 
-        return $group;
+        return $userGroup;
     }
 
     /**
      * @throws ApiError
      */
-    public function updateGroup(Group $group): Group
+    public function updateUserGroup(UserGroup $userGroup): UserGroup
     {
-        $this->validateGroup($group);
+        $this->validateUserGroup($userGroup);
 
         try {
-            $this->entityManager->persist($group);
+            $this->entityManager->persist($userGroup);
             $this->entityManager->flush();
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to update group', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to update group: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+                'identifier' => $userGroup->getIdentifier(),
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be updated',
                 self::UPDATING_GROUP_FAILED_ERROR_ID);
         }
 
-        return $group;
+        return $userGroup;
     }
 
     /**
      * @throws ApiError
      */
-    public function removeGroup(Group $group): void
+    public function removeUserGroup(UserGroup $userGroup): void
     {
         try {
-            $this->entityManager->remove($group);
+            $this->entityManager->remove($userGroup);
             $this->entityManager->flush();
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to remove group', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to remove group', [
+                'exception' => $throwable,
+                'identifier' => $userGroup->getIdentifier(),
+            ]
+            );
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be removed',
                 self::REMOVING_GROUP_FAILED_ERROR_ID);
         }
@@ -271,16 +284,19 @@ class GroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function addGroupMember(GroupMember $groupMember): GroupMember
+    public function addUserGroupMember(UserGroupMember $groupMember): UserGroupMember
     {
-        $this->validateGroupMember($groupMember);
+        $this->validateUserGroupMember($groupMember);
 
         $groupMember->setIdentifier(Uuid::v7()->toRfc4122());
         try {
             $this->entityManager->persist($groupMember);
             $this->entityManager->flush();
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to add group member', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to add group member', [
+                'exception' => $throwable,
+                'groupIdentifier' => $groupMember->getUserGroup()?->getIdentifier(),
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be added',
                 self::ADDING_GROUP_MEMBER_FAILED_ERROR_ID);
         }
@@ -291,66 +307,73 @@ class GroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function removeGroupMember(GroupMember $groupMember): void
+    public function removeUserGroupMember(UserGroupMember $groupMember): void
     {
         try {
             $this->entityManager->remove($groupMember);
             $this->entityManager->flush();
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to remove group member', ['exception' => $exception]);
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be removed',
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to remove group member', [
+                'exception' => $throwable,
+                'identifier' => $groupMember->getIdentifier(),
+            ]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be removed',
                 self::REMOVING_GROUP_MEMBER_FAILED_ERROR_ID);
-            throw $apiError;
         }
     }
 
     /**
      * @throws ApiError
      */
-    public function getGroupMember(string $identifier): ?GroupMember
+    public function getUserGroupMember(string $identifier): ?UserGroupMember
     {
         try {
             return Uuid::isValid($identifier) ? $this->entityManager
-                ->getRepository(GroupMember::class)
+                ->getRepository(UserGroupMember::class)
                 ->find($identifier) : null;
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to get group member', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get group member: '.$throwable->getMessage(), ['identifier' => $identifier, 'exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member',
                 self::GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID);
         }
     }
 
     /**
-     * @return GroupMember[]
+     * @return UserGroupMember[]
      *
      * @throws ApiError
      */
-    public function getGroupMembers(int $firstResultIndex, int $maxNumResults, string $groupIdentifier): array
+    public function getUserGroupMembers(int $firstResultIndex, int $maxNumResults, string $userGroupIdentifier): array
     {
         try {
-            return Uuid::isValid($groupIdentifier) ? $this->entityManager
-                ->getRepository(GroupMember::class)
-                ->findBy(['group' => $groupIdentifier], null, $maxNumResults,
+            return Uuid::isValid($userGroupIdentifier) ? $this->entityManager
+                ->getRepository(UserGroupMember::class)
+                ->findBy(['userGroup' => $userGroupIdentifier], null, $maxNumResults,
                     $firstResultIndex) : [];
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to get group member collection', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('getting group members failed: '.$throwable->getMessage(), [
+                'userGroupIdentifier' => $userGroupIdentifier,
+                'exception' => $throwable,
+            ]);
+            dump($throwable);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection',
                 self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID);
         }
     }
 
-    /**
-     * @throws ApiError
-     */
-    private function tryGetGroupInternal(string $identifier): ?Group
+    private function tryGetUserGroupInternal(string $identifier): ?UserGroup
     {
         try {
             return Uuid::isValid($identifier) ?
                 $this->entityManager
-                    ->getRepository(Group::class)
+                    ->getRepository(UserGroup::class)
                     ->find($identifier) : null;
-        } catch (\Throwable $exception) {
-            $this->logger->error('Failed to get group', ['exception' => $exception]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get group: '.$throwable->getMessage(), [
+                'identifier' => $identifier,
+                'exception' => $throwable,
+            ]
+            );
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group',
                 self::GETTING_GROUP_ITEM_FAILED_ERROR_ID);
         }
@@ -359,26 +382,26 @@ class GroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    private function validateGroup(Group $group): void
+    private function validateUserGroup(UserGroup $userGroup): void
     {
-        if ($group->getName() === null) {
+        if ($userGroup->getName() === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'group is invalid: \'name\' is required', self::GROUP_INVALID_ERROR_ID, ['name']);
+                'user group is invalid: \'name\' is required', self::GROUP_INVALID_ERROR_ID, ['name']);
         }
     }
 
     /**
      * @throws ApiError
      */
-    private function validateGroupMember(GroupMember $groupMember): void
+    private function validateUserGroupMember(UserGroupMember $groupMember): void
     {
-        if ($groupMember->getGroup() === null) {
+        if ($groupMember->getUserGroup() === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'group member is invalid: \'group\' is required', self::GROUP_MEMBER_INVALID_ERROR_ID, ['group']);
+                'group member is invalid: \'userGroup\' is required', self::GROUP_MEMBER_INVALID_ERROR_ID, ['userGroup']);
         }
         // Matching parent and child group would cause and endless loop
         if ($groupMember->getChildGroup() !== null
-            && $this->isAllowedChildGroupOf($groupMember->getChildGroup(), $groupMember->getGroup())) {
+            && $this->isAllowedChildGroupOf($groupMember->getChildGroup(), $groupMember->getUserGroup())) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'group member is invalid:  \'childGroup\' must not be the same or an ancestor of \'group\' (causes infinite loop)',
                 self::GROUP_MEMBER_INVALID_ERROR_ID, ['childGroup']);
@@ -396,26 +419,26 @@ class GroupService implements LoggerAwareInterface
      */
     public function getDisallowedChildGroupIdentifiersBinaryFor(string $groupIdentifier): array
     {
-        return $this->getDisallowedChildGroupIdentifiersBinaryInternal($this->getGroup($groupIdentifier));
+        return $this->getDisallowedChildGroupIdentifiersBinaryInternal($this->getUserGroup($groupIdentifier));
     }
 
-    private function isAllowedChildGroupOf(Group $childGroupCandidate, Group $group): bool
+    private function isAllowedChildGroupOf(UserGroup $childGroupCandidate, UserGroup $userGroup): bool
     {
         return in_array(
             UuidUtils::toBinaryUuid($childGroupCandidate->getIdentifier()),
-            $this->getDisallowedChildGroupIdentifiersBinaryInternal($group), true);
+            $this->getDisallowedChildGroupIdentifiersBinaryInternal($userGroup), true);
     }
 
     /**
      * @return string[]
      */
-    private function getDisallowedChildGroupIdentifiersBinaryInternal(Group $group): array
+    private function getDisallowedChildGroupIdentifiersBinaryInternal(UserGroup $gruserGroup): array
     {
         // all ancestors of the group, all child groups, and the group itself are forbidden
         $forbiddenChildGroupIdentifiers = array_merge(
-            $this->getAncestorGroupIdentifiersBinaryInternal($group),
-            $this->getChildGroupIdentifiersBinary($group));
-        $forbiddenChildGroupIdentifiers[] = UuidUtils::toBinaryUuid($group->getIdentifier());
+            $this->getAncestorGroupIdentifiersBinaryInternal($gruserGroup),
+            $this->getChildGroupIdentifiersBinary($gruserGroup));
+        $forbiddenChildGroupIdentifiers[] = UuidUtils::toBinaryUuid($gruserGroup->getIdentifier());
 
         return $forbiddenChildGroupIdentifiers;
     }
@@ -423,17 +446,17 @@ class GroupService implements LoggerAwareInterface
     /**
      * @return string[]
      */
-    private function getChildGroupIdentifiersBinary(Group $group): array
+    private function getChildGroupIdentifiersBinary(UserGroup $userGroup): array
     {
         $GROUP_MEMBER_ALIAS = 'gm';
 
         try {
             return $this->entityManager->createQueryBuilder()
                 ->select("IDENTITY($GROUP_MEMBER_ALIAS.childGroup)")
-                ->from(GroupMember::class, $GROUP_MEMBER_ALIAS)
-                ->where($this->entityManager->getExpressionBuilder()->eq("$GROUP_MEMBER_ALIAS.group", ':group'))
+                ->from(UserGroupMember::class, $GROUP_MEMBER_ALIAS)
+                ->where($this->entityManager->getExpressionBuilder()->eq("$GROUP_MEMBER_ALIAS.userGroup", ':userGroup'))
                 ->andWhere($this->entityManager->getExpressionBuilder()->isNotNull("$GROUP_MEMBER_ALIAS.childGroup"))
-                ->setParameter(':group', $group->getIdentifier(), AuthorizationUuidBinaryType::NAME)
+                ->setParameter(':userGroup', $userGroup->getIdentifier(), AuthorizationUuidBinaryType::NAME)
                 ->getQuery()
                 ->getSingleColumnResult();
         } catch (\Throwable $exception) {
@@ -446,23 +469,23 @@ class GroupService implements LoggerAwareInterface
     /**
      * @return string[]
      */
-    private function getAncestorGroupIdentifiersBinaryInternal(Group $group): array
+    private function getAncestorGroupIdentifiersBinaryInternal(UserGroup $userGroup): array
     {
         $sql = 'with recursive cte as (
-             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
-                 from       authorization_group_members agm_1
+             select      agm_1.user_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+                 from       authorization_user_group_members agm_1
                  where      agm_1.child_group_identifier = :childGroupIdentifier
                  union all
-                 select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
-                 from       authorization_group_members agm_2
+                 select     agm_2.user_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+                 from       authorization_user_group_members agm_2
                  inner join cte
-                 on agm_2.child_group_identifier = cte.parent_group_identifier)
-             select parent_group_identifier from cte;';
+                 on agm_2.child_group_identifier = cte.user_group_identifier)
+             select user_group_identifier from cte;';
 
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
             $sqlStatement->bindValue(':childGroupIdentifier',
-                UuidUtils::toBinaryUuid($group->getIdentifier()), ParameterType::BINARY);
+                UuidUtils::toBinaryUuid($userGroup->getIdentifier()), ParameterType::BINARY);
 
             return $sqlStatement->executeQuery()->fetchFirstColumn();
         } catch (\Throwable $exception) {

@@ -84,7 +84,7 @@ use Symfony\Component\Serializer\Attribute\Groups;
                                     ],
                                     'group' => [
                                         'type' => 'string',
-                                        'description' => 'The identifier of the AuthorizationGroup type grant holder',
+                                        'description' => 'The identifier of the AuthorizationUserGroup type grant holder',
                                         'example' => '/authorization/groups/0193cf2d-89a8-7a9c-b317-2e5201afdd8d',
                                     ],
                                     'dynamicGroupIdentifier' => [
@@ -129,25 +129,28 @@ class ResourceActionGrant
 {
     public const TABLE_NAME = 'authorization_resource_action_grants';
 
-    public const IDENTIFIER_COLUMN_NAME = 'identifier';
-    public const AUTHORIZATION_RESOURCE_IDENTIFIER_COLUMN_NAME = 'authorization_resource_identifier';
-    public const AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN_NAME = 'available_resource_class_action_identifier';
-    public const ROLE_IDENTIFIER_COLUMN_NAME = 'role_identifier';
+    public const IDENTIFIER_COLUMN = 'identifier';
+    public const AUTHORIZATION_RESOURCE_IDENTIFIER_COLUMN = 'authorization_resource_identifier';
+    public const AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN = 'available_resource_class_action_identifier';
+    public const ROLE_IDENTIFIER_COLUMN = 'role_identifier';
+    public const USER_IDENTIFIER_COLUMN = 'user_identifier';
+    public const USER_GROUP_IDENTIFIER_COLUMN = 'user_group_identifier';
+    public const DYNAMIC_USER_GROUP_IDENTIFIER_COLUMN = 'dynamic_user_group_identifier';
 
     #[ORM\Id]
-    #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', unique: true)]
+    #[ORM\Column(name: self::IDENTIFIER_COLUMN, type: 'relay_authorization_uuid_binary', unique: true)]
     #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?string $identifier = null;
 
-    #[ORM\JoinColumn(name: self::AUTHORIZATION_RESOURCE_IDENTIFIER_COLUMN_NAME, referencedColumnName: 'identifier', onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: self::AUTHORIZATION_RESOURCE_IDENTIFIER_COLUMN, referencedColumnName: 'identifier', onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class, inversedBy: 'resourceActionGrants')]
     private ?AuthorizationResource $authorizationResource = null;
 
-    #[ORM\JoinColumn(name: self::AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN_NAME, referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: self::AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN, referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'resourceActionGrants')]
     private ?AvailableResourceClassAction $availableResourceClassAction = null;
 
-    #[ORM\JoinColumn(name: self::ROLE_IDENTIFIER_COLUMN_NAME, referencedColumnName: Role::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: self::ROLE_IDENTIFIER_COLUMN, referencedColumnName: Role::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'resourceActionGrants')]
     private ?Role $role = null;
 
@@ -160,7 +163,7 @@ class ResourceActionGrant
             'example' => '0193cf3e-21d5-72cf-9734-14ce2768f49e',
         ]
     )]
-    #[ORM\Column(name: 'user_identifier', type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: self::USER_IDENTIFIER_COLUMN, type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $userIdentifier = null;
 
@@ -168,15 +171,15 @@ class ResourceActionGrant
      * Group type grant holder.
      */
     #[ApiProperty(
-        description: 'The AuthorizationGroup type grant holder',
+        description: 'The AuthorizationUserGroup type grant holder',
         openapiContext: [
             'example' => '/authorization/groups/0193cf2d-89a8-7a9c-b317-2e5201afdd8d',
         ]
     )]
-    #[ORM\JoinColumn(name: 'group_identifier', referencedColumnName: 'identifier', nullable: true, onDelete: 'CASCADE')]
-    #[ORM\ManyToOne(targetEntity: Group::class)]
+    #[ORM\JoinColumn(name: self::USER_GROUP_IDENTIFIER_COLUMN, referencedColumnName: 'identifier', nullable: true, onDelete: 'CASCADE')]
+    #[ORM\ManyToOne(targetEntity: UserGroup::class)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
-    private ?Group $group = null;
+    private ?UserGroup $userGroup = null;
 
     /**
      * Pre-defined group type grant holder.
@@ -187,9 +190,9 @@ class ResourceActionGrant
             'example' => 'students',
         ]
     )]
-    #[ORM\Column(name: 'dynamic_group_identifier', type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: self::DYNAMIC_USER_GROUP_IDENTIFIER_COLUMN, type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
-    private ?string $dynamicGroupIdentifier = null;
+    private ?string $dynamicUserGroupIdentifier = null;
 
     // #[ORM\Column(name: 'shareable', type: 'boolean', nullable: false, options: ['default' => false])]
     // #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
@@ -350,24 +353,24 @@ class ResourceActionGrant
         $this->userIdentifier = $userIdentifier;
     }
 
-    public function getGroup(): ?Group
+    public function getUserGroup(): ?UserGroup
     {
-        return $this->group;
+        return $this->userGroup;
     }
 
-    public function setGroup(?Group $group): void
+    public function setUserGroup(?UserGroup $userGroup): void
     {
-        $this->group = $group;
+        $this->userGroup = $userGroup;
     }
 
-    public function getDynamicGroupIdentifier(): ?string
+    public function getDynamicUserGroupIdentifier(): ?string
     {
-        return $this->dynamicGroupIdentifier;
+        return $this->dynamicUserGroupIdentifier;
     }
 
-    public function setDynamicGroupIdentifier(?string $dynamicGroupIdentifier): void
+    public function setDynamicUserGroupIdentifier(?string $dynamicUserGroupIdentifier): void
     {
-        $this->dynamicGroupIdentifier = $dynamicGroupIdentifier;
+        $this->dynamicUserGroupIdentifier = $dynamicUserGroupIdentifier;
     }
 
     public function getResourceClass(): ?string
@@ -453,13 +456,13 @@ class ResourceActionGrant
     public function __toString(): string
     {
         return sprintf(
-            'ResourceActionGrant{class=%s, identifier=%s, action=%s, user=%s, group=%s, dynamicGroup=%s}',
+            'ResourceActionGrant{class=%s, identifier=%s, action=%s, user=%s, userGroup=%s, dynamicUserGroup=%s}',
             $this->getResourceClass(),
             $this->getResourceIdentifier(),
             $this->getAction(),
             $this->getUserIdentifier(),
-            $this->getGroup() ? $this->getGroup()->getName() : 'null',
-            $this->getDynamicGroupIdentifier() ?? 'null'
+            $this->getUserGroup() ? $this->getUserGroup()->getName() : 'null',
+            $this->getDynamicUserGroupIdentifier() ?? 'null'
         );
     }
 }
