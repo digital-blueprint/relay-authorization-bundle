@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Rename 'group' to 'user group' everywhere
 - Evaluate roles when granted actions are queried
 - Add role get item and collection endpoints
 - Add roles to db

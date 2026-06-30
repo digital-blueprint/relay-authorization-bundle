@@ -123,8 +123,8 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
                     && $rag->getActionResourceClass() === $ragExpected->getActionResourceClass()
                     && $rag->getActionType() === $ragExpected->getActionType()
                     && $rag->getUserIdentifier() === $ragExpected->getUserIdentifier()
-                    && $rag->getGroup() === $ragExpected->getGroup()
-                    && $rag->getDynamicGroupIdentifier() === $ragExpected->getDynamicGroupIdentifier()
+                    && $rag->getUserGroup() === $ragExpected->getUserGroup()
+                    && $rag->getDynamicUserGroupIdentifier() === $ragExpected->getDynamicUserGroupIdentifier()
                     && ($grantedActionsExpected === null
                         || $this->isPermutationOf($rag->getGrantedActions(), $grantedActionsExpected));
             }), (string) $ragExpected);
@@ -140,8 +140,8 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
                     && $rag->getResourceIdentifier() === $effectiveResource->getResourceIdentifier()
                     && $rag->getAction() === $sourceRag->getAction()
                     && $rag->getUserIdentifier() === $sourceRag->getUserIdentifier()
-                    && $rag->getGroup() === $sourceRag->getGroup()
-                    && $rag->getDynamicGroupIdentifier() === $sourceRag->getDynamicGroupIdentifier()
+                    && $rag->getUserGroup() === $sourceRag->getUserGroup()
+                    && $rag->getDynamicUserGroupIdentifier() === $sourceRag->getDynamicUserGroupIdentifier()
                     && ($rag->getGrantedActions() ?? []) === [];
             }), (string) $sourceRag);
     }

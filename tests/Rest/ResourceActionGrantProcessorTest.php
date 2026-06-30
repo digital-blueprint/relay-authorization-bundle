@@ -61,13 +61,13 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals(AuthorizationService::MANAGE_ACTION, $event->getResourceActionGrant()->getAction());
         $this->assertNull($event->getResourceActionGrant()->getRole());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $event->getResourceActionGrant()->getUserIdentifier());
-        $this->assertNull($event->getResourceActionGrant()->getDynamicGroupIdentifier());
-        $this->assertNull($event->getResourceActionGrant()->getGroup());
+        $this->assertNull($event->getResourceActionGrant()->getDynamicUserGroupIdentifier());
+        $this->assertNull($event->getResourceActionGrant()->getUserGroup());
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
         $resourceActionGrant->setAction(TestResources::READ_ACTION);
-        $resourceActionGrant->setDynamicGroupIdentifier(AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY);
+        $resourceActionGrant->setDynamicUserGroupIdentifier(AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY);
         $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
 
         $event = $this->testResourceActionGrantAddedEventSubscriber->getEvent();
@@ -76,12 +76,12 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals(TestResources::READ_ACTION, $event->getResourceActionGrant()->getAction());
         $this->assertNull($event->getResourceActionGrant()->getRole());
         $this->assertNull($event->getResourceActionGrant()->getUserIdentifier());
-        $this->assertEquals(AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY, $event->getResourceActionGrant()->getDynamicGroupIdentifier());
-        $this->assertNull($event->getResourceActionGrant()->getGroup());
+        $this->assertEquals(AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY, $event->getResourceActionGrant()->getDynamicUserGroupIdentifier());
+        $this->assertNull($event->getResourceActionGrant()->getUserGroup());
 
         // test with a group grant holder and a resource collection grant
-        $group = $this->testEntityManager->addGroup();
-        $this->authorizationService->addGroup($group->getIdentifier());
+        $userGroup = $this->testEntityManager->addUserGroup();
+        $this->authorizationService->addUserGroup($userGroup->getIdentifier());
         $this->addResourceAndManageGrant(
             resourceClass: self::TEST_RESOURCE_CLASS,
             resourceIdentifier: AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
@@ -90,7 +90,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $resourceActionGrant->setResourceClass(self::TEST_RESOURCE_CLASS);
         $resourceActionGrant->setResourceIdentifier(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $resourceActionGrant->setAction(TestResources::CREATE_ACTION);
-        $resourceActionGrant->setGroup($group);
+        $resourceActionGrant->setUserGroup($userGroup);
         $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
 
         $event = $this->testResourceActionGrantAddedEventSubscriber->getEvent();
@@ -99,8 +99,8 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals(TestResources::CREATE_ACTION, $event->getResourceActionGrant()->getAction());
         $this->assertNull($event->getResourceActionGrant()->getRole());
         $this->assertNull($event->getResourceActionGrant()->getUserIdentifier());
-        $this->assertNull($event->getResourceActionGrant()->getDynamicGroupIdentifier());
-        $this->assertEquals($group->getIdentifier(), $event->getResourceActionGrant()->getGroup()->getIdentifier());
+        $this->assertNull($event->getResourceActionGrant()->getDynamicUserGroupIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $event->getResourceActionGrant()->getUserGroup()->getIdentifier());
     }
 
     public function testCreateResourceActionGrantWithResourceClassAndIdentifierItem(): void
@@ -149,7 +149,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
         $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
         $resourceActionGrant->setAction('read');
-        $resourceActionGrant->setDynamicGroupIdentifier('everybody');
+        $resourceActionGrant->setDynamicUserGroupIdentifier('everybody');
 
         $resourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
         $resourceActionGrantItem = $this->getResourceActionGrant($resourceActionGrant->getIdentifier());
@@ -157,7 +157,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
         $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getIdentifier(), $resourceActionGrantItem->getAuthorizationResource()->getIdentifier());
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
-        $this->assertEquals($resourceActionGrant->getDynamicGroupIdentifier(), $resourceActionGrantItem->getDynamicGroupIdentifier());
+        $this->assertEquals($resourceActionGrant->getDynamicUserGroupIdentifier(), $resourceActionGrantItem->getDynamicUserGroupIdentifier());
     }
 
     public function testCreateResourceActionGrantAuthorizationResourceMissing(): void
