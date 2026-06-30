@@ -71,7 +71,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
         // not item actions of the resource class, though
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.TestResources::READ_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.TestResources::WRITE_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.AuthorizationService::MANAGE_ACTION;
