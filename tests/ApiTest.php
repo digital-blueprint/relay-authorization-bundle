@@ -51,7 +51,7 @@ class ApiTest extends AbstractApiTest
 
     public function testPostGroupUnauthenticated(): void
     {
-        $response = $this->testClient->postJson('/authorization/groups', [
+        $response = $this->testClient->postJson('/authorization/user-groups', [
             'name' => 'Test Group',
         ], [], null);
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
@@ -59,7 +59,7 @@ class ApiTest extends AbstractApiTest
 
     public function testPostGroupForbidden(): void
     {
-        $response = $this->testClient->postJson('/authorization/groups', [
+        $response = $this->testClient->postJson('/authorization/user-groups', [
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
@@ -68,36 +68,38 @@ class ApiTest extends AbstractApiTest
     public function testPostAndGetGroup(): void
     {
         $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => true]);
-        $response = $this->testClient->postJson('/authorization/groups', [
+        $response = $this->testClient->postJson('/authorization/user-groups', [
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
+        $userGroup = json_decode($response->getContent(), true);
+        $this->assertEquals('Test Group', $userGroup['name']);
 
-        $group = json_decode($response->getContent(), true);
-        $response = $this->testClient->get('/authorization/groups/'.$group['identifier']);
+        $response = $this->testClient->get('/authorization/user-groups/'.$userGroup['identifier']);
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
         $groupFromGet = json_decode($response->getContent(), true);
-        $this->assertEquals($group['identifier'], $groupFromGet['identifier']);
+        $this->assertEquals($userGroup['identifier'], $groupFromGet['identifier']);
+        $this->assertEquals($userGroup['name'], $groupFromGet['name']);
     }
 
     public function testGetGroupUnauthenticated(): void
     {
-        $response = $this->testClient->get('/authorization/groups/foo', token: null);
+        $response = $this->testClient->get('/authorization/user-groups/foo', token: null);
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
     public function testGetGroupForbidden(): void
     {
         $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => true]);
-        $response = $this->testClient->postJson('/authorization/groups', [
+        $response = $this->testClient->postJson('/authorization/user-groups', [
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
 
-        $group = json_decode($response->getContent(), true);
+        $userGroup = json_decode($response->getContent(), true);
 
         $this->testClient->setUpUser('another user', ['MAY_CREATE_GROUPS' => false]);
-        $response = $this->testClient->get('/authorization/groups/'.$group['identifier']);
+        $response = $this->testClient->get('/authorization/user-groups/'.$userGroup['identifier']);
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
     }
 
@@ -106,14 +108,14 @@ class ApiTest extends AbstractApiTest
      */
     public function testGetGroupCollectionUnauthenticated(): void
     {
-        $response = $this->testClient->get('/authorization/groups', token: null);
+        $response = $this->testClient->get('/authorization/user-groups', token: null);
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
     public function testPostGroupMemberUnauthenticated(): void
     {
-        $response = $this->testClient->postJson('/authorization/group-members', [
-            'group' => '/authorization/groups/foo',
+        $response = $this->testClient->postJson('/authorization/user-group-members', [
+            'userGroup' => '/authorization/user-groups/foo',
             'userIdentifier' => 'testuser',
         ], token: null);
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
@@ -122,15 +124,15 @@ class ApiTest extends AbstractApiTest
     public function testPostGroupMemberForbidden(): void
     {
         $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => true]);
-        $response = $this->testClient->postJson('/authorization/groups', [
+        $response = $this->testClient->postJson('/authorization/user-groups', [
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-        $group = json_decode($response->getContent(), true);
+        $userGroup = json_decode($response->getContent(), true);
 
         $this->testClient->setUpUser('anotheruser', ['MAY_CREATE_GROUPS' => false]);
-        $response = $this->testClient->postJson('/authorization/group-members', [
-            'group' => '/authorization/groups/'.$group['identifier'],
+        $response = $this->testClient->postJson('/authorization/user-group-members', [
+            'userGroup' => '/authorization/user-groups/'.$userGroup['identifier'],
             'userIdentifier' => 'anotheruser',
         ]);
         $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
@@ -139,25 +141,28 @@ class ApiTest extends AbstractApiTest
     public function testPostAndGetGroupMember(): void
     {
         $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => true]);
-        $response = $this->testClient->postJson('/authorization/groups', [
+        $response = $this->testClient->postJson('/authorization/user-groups', [
             'name' => 'Test Group',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
-        $group = json_decode($response->getContent(), true);
+        $userGroup = json_decode($response->getContent(), true);
+        $this->assertEmpty($userGroup['members']);
 
-        $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => true]);
-        $response = $this->testClient->postJson('/authorization/group-members', [
-            'group' => '/authorization/groups/'.$group['identifier'],
+        $response = $this->testClient->postJson('/authorization/user-group-members', [
+            'userGroup' => '/authorization/user-groups/'.$userGroup['identifier'],
             'userIdentifier' => 'anotheruser',
         ]);
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
+        $groupMember = json_decode($response->getContent(), true);
+        $this->assertEquals('anotheruser', $groupMember['userIdentifier']);
+        $this->assertEquals('/authorization/user-groups/'.$userGroup['identifier'], $groupMember['userGroup']);
 
-        // endpoint disabled:
-        //        $groupMember = json_decode($response->getContent(), true);
-        //        $response = $this->testClient->get('/authorization/group-members/'.$groupMember['identifier']);
-        //        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-        //        $groupMemberFromGet = json_decode($response->getContent(), true);
-        //        $this->assertEquals($groupMember['identifier'], $groupMemberFromGet['identifier']);
+        $response = $this->testClient->get('/authorization/user-groups/'.$userGroup['identifier']);
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $userGroup = json_decode($response->getContent(), true);
+        $this->assertCount(1, $userGroup['members']);
+        $this->assertEquals($groupMember['identifier'], $userGroup['members'][0]['identifier']);
+        $this->assertEquals('anotheruser', $userGroup['members'][0]['userIdentifier']);
     }
 
     // TODO: add resource action grant tests

@@ -4,16 +4,16 @@ For details on parameters and schemas, see the operations under the **Authorizat
 
 ## Entities
 
-### AuthorizationGroup
+### AuthorizationUserGroup
 
 Represents a group of users. See [Groups](./groups.md).
 
 ### AuthorizationGroupMember
 
-Represents a member of an `AuthorizationGroup`. A member is either
+Represents a member of an `AuthorizationUserGroup`. A member is either
 
 * a user with an unique identifier or
-* another `AuthorizationGroup`
+* another `AuthorizationUserGroup`
 
 See [Groups](./groups.md).
 
@@ -24,7 +24,7 @@ See [Resource Action Grants](./resource-action-grants.md).
 
 ### AuthorizationResourceActionGrant
 
-Represents a grant that entitles a user, or an `AuthorizationGroup`, or a _dynamic group_ of users 
+Represents a grant that entitles a user, or an `AuthorizationUserGroup`, or a _dynamic group_ of users 
 to perform an **action** on an `AuthorizationResource`. See [Resource Action Grants](./resource-action-grants.md).
 
 ### AuthorizationAvailableResourceClassActions

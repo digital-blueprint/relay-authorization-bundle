@@ -45,7 +45,7 @@ class Configuration implements ConfigurationInterface
                                     ->ifTrue(function ($value) {
                                         return strlen($value) > 40;
                                     })
-                                    ->thenInvalid('The max length of dynamic group identifiers is 40')
+                                    ->thenInvalid('The max length of dynamic user group identifiers is 40')
                                 ->end()
                                 ->validate()
                                     ->ifTrue(function ($value) {
@@ -57,14 +57,14 @@ class Configuration implements ConfigurationInterface
                                 ->ifTrue(function ($value) {
                                     return $value === AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY;
                                 })
-                                ->thenInvalid('Dynamic group identifier \''.AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY.'\' is reserved')
+                                ->thenInvalid('Dynamic user group identifier \''.AuthorizationService::DYNAMIC_GROUP_IDENTIFIER_EVERYBODY.'\' is reserved')
                                 ->end()
-                                ->info('The dynamic group identifier')
+                                ->info('The dynamic user group identifier')
                             ->end()
                             ->scalarNode(self::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION)
                                 ->cannotBeEmpty()
                                 ->isRequired()
-                                ->info('The expression defining whether the current user is a member of this group, or not')
+                                ->info('The expression defining whether the current user is a member of this dynamic user group, or not')
                            ->end()
                        ->end()
                     ->end()

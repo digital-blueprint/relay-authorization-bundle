@@ -13,27 +13,21 @@ API users are uniquely identified by their user identifier.
 If a user holds a [Resource Action Grant](./resource-action-grants.md), they are authorized to perform
 the respective action on the resource defined by the grant.
 
-## Groups
+## User Groups
 
-A (static) group represents a fixed set of API users. A member of a group can be either a
+A user group represents a fixed set of API users with unique identifiers.
 
-* user with a unique identifiers or
-* another group
-
-i.e. groups can be defined recursively. Note that the validity of a group lineage is checked 
-when a new group member is being added to a group, in order to avoid endless recursions.
-
-If a group holds a [Resource Action Grant](./resource-action-grants.md), all members of that group are authorized to perform
+If a user group holds a [Resource Action Grant](./resource-action-grants.md), all members of that user group are authorized to perform
 the respective action on the resource defined by the grant.
 
-## Dynamic Groups
+## Dynamic User Groups
 
-_Resource action grants_ may not only be issued to single users and (static) groups, but also by so-called _dynamic groups_.
-As opposed to static groups, where the group members are defined by their user identifier, _dynamic group_ membership is defined by the
-evaluation of [policies](https://handbook.digital-blueprint.org/frameworks/relay/admin/access_control/#access-control-policies).
+_Resource action grants_ may not only be issued to single users and user groups, but also by so-called _dynamic user groups_.
+As opposed to user groups, where the group members are statically defined by their user identifier, _dynamic user group_ membership 
+is defined at runtime by the evaluation of [policies](https://handbook.digital-blueprint.org/frameworks/relay/admin/access_control/#access-control-policies).
 This means that group membership may change, depending on the user attributes used in the policy expression.
 
-If a _dynamic group_ holds a [Resource Action Grant](./resource-action-grants.md), all users, for which the membership policy
+If a _dynamic user group_ holds a [Resource Action Grant](./resource-action-grants.md), all users, for which the membership policy
 evaluates to `true` are authorized to perform the respective action on the resource defined by the grant.
 
-_Dynamic groups_ can be defined in the bundle [configuration](configuration.md#dynamic_groups-optional).
+_Dynamic user groups_ can be defined in the bundle [configuration](configuration.md#dynamic_groups-optional).

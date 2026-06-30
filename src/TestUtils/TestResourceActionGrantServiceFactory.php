@@ -6,8 +6,8 @@ namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Service\GroupService;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\NullLogger;
@@ -71,7 +71,7 @@ class TestResourceActionGrantServiceFactory
     {
         $internalResourceActionGrantService ??= new InternalResourceActionGrantService($entityManager, $eventDispatcher);
         $authorizationService = new AuthorizationService(
-            $internalResourceActionGrantService, new GroupService($entityManager));
+            $internalResourceActionGrantService, new UserGroupService($entityManager));
         TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier,
             $currentUserAttributes, isServiceAccount: $isServiceAccount);
         $authorizationService->setConfig($testConfig ?? self::getTestConfig());

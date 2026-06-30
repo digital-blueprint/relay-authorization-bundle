@@ -8,12 +8,12 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActionName;
-use Dbp\Relay\AuthorizationBundle\Entity\Group;
 use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Entity\RoleAction;
 use Dbp\Relay\AuthorizationBundle\Entity\RoleName;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
@@ -374,7 +374,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @throws ApiError
      */
     public function removeResourceActionGrants(?string $resourceClass = null, ?string $resourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null): void
+        ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null,
+        mixed $dynamicUserGroupIdentifiers = null): void
     {
         $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
         $AUTHORIZATION_RESOURCE_ALIAS = self::AUTHORIZATION_RESOURCE_ALIAS;
@@ -387,7 +388,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $actionCriteria = $this->getActionCriteria($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS,
             $actions, $parameterValues, $parameterTypes);
         $grantHolderCriteria = $this->getGrantHolderCriteria($RESOURCE_ACTION_GRANT_ALIAS,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $parameterValues, $parameterTypes);
+            $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers, $parameterValues, $parameterTypes);
 
         // NOTE: sqlite doesn't support DELETE ... FROM ... JOIN .... that's why we use a subquery
         $sql = "
@@ -421,7 +422,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     public function addResourceActionGrantByResourceClassAndIdentifier(
         string $resourceClass, string $resourceIdentifier,
-        string $action, ?string $userIdentifier, ?Group $group = null, ?string $dynamicGroupIdentifier = null,
+        string $action, ?string $userIdentifier, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         bool $shareable = false, ?string $currentUserIdentifier = null): ResourceActionGrant
     {
         $connection = $this->entityManager->getConnection();
@@ -434,8 +435,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             );
             $resourceActionGrant->setAction($action);
             $resourceActionGrant->setUserIdentifier($userIdentifier);
-            $resourceActionGrant->setGroup($group);
-            $resourceActionGrant->setDynamicGroupIdentifier($dynamicGroupIdentifier);
+            $resourceActionGrant->setUserGroup($userGroup);
+            $resourceActionGrant->setDynamicUserGroupIdentifier($dynamicUserGroupIdentifier);
             $resourceActionGrant->setShareable($shareable);
 
             $this->addResourceActionGrantInternal($resourceActionGrant, $currentUserIdentifier);
@@ -580,12 +581,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     public function get(string $get = self::GET_RESOURCE_ACTION_GRANTS,
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return $this->getInternal($get, $resourceClass, $resourceIdentifier,
             $authorizationResourceIdentifiers, $actions,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers, $firstResultIndex, $maxNumResults, $options);
+            $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers, $firstResultIndex, $maxNumResults, $options);
     }
 
     /**
@@ -594,7 +595,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * with an OR conjunction.
      *
      * @param string[]|string|null $groupIdentifiers
-     * @param string[]|string|null $dynamicGroupIdentifiers
+     * @param string[]|string|null $dynamicUserGroupIdentifiers
      *
      * @return ResourceActionGrant[]|AuthorizationResource[]
      *
@@ -602,12 +603,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     public function getResourceActionGrantsForResource(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return $this->getInternal(self::GET_RESOURCE_ACTION_GRANTS,
             $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier, null,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+            $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
             $firstResultIndex, $maxNumResults, $options);
     }
 
@@ -617,7 +618,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * with an OR conjunction.
      *
      * @param string[]|string|null $groupIdentifiers
-     * @param string[]|string|null $dynamicGroupIdentifiers
+     * @param string[]|string|null $dynamicUserGroupIdentifiers
      *
      * @return string[]
      *
@@ -625,13 +626,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     public function getGrantedActionsForResource(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return array_values(
             $this->getInternal(self::GET_GRANTED_ACTIONS,
                 $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier, null,
-                $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+                $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
                 $firstResultIndex, $maxNumResults, $options))[0] ?? [];
     }
 
@@ -649,7 +650,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      */
     public function getGrantedActionsForResourcePage(string $resourceClass,
         ?array $whereAuthorizationResourceActionsContainAnyOf = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         // * doctrine does not yet support joins with subqueries (SELECT ... INNER JOIN (SELECT ...))
@@ -661,7 +662,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS,
                 $resourceClass, null, null,
                 $whereAuthorizationResourceActionsContainAnyOf,
-                $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+                $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
                 $firstResultIndex, $maxNumResults, $options);
 
             // then get ALL granted actions for the authorization resource ids page
@@ -669,7 +670,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 self::GET_GRANTED_ACTIONS,
                 authorizationResourceIdentifiers: $authorizationResourceIdPage,
                 userIdentifier: $userIdentifier, groupIdentifiers: $groupIdentifiers,
-                dynamicGroupIdentifiers: $dynamicGroupIdentifiers,
+                dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
                 maxNumResults: null
             );
         } catch (\Exception $exception) {
@@ -682,7 +683,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private function getInternal(string $get,
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         $GET_TYPE_GRANTED_ACTIONS = 'ga';
@@ -707,7 +708,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $getInternal,
             $resourceClass, $resourceIdentifier, $authorizationResourceIdentifiers,
             $actions,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+            $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
             $firstResultIndex, $maxNumResults, $options);
 
         try {
@@ -784,14 +785,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     /**
      * @param string[]|string|null $groupIdentifiers
-     * @param string[]|string|null $dynamicGroupIdentifiers
+     * @param string[]|string|null $dynamicUserGroupIdentifiers
      *
      * @throws ApiError
      */
     private function getQueryInternal(string $get,
         ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicGroupIdentifiers = null,
+        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
@@ -838,8 +839,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     $RESOURCE_ACTION_GRANT_ALIAS.identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.user_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.group_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.dynamic_group_identifier,
+                    $RESOURCE_ACTION_GRANT_ALIAS.user_group_identifier,
+                    $RESOURCE_ACTION_GRANT_ALIAS.dynamic_user_group_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.role_identifier,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.resource_class as action_resource_class,
@@ -850,8 +851,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $groupByStatement = "GROUP BY
                     $RESOURCE_ACTION_GRANT_ALIAS.identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.user_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.group_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.dynamic_group_identifier,
+                    $RESOURCE_ACTION_GRANT_ALIAS.user_group_identifier,
+                    $RESOURCE_ACTION_GRANT_ALIAS.dynamic_user_group_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.role_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier,
                     $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_authorization_resource_identifier";
@@ -883,7 +884,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $parameterValues, $parameterTypes, $options);
 
         $grantHolderCriteria = $this->getGrantHolderCriteria($RESOURCE_ACTION_GRANT_ALIAS,
-            $userIdentifier, $groupIdentifiers, $dynamicGroupIdentifiers,
+            $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
             $parameterValues, $parameterTypes);
 
         $actionCriteria = $this->getActionCriteria($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS,
@@ -1193,7 +1194,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     private function getGrantHolderCriteria(string $resource_action_grant_alias,
-        ?string $userIdentifier, mixed $groupIdentifiers, mixed $dynamicGroupIdentifiers,
+        ?string $userIdentifier, mixed $userGroupIdentifiers, mixed $dynamicUserGroupIdentifiers,
         array &$parameterValues, array &$parameterTypes): string
     {
         $userCriteria = null;
@@ -1206,33 +1207,33 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             }
         }
 
-        $groupCriteria = null;
-        if ($groupIdentifiers !== null) {
-            if ($groupIdentifiers === self::IS_NOT_NULL) {
-                $groupCriteria = "$resource_action_grant_alias.group_identifier is not null";
+        $userGroupCriteria = null;
+        if ($userGroupIdentifiers !== null) {
+            if ($userGroupIdentifiers === self::IS_NOT_NULL) {
+                $userGroupCriteria = "$resource_action_grant_alias.user_group_identifier is not null";
             } else {
-                assert(is_array($groupIdentifiers));
-                if ([] === $groupIdentifiers) {
-                    $groupCriteria = 'false';
+                assert(is_array($userGroupIdentifiers));
+                if ([] === $userGroupIdentifiers) {
+                    $userGroupCriteria = 'false';
                 } else {
-                    $groupCriteria = "$resource_action_grant_alias.group_identifier IN (:groupIdentifiers)";
-                    $parameterValues['groupIdentifiers'] = UuidUtils::toBinaryUuids($groupIdentifiers);
+                    $userGroupCriteria = "$resource_action_grant_alias.user_group_identifier IN (:groupIdentifiers)";
+                    $parameterValues['groupIdentifiers'] = UuidUtils::toBinaryUuids($userGroupIdentifiers);
                     $parameterTypes['groupIdentifiers'] = ArrayParameterType::BINARY;
                 }
             }
         }
 
-        $dynamicGroupCriteria = null;
-        if ($dynamicGroupIdentifiers !== null) {
-            if ($dynamicGroupIdentifiers === self::IS_NOT_NULL) {
-                $dynamicGroupCriteria = "$resource_action_grant_alias.dynamic_group_identifier is not null";
+        $dynamicUserGroupCriteria = null;
+        if ($dynamicUserGroupIdentifiers !== null) {
+            if ($dynamicUserGroupIdentifiers === self::IS_NOT_NULL) {
+                $dynamicUserGroupCriteria = "$resource_action_grant_alias.dynamic_user_group_identifier is not null";
             } else {
-                assert(is_array($dynamicGroupIdentifiers));
-                if ([] === $dynamicGroupIdentifiers) {
-                    $dynamicGroupCriteria = 'false';
+                assert(is_array($dynamicUserGroupIdentifiers));
+                if ([] === $dynamicUserGroupIdentifiers) {
+                    $dynamicUserGroupCriteria = 'false';
                 } else {
-                    $dynamicGroupCriteria = "$resource_action_grant_alias.dynamic_group_identifier IN (:dynamicGroupIdentifiers)";
-                    $parameterValues['dynamicGroupIdentifiers'] = $dynamicGroupIdentifiers;
+                    $dynamicUserGroupCriteria = "$resource_action_grant_alias.dynamic_user_group_identifier IN (:dynamicGroupIdentifiers)";
+                    $parameterValues['dynamicGroupIdentifiers'] = $dynamicUserGroupIdentifiers;
                     $parameterTypes['dynamicGroupIdentifiers'] = ArrayParameterType::STRING;
                 }
             }
@@ -1240,7 +1241,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
         // NOTE: the grant holder criteria is logically combined with an OR conjunction
         $grantHolderCriteria = null;
-        foreach ([$userCriteria, $groupCriteria, $dynamicGroupCriteria] as $criteria) {
+        foreach ([$userCriteria, $userGroupCriteria, $dynamicUserGroupCriteria] as $criteria) {
             if ($criteria !== null) {
                 $grantHolderCriteria .= ($grantHolderCriteria === null ? '(' : ' OR ').$criteria;
             }
@@ -1276,10 +1277,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $resourceActionGrant->setActionType($row['action_type']);
         }
         $resourceActionGrant->setUserIdentifier($row['user_identifier']);
-        $resourceActionGrant->setGroup(($groupIdentifier = $row['group_identifier']) ?
-            $this->entityManager->getRepository(Group::class)->find(
+        $resourceActionGrant->setUserGroup(($groupIdentifier = $row['user_group_identifier']) ?
+            $this->entityManager->getRepository(UserGroup::class)->find(
                 UuidUtils::toStringUuid($groupIdentifier)) : null);
-        $resourceActionGrant->setDynamicGroupIdentifier($row['dynamic_group_identifier']);
+        $resourceActionGrant->setDynamicUserGroupIdentifier($row['dynamic_user_group_identifier']);
 
         return $resourceActionGrant;
     }
