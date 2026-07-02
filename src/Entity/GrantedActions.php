@@ -9,8 +9,10 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ApiResource(
     shortName: 'AuthorizationGrantedActions',
@@ -37,18 +39,24 @@ use Symfony\Component\Serializer\Attribute\Groups;
 class GrantedActions
 {
     #[ApiProperty(identifier: true)]
-    #[Groups(['AuthorizationGrantedActions:output', 'AuthorizationGrantedActions:input'])]
+    #[Groups(['AuthorizationGrantedActions:output'])]
     private ?string $resourceClass = null;
 
     #[ApiProperty(identifier: true)]
-    #[Groups(['AuthorizationGrantedActions:output', 'AuthorizationGrantedActions:input'])]
+    #[Groups(['AuthorizationGrantedActions:output'])]
     private ?string $resourceIdentifier = null;
 
     /**
-     * @var string[]|null
+     * @var string[]
      */
     #[Groups(['AuthorizationGrantedActions:output'])]
-    private ?array $actions = null;
+    private array $actions = [];
+
+    /**
+     * @var AvailableResourceClassAction[]
+     */
+    #[Groups(['AuthorizationGrantedActions:output'])]
+    private array $otherResourceTypeActions = [];
 
     public function getResourceClass(): ?string
     {
@@ -65,18 +73,36 @@ class GrantedActions
         return $this->resourceIdentifier;
     }
 
+    public function getActions(): array
+    {
+        return $this->actions;
+    }
+
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
     }
 
-    public function getActions(): ?array
+    public function getOtherResourceTypeActions(): ?array
     {
-        return $this->actions;
+        return $this->otherResourceTypeActions;
     }
 
-    public function setActions(?array $actions): void
+    #[Ignore]
+    public function addAction(string $action): void
     {
-        $this->actions = $actions;
+        if ([AuthorizationService::MANAGE_ACTION] !== $this->actions) {
+            if (AuthorizationService::MANAGE_ACTION === $action) {
+                $this->actions = [AuthorizationService::MANAGE_ACTION];
+            } else {
+                $this->actions[] = $action;
+            }
+        }
+    }
+
+    #[Ignore]
+    public function addAvailableResourceClassAction(AvailableResourceClassAction $availableResourceClassAction): void
+    {
+        $this->otherResourceTypeActions[] = $availableResourceClassAction;
     }
 }
