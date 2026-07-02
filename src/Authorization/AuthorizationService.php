@@ -175,11 +175,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
-        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicUserGroupIdentifier = null): void
+        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicUserGroupIdentifier = null): ResourceActionGrant
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
-        $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+        return $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $action, $userIdentifier,
             $groupIdentifier !== null ? $this->groupService->getUserGroup($groupIdentifier) : null,
             $dynamicUserGroupIdentifier);
@@ -254,12 +254,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
-     * @return GrantedActions[]
-     *
      * @throws ApiError
      */
-    public function getGrantedActionsForCurrentUser(string $resourceClass, ?string $resourceIdentifier = null,
-        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
+    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier,
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): ?GrantedActions
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
