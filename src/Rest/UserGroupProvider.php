@@ -26,11 +26,7 @@ class UserGroupProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        // dump($id);
-        $userGroup = $this->groupService->tryGetUserGroup($id);
-        // dump($userGroup);
-
-        return $userGroup;
+        return $this->groupService->tryGetUserGroup($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
