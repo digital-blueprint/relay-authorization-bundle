@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -45,6 +46,13 @@ class AvailableResourceClassAction
 
     #[ORM\OneToMany(targetEntity: RoleAction::class, mappedBy: 'availableResourceClassAction')]
     private Collection $roleActions;
+
+    public static function getActionTypeForResourceIdentifier(string $effectiveResourceIdentifier): int
+    {
+        return $effectiveResourceIdentifier === InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER ?
+            self::COLLECTION_ACTION_TYPE :
+            self::ITEM_ACTION_TYPE;
+    }
 
     public function __construct()
     {

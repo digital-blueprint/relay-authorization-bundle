@@ -163,7 +163,7 @@ class ResourceActionGrantService
      */
     public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier): array
     {
-        return $this->authorizationService->getGrantedResourceActionsForCurrentUser($resourceClass, $resourceIdentifier);
+        return $this->authorizationService->getGrantedActionArrayForCurrentUser($resourceClass, $resourceIdentifier);
     }
 
     /**
@@ -176,7 +176,7 @@ class ResourceActionGrantService
         bool $excludeCollectionResource = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        return $this->authorizationService->getGrantedResourceActionsPageForCurrentUser(
+        return $this->authorizationService->getGrantedActionArrayPageForCurrentUser(
             $resourceClass, $whereIsGrantedAction, $excludeCollectionResource,
             $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }

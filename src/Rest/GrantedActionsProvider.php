@@ -33,15 +33,7 @@ class GrantedActionsProvider extends AbstractDataProvider
         $resourceClass = $this->getCurrentUriVariables()[Common::RESOURCE_CLASS_URI_VARIABLE_NAME];
         $resourceIdentifier = $this->getCurrentUriVariables()[Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME];
 
-        $grantedActions = new GrantedActions();
-        $grantedActions->setResourceClass($resourceClass);
-        $grantedActions->setResourceIdentifier($resourceIdentifier);
-        $grantedActions->setActions(
-            $this->authorizationService->getGrantedResourceActionsForCurrentUser(
-                $grantedActions->getResourceClass(), $grantedActions->getResourceIdentifier())
-        );
-
-        return $grantedActions;
+        return $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier)[0] ?? null;
     }
 
     /**
@@ -53,17 +45,9 @@ class GrantedActionsProvider extends AbstractDataProvider
     {
         $resourceClass = $this->getCurrentUriVariables()[Common::RESOURCE_CLASS_URI_VARIABLE_NAME];
 
-        $grantedActionsPage = [];
-        foreach ($this->authorizationService->getGrantedResourceActionsPageForCurrentUser($resourceClass,
+        return $this->authorizationService->getGrantedActionsPageForCurrentUser($resourceClass,
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
-            maxNumResults: $maxNumItemsPerPage) as $resourceIdentifier => $actions) {
-            $grantedActions = new GrantedActions();
-            $grantedActions->setResourceClass($resourceClass);
-            $grantedActions->setResourceIdentifier($resourceIdentifier);
-            $grantedActions->setActions($actions);
-            $grantedActionsPage[] = $grantedActions;
-        }
-
-        return $grantedActionsPage;
+            maxNumResults: $maxNumItemsPerPage
+        );
     }
 }
