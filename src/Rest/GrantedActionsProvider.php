@@ -33,7 +33,7 @@ class GrantedActionsProvider extends AbstractDataProvider
         $resourceClass = $this->getCurrentUriVariables()[Common::RESOURCE_CLASS_URI_VARIABLE_NAME];
         $resourceIdentifier = $this->getCurrentUriVariables()[Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME];
 
-        return $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier)[0] ?? null;
+        return $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier);
     }
 
     /**
