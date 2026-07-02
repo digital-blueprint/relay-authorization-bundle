@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\API;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
@@ -162,11 +163,11 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
     public function testGetGrantedResourceItemActions(): void
     {
         $resource1 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
-        $resource2 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier_2');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
-        $this->assertEmpty($resourceActions);
+        $this->assertNull($grantedActions);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
             ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -176,32 +177,35 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             ResourceActionGrantService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource2, 'read', self::CURRENT_USER_IDENTIFIER);
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
-        $this->assertCount(1, $resourceActions);
-        $this->assertContains(ResourceActionGrantService::MANAGE_ACTION, $resourceActions);
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
+        $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
+        $this->assertEquals([ResourceActionGrantService::MANAGE_ACTION], $grantedActions->getActions());
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS, 'foo');
-        $this->assertEmpty($resourceActions);
+        $this->assertNull($grantedActions);
 
         // -----------------------------------------------------------------
         // another user:
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $resourceActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
-            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier_2');
-        $this->assertEquals([ResourceActionGrantService::MANAGE_ACTION], $resourceActions);
+        $grantedActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
+        $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER_2, $grantedActions->getResourceIdentifier());
+        $this->assertEquals([ResourceActionGrantService::MANAGE_ACTION], $grantedActions->getActions());
     }
 
     public function testGetGrantedResourceItemActionsPage(): void
     {
         $resource1 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
-        $resource2 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier_2');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS);
-        $this->assertEmpty($resourceItemActionsPage);
+        $this->assertEmpty($grantedActionsPage);
 
         $this->testEntityManager->addResourceActionGrant($resource1,
             ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -211,87 +215,122 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             ResourceActionGrantService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource2, 'read', self::CURRENT_USER_IDENTIFIER);
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS);
-        $this->assertCount(2, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
-            return $resourceIdentifier === $resource1->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
-            return $resourceIdentifier === $resource2->getResourceIdentifier()
-                && $resourceActions === ['read'];
-        }, true));
+        $this->assertCount(2, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource1) {
+                return $grantedActions->getResourceClass() === $resource1->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource1->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource2) {
+                return $grantedActions->getResourceClass() === $resource2->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource2->getResourceIdentifier()
+                    && $grantedActions->getActions() === [TestResources::READ_ACTION];
+            }
+        ));
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS, ResourceActionGrantService::MANAGE_ACTION);
-        $this->assertCount(1, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
-            return $resourceIdentifier === $resource1->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
-            TestResources::TEST_RESOURCE_CLASS, 'write');
-        $this->assertCount(1, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
-            return $resourceIdentifier === $resource1->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
-            TestResources::TEST_RESOURCE_CLASS, 'delete');
-        $this->assertCount(1, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
-            return $resourceIdentifier === $resource1->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
+        $this->assertCount(1, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource1) {
+                return $grantedActions->getResourceClass() === $resource1->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource1->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
-            'resourceClass_2');
-        $this->assertCount(0, $resourceItemActionsPage);
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+            TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION);
+        $this->assertCount(1, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource1) {
+                return $grantedActions->getResourceClass() === $resource1->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource1->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
+
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+            TestResources::TEST_RESOURCE_CLASS, TestResources::DELETE_ACTION);
+        $this->assertCount(1, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource1) {
+                return $grantedActions->getResourceClass() === $resource1->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource1->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
+
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+            TestResources::TEST_RESOURCE_CLASS_2);
+        $this->assertCount(0, $grantedActionsPage);
 
         // -----------------------------------------------------------------
         // another user:
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS);
-        $this->assertCount(2, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
-            return $resourceIdentifier === $resource2->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
-            return $resourceIdentifier === $resource1->getResourceIdentifier()
-                && $resourceActions === ['read'];
-        }, true));
+        $this->assertCount(2, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource2) {
+                return $grantedActions->getResourceClass() === $resource2->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource2->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource1) {
+                return $grantedActions->getResourceClass() === $resource1->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource1->getResourceIdentifier()
+                    && $grantedActions->getActions() === [TestResources::READ_ACTION];
+            }
+        ));
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS, ResourceActionGrantService::MANAGE_ACTION);
-        $this->assertCount(1, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
-            return $resourceIdentifier === $resource2->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
+        $this->assertCount(1, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource2) {
+                return $grantedActions->getResourceClass() === $resource2->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource2->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
-            TestResources::TEST_RESOURCE_CLASS, 'read');
-        $this->assertCount(2, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
-            return $resourceIdentifier === $resource2->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource1) {
-            return $resourceIdentifier === $resource1->getResourceIdentifier()
-                && $resourceActions === ['read'];
-        }, true));
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+            TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION);
+        $this->assertCount(2, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource2) {
+                return $grantedActions->getResourceClass() === $resource2->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource2->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource1) {
+                return $grantedActions->getResourceClass() === $resource1->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource1->getResourceIdentifier()
+                    && $grantedActions->getActions() === [TestResources::READ_ACTION];
+            }
+        ));
 
-        $resourceItemActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
-            TestResources::TEST_RESOURCE_CLASS, 'write');
-        $this->assertCount(1, $resourceItemActionsPage);
-        $this->assertCount(1, $this->selectWhere($resourceItemActionsPage, function ($resourceActions, $resourceIdentifier) use ($resource2) {
-            return $resourceIdentifier === $resource2->getResourceIdentifier()
-                && $resourceActions === [ResourceActionGrantService::MANAGE_ACTION];
-        }, true));
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+            TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION);
+        $this->assertCount(1, $grantedActionsPage);
+        $this->assertCount(1, $this->selectWhere($grantedActionsPage,
+            function (GrantedActions $grantedActions) use ($resource2) {
+                return $grantedActions->getResourceClass() === $resource2->getResourceClass()
+                    && $grantedActions->getResourceIdentifier() === $resource2->getResourceIdentifier()
+                    && $grantedActions->getActions() === [ResourceActionGrantService::MANAGE_ACTION];
+            }
+        ));
     }
 
     public function testIsCurrentUserGrantedItemActionWithManageGrant(): void
@@ -380,21 +419,24 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $resource = $this->testEntityManager->addAuthorizationResource(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER);
 
-        $resourceCollectionActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER);
-        $this->assertEmpty($resourceCollectionActions);
+        $this->assertNull($grantedActions);
 
         $this->testEntityManager->addResourceActionGrant($resource,
             ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $resourceCollectionActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER);
-        $this->assertEquals([ResourceActionGrantService::MANAGE_ACTION], $resourceCollectionActions);
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
+        $this->assertEquals(ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
+        $this->assertEquals([ResourceActionGrantService::MANAGE_ACTION], $grantedActions->getActions());
 
+        // ----------------------------------------------
         $this->login(self::CURRENT_USER_IDENTIFIER.'_2');
-        $resourceCollectionActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->resourceActionGrantService->getGrantedActionsForCurrentUser(
             TestEntityManager::DEFAULT_RESOURCE_CLASS, ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER);
-        $this->assertEmpty($resourceCollectionActions);
+        $this->assertNull($grantedActions);
     }
 
     public function testIsCurrentUserGrantedCollectionActionWithManageGrant(): void

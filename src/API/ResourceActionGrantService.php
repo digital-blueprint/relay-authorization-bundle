@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\API;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -21,6 +22,15 @@ class ResourceActionGrantService
 
     public const MAX_NUM_RESULTS_DEFAULT = 30;
     public const MAX_NUM_RESULTS_MAX = 1024;
+
+    public static function createRoleAction(string $resourceClass, string $action, int $actionType): array
+    {
+        return [
+            'resourceClass' => $resourceClass,
+            'action' => $action,
+            'actionType' => $actionType,
+        ];
+    }
 
     public function __construct(
         private readonly AuthorizationService $authorizationService)
@@ -46,15 +56,6 @@ class ResourceActionGrantService
     {
         $this->authorizationService->setAvailableResourceClassActions(
             $resourceClass, $itemActions, $collectionActions);
-    }
-
-    public static function createRoleAction(string $resourceClass, string $action, int $actionType): array
-    {
-        return [
-            'resourceClass' => $resourceClass,
-            'action' => $action,
-            'actionType' => $actionType,
-        ];
     }
 
     public function addRole(array $localizedRoleNames, array $roleActions): Role
@@ -93,9 +94,9 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
-        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): void
+        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
-        $this->authorizationService->addResourceActionGrant($resourceClass, $resourceIdentifier, $action,
+        return $this->authorizationService->addResourceActionGrant($resourceClass, $resourceIdentifier, $action,
             $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
     }
 
@@ -157,17 +158,15 @@ class ResourceActionGrantService
     /**
      * Use self::COLLECTION_RESOURCE_IDENTIFIER as resourceIdentifier for collection actions.
      *
-     * @return string[]
-     *
      * @throws ApiError
      */
-    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier): array
+    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier): ?GrantedActions
     {
-        return $this->authorizationService->getGrantedActionArrayForCurrentUser($resourceClass, $resourceIdentifier);
+        return $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier);
     }
 
     /**
-     * @return string[][]
+     * @return GrantedActions[]
      *
      * @throws ApiError
      */
@@ -176,7 +175,7 @@ class ResourceActionGrantService
         bool $excludeCollectionResource = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        return $this->authorizationService->getGrantedActionArrayPageForCurrentUser(
+        return $this->authorizationService->getGrantedActionsPageForCurrentUser(
             $resourceClass, $whereIsGrantedAction, $excludeCollectionResource,
             $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }

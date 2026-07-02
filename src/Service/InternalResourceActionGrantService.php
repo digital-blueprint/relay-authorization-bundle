@@ -644,19 +644,17 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicUserGroupIdentifiers
      *
-     * @return GrantedActions[]
-     *
      * @throws ApiError
      */
     public function getGrantedActionsForResource(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
-        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
+        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): ?GrantedActions
     {
         return $this->getInternal(self::GET_GRANTED_ACTION_ENTITIES,
             $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier, null,
             $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
-            $firstResultIndex, $maxNumResults, $options);
+            $firstResultIndex, $maxNumResults, $options)[0] ?? null;
     }
 
     /**
