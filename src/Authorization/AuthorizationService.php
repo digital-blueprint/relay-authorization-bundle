@@ -244,20 +244,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
-     * @return string[]
-     *
      * @throws ApiError
      */
-    public function getGrantedActionArrayForCurrentUser(string $resourceClass, string $resourceIdentifier): array
-    {
-        return $this->getGrantedResourceActionArrayForCurrentUserInternal($resourceClass, $resourceIdentifier);
-    }
-
-    /**
-     * @throws ApiError
-     */
-    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier,
-        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): ?GrantedActions
+    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier): ?GrantedActions
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
@@ -266,67 +255,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
             groupIdentifiers: $currentUserIdentifier !== null ? $this->groupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
             dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
-            firstResultIndex: $firstResultIndex,
-            maxNumResults: $maxNumResults
+            maxNumResults: null
         );
-    }
-
-    /**
-     * @throws ApiError
-     */
-    public function isCurrentUserGranted(string $resourceClass, string $resourceIdentifier, string $action): bool
-    {
-        $grantedActions = $this->getGrantedResourceActionArrayForCurrentUserInternal(
-            $resourceClass, $resourceIdentifier);
-
-        if (in_array($action, $grantedActions, true)) {
-            // the current user has the respective action grant -> done
-            return true;
-        } elseif (in_array(self::MANAGE_ACTION, $grantedActions, true)) {
-            // the current user has a manage grant -> check if the requested action is available at all
-            $availableActions =
-                $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass)[
-                $resourceIdentifier !== self::COLLECTION_RESOURCE_IDENTIFIER ? 0 : 1];
-
-            return array_key_exists($action, $availableActions);
-        }
-
-        return false;
-    }
-
-    /**
-     * @return string[][]
-     *
-     * @throws ApiError
-     */
-    public function getGrantedActionArrayPageForCurrentUser(string $resourceClass,
-        ?string $whereIsGrantedAction = null, bool $excludeCollectionResource = true,
-        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
-    {
-        $currentUserIdentifier = $this->getUserIdentifier();
-        $whereActionsContainAnyOf = null;
-        if ($whereIsGrantedAction === self::MANAGE_ACTION) {
-            $whereActionsContainAnyOf = [self::MANAGE_ACTION];
-        } elseif ($whereIsGrantedAction !== null) {
-            // if the requested action is not available, it can't be granted either
-            // we might overthink this, to still return granted actions for resources where the user has a manage grant
-            $availableActions = $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass)[0];
-            if (array_key_exists($whereIsGrantedAction, $availableActions)) {
-                $whereActionsContainAnyOf = [$whereIsGrantedAction, self::MANAGE_ACTION];
-            } else {
-                return [];
-            }
-        }
-
-        return $this->internalResourceActionGrantService->getGrantedActionArraysForResourcePage(
-            $resourceClass,
-            $whereActionsContainAnyOf,
-            $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
-            $currentUserIdentifier !== null ?
-                $this->groupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
-            $this->getDynamicGroupsCurrentUserIsMemberOf(),
-            $firstResultIndex, $maxNumResults,
-            [InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResource]);
     }
 
     /**
@@ -339,14 +269,16 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $currentUserIdentifier = $this->getUserIdentifier();
-        $whereActionsContainAnyOf = null;
-        if ($whereIsGrantedAction === self::MANAGE_ACTION) {
+
+        if ($whereIsGrantedAction === null) {
+            $whereActionsContainAnyOf = null;
+        } elseif ($whereIsGrantedAction === self::MANAGE_ACTION) {
             $whereActionsContainAnyOf = [self::MANAGE_ACTION];
-        } elseif ($whereIsGrantedAction !== null) {
+        } else {
             // if the requested action is not available, it can't be granted either
             // we might overthink this, to still return granted actions for resources where the user has a manage grant
-            $availableActions = $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass)[0];
-            if (array_key_exists($whereIsGrantedAction, $availableActions)) {
+            if ($this->internalResourceActionGrantService->isAvailableResourceClassAction(
+                $resourceClass, $whereIsGrantedAction, null)) {
                 $whereActionsContainAnyOf = [$whereIsGrantedAction, self::MANAGE_ACTION];
             } else {
                 return [];
@@ -362,6 +294,23 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $this->getDynamicGroupsCurrentUserIsMemberOf(),
             $firstResultIndex, $maxNumResults,
             [InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResource]);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function isCurrentUserGranted(string $resourceClass, string $resourceIdentifier, string $action): bool
+    {
+        $grantedActions = $this->getGrantedActionsForCurrentUser(
+            $resourceClass, $resourceIdentifier);
+
+        return null !== $grantedActions
+            && (in_array($action, $grantedActions->getActions(), true)
+                || (in_array(self::MANAGE_ACTION, $grantedActions->getActions(), true)
+                    && $this->internalResourceActionGrantService->isAvailableResourceClassAction(
+                        $resourceClass, $action, $resourceIdentifier)
+                )
+            );
     }
 
     /**
