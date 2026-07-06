@@ -647,12 +647,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @throws ApiError
      */
     public function getGrantedActionsForResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
+        string $resourceClass, string $resourceIdentifier,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): ?GrantedActions
     {
         return $this->getInternal(self::GET_GRANTED_ACTION_ENTITIES,
-            $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier, null,
+            $resourceClass, $resourceIdentifier, null, null,
             $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
             $firstResultIndex, $maxNumResults, $options)[0] ?? null;
     }
@@ -1048,6 +1048,25 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
+    public function isAvailableResourceClassAction(
+        string $resourceClass, string $action, ?string $resourceIdentifier): bool
+    {
+        $criteria = [
+            'resourceClass' => $resourceClass,
+        ];
+        // DESIGN NOTE: we require at least one action to be defined for a resource class to be 'available'
+        if ($action !== AuthorizationService::MANAGE_ACTION) {
+            $criteria['action'] = $action;
+        }
+        if ($resourceIdentifier !== null) {
+            $criteria['actionType'] =
+                AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier);
+        }
+
+        return [] !==
+            $this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy($criteria);
+    }
+
     public function getAvailableResourceClassActions(string $resourceClass): array
     {
         $itemActions = [];
@@ -1069,7 +1088,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             }
         }
 
-        // DESIGN NOTE: we require at least one custom action to be defined for a resource class to be 'available'
+        // DESIGN NOTE: we require at least one action to be defined for a resource class to be 'available'
         if ([] !== $itemActions || [] !== $collectionActions) {
             $itemActions[AuthorizationService::MANAGE_ACTION] = [
                 'en' => 'Manage',
@@ -1081,7 +1100,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             ];
         }
 
-        return [$itemActions, $collectionActions];
+        return [
+            AvailableResourceClassAction::ITEM_ACTION_TYPE => $itemActions,
+            AvailableResourceClassAction::COLLECTION_ACTION_TYPE => $collectionActions,
+        ];
     }
 
     /**

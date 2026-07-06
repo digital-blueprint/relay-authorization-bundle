@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
@@ -53,9 +54,11 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
 
     public function getAvailableResourceClassActions(string $resourceClass): AvailableResourceClassActions
     {
-        [$itemActions, $collectionActions] =
+        $availableResourceClassActions =
             $this->resourceActionGrantService->getAvailableResourceClassActions($resourceClass);
 
-        return new AvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
+        return new AvailableResourceClassActions($resourceClass,
+            $availableResourceClassActions[AvailableResourceClassAction::ITEM_ACTION_TYPE],
+            $availableResourceClassActions[AvailableResourceClassAction::COLLECTION_ACTION_TYPE]);
     }
 }
