@@ -59,7 +59,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     private const ROLE_ACTION_ALIAS = 'ra';
 
     public const GET_GRANTED_ACTIONS = 'granted actions';
-    public const GET_GRANTED_ACTION_ENTITIES = 'granted action entities';
     public const GET_RESOURCE_ACTION_GRANTS = 'resource action grants';
     public const GET_AUTHORIZATION_RESOURCE_IDENTIFIERS = 'authorization resource identifiers';
     public const GET_RESOURCE_CLASSES = 'resource classes';
@@ -620,30 +619,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @param string[]|string|null $groupIdentifiers
      * @param string[]|string|null $dynamicUserGroupIdentifiers
      *
-     * @return string[]
-     *
-     * @throws ApiError
-     */
-    public function getGrantedActionArrayForResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?string $authorizationResourceIdentifier = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
-        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
-    {
-        return array_values(
-            $this->getInternal(self::GET_GRANTED_ACTIONS,
-                $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier, null,
-                $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
-                $firstResultIndex, $maxNumResults, $options))[0] ?? [];
-    }
-
-    /**
-     * Parameters with null values will not be filtered on.
-     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
-     * with an OR conjunction.
-     *
-     * @param string[]|string|null $groupIdentifiers
-     * @param string[]|string|null $dynamicUserGroupIdentifiers
-     *
      * @throws ApiError
      */
     public function getGrantedActionsForResource(
@@ -651,7 +626,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): ?GrantedActions
     {
-        return $this->getInternal(self::GET_GRANTED_ACTION_ENTITIES,
+        return $this->getInternal(self::GET_GRANTED_ACTIONS,
             $resourceClass, $resourceIdentifier, null, null,
             $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
             $firstResultIndex, $maxNumResults, $options)[0] ?? null;
@@ -670,50 +645,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @throws ApiError
      */
     public function getGrantedActionsForResourcePage(string $resourceClass,
-        ?array $whereAuthorizationResourceActionsContainAnyOf = null,
-        ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
-        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
-    {
-        // * doctrine does not yet support joins with subqueries (SELECT ... INNER JOIN (SELECT ...))
-        // * our current MySQL version doesn't yet support 'LIMIT & IN/ALL/ANY/SOME subquery' (SELECT ... WHERE foo IN (SELECT .... LIMIT 10)
-        // -> we use two separate queries for now
-        try {
-            // first get the requested page of authorization resource ids
-            $authorizationResourceIdPage = $this->getInternal(
-                self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS,
-                $resourceClass, null, null,
-                $whereAuthorizationResourceActionsContainAnyOf,
-                $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
-                $firstResultIndex, $maxNumResults, $options);
-
-            // then get ALL granted actions for the authorization resource ids page
-            return $this->getInternal(
-                self::GET_GRANTED_ACTION_ENTITIES,
-                authorizationResourceIdentifiers: $authorizationResourceIdPage,
-                userIdentifier: $userIdentifier, groupIdentifiers: $groupIdentifiers,
-                dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
-                maxNumResults: null
-            );
-        } catch (\Exception $exception) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Failed to get resource action grant collection!',
-                self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $exception->getMessage()]);
-        }
-    }
-
-    /**
-     * Gets all resource action grants for one resource item page defined by the first result
-     * index and the maximum number of result (page) items ordered by resource.
-     *
-     * Parameters with null values will not be filtered on.
-     * NOTE: The grant holder criteria (userIdentifier, groupIdentifiers, dynamicGroupIdentifiers) is logically combined
-     * with an OR conjunction.
-     *
-     * @return array<string, string[]>
-     *
-     * @throws ApiError
-     */
-    public function getGrantedActionArraysForResourcePage(string $resourceClass,
         ?array $whereAuthorizationResourceActionsContainAnyOf = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
@@ -764,17 +695,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             foreach ($this->entityManager->getConnection()->executeQuery($sql, $parameterValues, $parameterTypes)->fetchAllAssociative() as $row) {
                 switch ($get) {
                     case self::GET_GRANTED_ACTIONS:
-                        $resId = $row['effective_resource_identifier'];
-                        $action = $row['action'];
-                        // if manage is included, only return manage
-                        if (AuthorizationService::MANAGE_ACTION === $action) {
-                            $results[$resId] = [AuthorizationService::MANAGE_ACTION];
-                        } elseif ([AuthorizationService::MANAGE_ACTION] !== ($results[$resId] ?? null)) {
-                            $results[$resId][] = $action;
-                        }
-                        break;
-
-                    case self::GET_GRANTED_ACTION_ENTITIES:
                         $effectiveResourceIdentifier = $row['effective_resource_identifier'];
                         $effectiveResourceClass = $row['effective_resource_class'];
                         $actionResourceClass = $row['action_resource_class'];
@@ -856,31 +776,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
         switch ($get) {
             case self::GET_GRANTED_ACTIONS:
-                $select = "DISTINCT
-                    $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,
-                    $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier";
-                $actionsAvailabilityCriteria = "
-                    (
-                        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action = 'manage'
-                        OR
-                        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.resource_class = 
-                            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_class
-                    )
-                    AND 
-                    (
-                        (
-                            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier = 'null' 
-                            AND $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type = 1
-                        ) 
-                        OR 
-                        (
-                            $AUTHORIZATION_RESOURCE_GROUP_AUTHORIZATION_RESOURCE_MEMBER_JOIN_ALIAS.effective_resource_identifier != 'null' 
-                            AND $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type = 0
-                        )
-                    )";
-                break;
-
-            case self::GET_GRANTED_ACTION_ENTITIES:
                 $select = "DISTINCT
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.identifier,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,
