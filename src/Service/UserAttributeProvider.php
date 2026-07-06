@@ -31,18 +31,11 @@ readonly class UserAttributeProvider implements UserAttributeProviderInterface
      */
     public function hasUserAttribute(string $name): bool
     {
-        $resourceClass = $action = '';
-        $resourceIdentifier = null;
-        if ($this->parseAttributeName($name, $resourceClass, $resourceIdentifier, $action)) {
-            [$availableItemActions, $availableCollectionActions] =
-                $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);
+        $resourceClass = $action = $resourceIdentifier = '';
 
-            return $resourceIdentifier !== null ?
-                $availableItemActions && array_key_exists($action, $availableItemActions) :
-                $availableCollectionActions && array_key_exists($action, $availableCollectionActions);
-        }
-
-        return false;
+        return $this->parseAttributeName($name, $resourceClass, $resourceIdentifier, $action)
+            && $this->internalResourceActionGrantService->isAvailableResourceClassAction(
+                $resourceClass, $action, $resourceIdentifier);
     }
 
     public function getUserAttribute(?string $userIdentifier, string $name): mixed
@@ -51,25 +44,25 @@ readonly class UserAttributeProvider implements UserAttributeProviderInterface
             return false;
         }
 
-        $resourceClass = $action = '';
-        $resourceIdentifier = null;
+        $resourceClass = $action = $resourceIdentifier = '';
         if (false === $this->parseAttributeName($name, $resourceClass, $resourceIdentifier, $action)) {
             throw new UserAttributeException("user attribute '$name' undefined",
                 UserAttributeException::USER_ATTRIBUTE_UNDEFINED);
         }
 
         return $this->authorizationService->isCurrentUserGranted(
-            $resourceClass,
-            $resourceIdentifier === null ? AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER : $resourceIdentifier,
-            $action
+            $resourceClass, $resourceIdentifier, $action
         );
     }
 
+    /**
+     * @param ?string $resourceIdentifier Null means collection action
+     */
     private function parseAttributeName(string $name, ?string &$resourceClass, ?string &$resourceIdentifier, ?string &$action): bool
     {
         if (preg_match(self::USER_ATTRIBUTE_NAME_PATTERN, $name, $matches)) {
             $resourceClass = $matches[1];
-            $resourceIdentifier = $matches[2] ? ltrim($matches[2], '.') : null;
+            $resourceIdentifier = $matches[2] ? ltrim($matches[2], '.') : AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
             $action = $matches[3];
 
             return $resourceClass && $action;
