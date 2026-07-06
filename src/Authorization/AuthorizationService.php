@@ -128,6 +128,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $resourceClass, $itemActions, $collectionActions);
     }
 
+    public function addRole(array $localizedRoleNames, array $roleActions): Role
+    {
+        return $this->internalResourceActionGrantService->addRole($localizedRoleNames, $roleActions);
+    }
+
     /**
      * @throws ApiError
      */
@@ -474,7 +479,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         return $this->doesCurrentUserHold($resourceActionGrant)
             || $this->doesCurrentUserHaveAManageGrantForAuthorizationResource(
-                $resourceActionGrant->getAuthorizationResource()->getIdentifier());
+                $resourceActionGrant->getResourceClass(), $resourceActionGrant->getResourceIdentifier());
     }
 
     /**
@@ -697,11 +702,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
-        string $authorizationResourceIdentifier): bool
+        string $resourceClass, string $resourceIdentifier): bool
     {
         return in_array(AuthorizationService::MANAGE_ACTION,
-            $this->getGrantedResourceActionArrayForCurrentUserInternal(
-                authorizationResourceIdentifier: $authorizationResourceIdentifier), true);
+            $this->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier)?->getActions() ?? [],
+            true);
     }
 
     /**
@@ -727,22 +732,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
             $currentUserIdentifier !== null ? $this->groupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
             $this->getDynamicGroupsCurrentUserIsMemberOf());
-    }
-
-    /**
-     * @return string[]
-     */
-    private function getGrantedResourceActionArrayForCurrentUserInternal(?string $resourceClass = null, ?string $resourceIdentifier = null,
-        ?string $authorizationResourceIdentifier = null): array
-    {
-        $currentUserIdentifier = $this->getUserIdentifier();
-
-        return $this->internalResourceActionGrantService->getGrantedActionArrayForResource(
-            $resourceClass, $resourceIdentifier, $authorizationResourceIdentifier,
-            $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
-            $currentUserIdentifier !== null ? $this->groupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
-            $this->getDynamicGroupsCurrentUserIsMemberOf()
-        );
     }
 
     /**
@@ -818,10 +807,5 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         if ($orClause->count() > 0) {
             $queryBuilder->andWhere($orClause);
         }
-    }
-
-    public function addRole(array $localizedRoleNames, array $roleActions): Role
-    {
-        return $this->internalResourceActionGrantService->addRole($localizedRoleNames, $roleActions);
     }
 }
