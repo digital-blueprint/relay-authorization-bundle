@@ -8,8 +8,8 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
-use Dbp\Relay\AuthorizationBundle\Entity\GroupAuthorizationResourceMember;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceGroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
@@ -36,34 +36,34 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addResourceActionGrant(AuthorizationResource $resource, ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?int $actionType = null, ?Role $role = null): ResourceActionGrant
+        ?Role $role = null): ResourceActionGrant
     {
         return $this->addResourceActionGrantInternal(
-            $resource, $action, $userIdentifier, $userGroup, $dynamicUserGroupIdentifier,
-            $actionResourceClass, $actionType, $role
+            $resource, $action, $userIdentifier, $userGroup, $dynamicUserGroupIdentifier, $role
         );
     }
 
     public function addAuthorizationResourceAndActionGrant(
         string $resourceClass, string $resourceIdentifier, ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?int $actionType = null, ?Role $role = null): ResourceActionGrant
+        ?Role $role = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
 
         return $this->addResourceActionGrant($authorizationResource,
-            $action, $userIdentifier, $userGroup, $dynamicGroupIdentifier,
-            $actionResourceClass, $actionType, $role
+            $action, $userIdentifier, $userGroup, $dynamicGroupIdentifier, $role
         );
     }
 
     public function addAuthorizationResource(string $resourceClass = self::DEFAULT_RESOURCE_CLASS,
-        string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER): AuthorizationResource
+        string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER,
+        int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
     {
         $resource = new AuthorizationResource();
         $resource->setIdentifier(Uuid::v7()->toRfc4122());
         $resource->setResourceClass($resourceClass);
         $resource->setResourceIdentifier($resourceIdentifier);
+        $resource->setResourceType($resourceType);
 
         try {
             $this->entityManager->persist($resource);
@@ -185,7 +185,8 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function getAuthorizationResourceByResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier): ?AuthorizationResource
+        string $resourceClass, string $resourceIdentifier,
+        int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ?AuthorizationResource
     {
         $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
         $expressionBuilder = $this->entityManager->getExpressionBuilder();
@@ -197,7 +198,9 @@ class TestEntityManager extends CoreTestEntityManager
                 ->where($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceClass", ':resourceClass'))
                 ->setParameter(':resourceClass', $resourceClass)
                 ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
-                ->setParameter(':resourceIdentifier', $resourceIdentifier);
+                ->setParameter(':resourceIdentifier', $resourceIdentifier)
+                ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceType", ':resourceType'))
+                ->setParameter(':resourceType', $resourceType);
 
             return $queryBuilder
                 ->getQuery()
@@ -293,26 +296,24 @@ class TestEntityManager extends CoreTestEntityManager
 
     private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, ?string $action,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?string $actionResourceClass = null, ?int $actionType = null,
         ?Role $role = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
         $resourceActionGrant->setAuthorizationResource($authorizationResource);
         $resourceActionGrant->setAction($action);
-        $resourceActionGrant->setActionResourceClass($actionResourceClass);
-        $resourceActionGrant->setActionType($actionType);
         if ($action !== null) {
             $resourceActionGrant->setAvailableResourceClassAction(
                 InternalResourceActionGrantService::getAvailableResourceClassActionStatic(
                     $this->entityManager,
-                    $resourceActionGrant->getActionResourceClass(),
+                    $resourceActionGrant->getResourceClass(),
                     $action,
-                    $resourceActionGrant->getActionType()
+                    AvailableResourceClassAction::getActionTypeForResourceIdentifier($authorizationResource->getResourceIdentifier())
                 )
             );
             if ($resourceActionGrant->getAvailableResourceClassAction() === null) {
-                dump($resourceActionGrant->getActionResourceClass(), $action, $resourceActionGrant->getActionType());
+                dump($resourceActionGrant->getResourceClass(), $action,
+                    AvailableResourceClassAction::getActionTypeForResourceIdentifier($authorizationResource->getResourceIdentifier()));
             }
             assert($resourceActionGrant->getAvailableResourceClassAction() !== null);
         }
@@ -331,27 +332,30 @@ class TestEntityManager extends CoreTestEntityManager
         return $resourceActionGrant;
     }
 
-    public function getGroupAuthorizationResourceMember(string $identifier): ?GroupAuthorizationResourceMember
+    public function getResourceGroupMember(string $identifier): ?ResourceGroupMember
     {
         try {
-            return $this->entityManager->getRepository(GroupAuthorizationResourceMember::class)
+            return $this->entityManager->getRepository(ResourceGroupMember::class)
                 ->findOneBy(['identifier' => $identifier]);
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
     }
 
-    public function addResourceToGroupResource(string $groupResourceClass, ?string $groupResourceIdentifier,
-        string $memberResourceClass, ?string $memberResourceIdentifier): GroupAuthorizationResourceMember
+    public function addResourceToResourceGroup(string $resourceClass, string $resourceGroupResourceIdentifier,
+        string $resourceIdentifier, int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ResourceGroupMember
     {
-        $groupAuthorizationResourceMember = new GroupAuthorizationResourceMember();
+        $groupAuthorizationResourceMember = new ResourceGroupMember();
         $groupAuthorizationResourceMember->setIdentifier(Uuid::v7()->toRfc4122());
         $groupAuthorizationResourceMember->setGroupAuthorizationResource(
-            $this->getAuthorizationResourceByResourceClassAndIdentifier($groupResourceClass, $groupResourceIdentifier)
+            $this->getAuthorizationResourceByResourceClassAndIdentifier(
+                $resourceClass, $resourceGroupResourceIdentifier, InternalResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE)
         );
         $groupAuthorizationResourceMember->setMemberAuthorizationResource(
-            $this->getAuthorizationResourceByResourceClassAndIdentifier($memberResourceClass, $memberResourceIdentifier)
+            $this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier, $resourceType)
         );
+        assert($groupAuthorizationResourceMember->getGroupAuthorizationResource() !== null);
+        assert($groupAuthorizationResourceMember->getMemberAuthorizationResource() !== null);
 
         try {
             $this->entityManager->persist($groupAuthorizationResourceMember);

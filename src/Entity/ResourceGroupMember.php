@@ -9,10 +9,12 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * @internal
  */
-#[ORM\Table(name: 'authorization_group_resource_members')]
+#[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
-class GroupAuthorizationResourceMember
+class ResourceGroupMember
 {
+    public const TABLE_NAME = 'authorization_resource_group_members';
+
     #[ORM\Id]
     #[ORM\Column(type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;

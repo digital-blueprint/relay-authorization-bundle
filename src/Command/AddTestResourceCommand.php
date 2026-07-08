@@ -41,7 +41,9 @@ class AddTestResourceCommand extends Command
         $userIdentifier = $input->getArgument('userIdentifier');
 
         $this->resourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier, AuthorizationService::MANAGE_ACTION, $userIdentifier);
+            $resourceClass, $resourceIdentifier,
+            action: AuthorizationService::MANAGE_ACTION,
+            userIdentifier: $userIdentifier);
 
         return 0;
     }

@@ -11,23 +11,31 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * @internal
  */
-#[ORM\Table(name: 'authorization_resources')]
+#[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class AuthorizationResource
 {
-    public const IDENTIFIER_COLUMN_NAME = 'identifier';
-    public const RESOURCE_CLASS_COLUMN_NAME = 'resource_class';
-    public const RESOURCE_IDENTIFIER_COLUMN_NAME = 'resource_identifier';
+    public const TABLE_NAME = 'authorization_resources';
+    public const IDENTIFIER_COLUMN = 'identifier';
+    public const RESOURCE_CLASS_COLUMN = 'resource_class';
+    public const RESOURCE_IDENTIFIER_COLUMN = 'resource_identifier';
+    public const RESOURCE_TYPE_COLUMN = 'resource_type';
+
+    public const RESOURCE_RESOURCE_TYPE = 0;
+    public const RESOURCE_GROUP_RESOURCE_TYPE = 1;
 
     #[ORM\Id]
-    #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
+    #[ORM\Column(name: self::IDENTIFIER_COLUMN, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
 
-    #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN_NAME, type: 'string', length: 40)]
+    #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN, type: 'string', length: 40)]
     private ?string $resourceClass = null;
 
-    #[ORM\Column(name: self::RESOURCE_IDENTIFIER_COLUMN_NAME, type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: self::RESOURCE_IDENTIFIER_COLUMN, type: 'string', length: 40, nullable: true)]
     private ?string $resourceIdentifier = null;
+
+    #[ORM\Column(name: self::RESOURCE_TYPE_COLUMN, type: 'smallint', nullable: false, options: ['default' => self::RESOURCE_RESOURCE_TYPE])]
+    private int $resourceType = self::RESOURCE_RESOURCE_TYPE;
 
     #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'authorizationResource')]
     private Collection $resourceActionGrants;
@@ -75,5 +83,15 @@ class AuthorizationResource
     public function setResourceActionGrants(Collection $resourceActionGrants): void
     {
         $this->resourceActionGrants = $resourceActionGrants;
+    }
+
+    public function getResourceType(): int
+    {
+        return $this->resourceType;
+    }
+
+    public function setResourceType(int $resourceType): void
+    {
+        $this->resourceType = $resourceType;
     }
 }
