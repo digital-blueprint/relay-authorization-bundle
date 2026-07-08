@@ -83,12 +83,14 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
             TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier_3');
         $resource3_coll = $this->testEntityManager->addAuthorizationResource(
             TestResources::TEST_RESOURCE_CLASS_3, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
-        $collectionResource = $this->testEntityManager->addAuthorizationResource(
-            TestResources::TEST_COLLECTION_RESOURCE_CLASS, 'collectionResourceIdentifier');
+        $resourceGroup = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_GROUP_IDENTIFIER,
+            AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE);
 
-        $this->testEntityManager->addResourceToGroupResource(
-            $collectionResource->getResourceClass(), $collectionResource->getResourceIdentifier(),
-            $resource->getResourceClass(), $resource->getResourceIdentifier());
+        $this->testEntityManager->addResourceToResourceGroup(
+            $resourceGroup->getResourceClass(), $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier());
 
         $this->testEntityManager->addResourceActionGrant($resource,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -103,10 +105,9 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $this->testEntityManager->addResourceActionGrant($resource3_coll,
             TestResources::CREATE_ACTION, null, $group1);
 
-        $this->testEntityManager->addResourceActionGrant($collectionResource,
+        $this->testEntityManager->addResourceActionGrant($resourceGroup,
             TestResources::WRITE_ACTION,
-            userGroup: $group3,
-            actionResourceClass: TestResources::TEST_RESOURCE_CLASS
+            userGroup: $group3
         );
 
         $testResourceClassActions = $this->internalResourceActionGrantService->getAvailableResourceClassActions(
@@ -212,7 +213,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_3');
         $availableResourceClassActionCollection =
             $this->availableResourceClassActionsProviderTester->getCollection();
-        $this->assertCount(2, $availableResourceClassActionCollection);
+        $this->assertCount(1, $availableResourceClassActionCollection);
 
         $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
             function ($availableResourceClassActions) use ($testResourceClassActions) {
@@ -220,14 +221,13 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
                     && $availableResourceClassActions->getItemActions() === $testResourceClassActions[0]
                     && $availableResourceClassActions->getCollectionActions() === $testResourceClassActions[1];
             }));
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testCollectionResourceActions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_COLLECTION_RESOURCE_CLASS
-                    && $availableResourceClassActions->getItemActions() === $testCollectionResourceActions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testCollectionResourceActions[1];
-            }));
 
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_4');
+        $availableResourceClassActionCollection =
+            $this->availableResourceClassActionsProviderTester->getCollection();
+        $this->assertCount(0, $availableResourceClassActionCollection);
+
+        $this->login(null);
         $availableResourceClassActionCollection =
             $this->availableResourceClassActionsProviderTester->getCollection();
         $this->assertCount(0, $availableResourceClassActionCollection);

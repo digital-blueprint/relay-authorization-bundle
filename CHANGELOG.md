@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add 'resourceType' to AuthorizationResource entity, do distinguish between simple resource and resource group resource types
+- Only allow to add resources to resource groups if they have the same resource class
 - Rename 'group' to 'user group' everywhere
 - Evaluate roles when granted actions are queried
 - Add role get item and collection endpoints
