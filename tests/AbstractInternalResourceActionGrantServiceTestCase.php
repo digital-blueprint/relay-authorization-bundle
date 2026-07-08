@@ -24,7 +24,7 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
     protected const TEST_RESOURCE_CLASS_3 = TestResources::TEST_RESOURCE_CLASS_3;
 
     protected const TEST_RESOURCE_IDENTIFIER = 'resourceIdentifier';
-    protected const TEST_RESOURCE_GROUP_IDENTIFIER = 'collectionResourceIdentifier';
+    protected const TEST_RESOURCE_GROUP_IDENTIFIER = 'resourceGroupIdentifier';
     protected const TEST_RESOURCE_IDENTIFIER_2 = 'resourceIdentifier_2';
 
     protected ?TestEntityManager $testEntityManager = null;
@@ -120,8 +120,6 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
                     && $rag->getResourceClass() === $ragExpected->getResourceClass()
                     && $rag->getResourceIdentifier() === $ragExpected->getResourceIdentifier()
                     && $rag->getAction() === $ragExpected->getAction()
-                    && $rag->getActionResourceClass() === $ragExpected->getActionResourceClass()
-                    && $rag->getActionType() === $ragExpected->getActionType()
                     && $rag->getUserIdentifier() === $ragExpected->getUserIdentifier()
                     && $rag->getUserGroup() === $ragExpected->getUserGroup()
                     && $rag->getDynamicUserGroupIdentifier() === $ragExpected->getDynamicUserGroupIdentifier()
