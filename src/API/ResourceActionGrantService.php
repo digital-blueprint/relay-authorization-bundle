@@ -20,6 +20,9 @@ class ResourceActionGrantService
     public const ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
     public const COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;
 
+    public const RESOURCE_RESOURCE_TYPE = AuthorizationService::RESOURCE_RESOURCE_TYPE;
+    public const RESOURCE_GROUP_RESOURCE_TYPE = AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE;
+
     public const MAX_NUM_RESULTS_DEFAULT = 30;
     public const MAX_NUM_RESULTS_MAX = 1024;
 
@@ -93,10 +96,14 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier, string $action,
+    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier,
+        int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ?string $action = null, ?Role $role = null,
         ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
-        return $this->authorizationService->addResourceActionGrant($resourceClass, $resourceIdentifier, $action,
+        return $this->authorizationService->addResourceActionGrant(
+            $resourceClass, $resourceIdentifier, $resourceType,
+            $action, $role,
             $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
     }
 
@@ -125,23 +132,23 @@ class ResourceActionGrantService
     /**
      * @throws ApiError
      */
-    public function addResourceToGroupResource(string $groupResourceClass, string $groupResourceIdentifier,
-        string $resourceClass, string $resourceIdentifier): void
+    public function addResourceToGroupResource(string $resourceClass, string $resourceGroupResourceIdentifier,
+        string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         $this->authorizationService->addResourceToGroupResource(
-            $groupResourceClass, $groupResourceIdentifier,
-            $resourceClass, $resourceIdentifier);
+            $resourceClass, $resourceGroupResourceIdentifier,
+            $resourceIdentifier, $resourceType);
     }
 
     /**
      * @throws ApiError
      */
-    public function removeResourceFromGroupResource(string $groupResourceClass, string $groupResourceIdentifier,
-        string $resourceClass, string $resourceIdentifier): void
+    public function removeResourceFromGroupResource(string $resourceClass, string $resourceGroupResourceIdentifier,
+        string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         $this->authorizationService->removeResourceFromGroupResource(
-            $groupResourceClass, $groupResourceIdentifier,
-            $resourceClass, $resourceIdentifier);
+            $resourceClass, $resourceGroupResourceIdentifier,
+            $resourceIdentifier, $resourceType);
     }
 
     /**
@@ -160,9 +167,11 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier): ?GrantedActions
+    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier,
+        int $resourceType = self::RESOURCE_RESOURCE_TYPE): ?GrantedActions
     {
-        return $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier);
+        return $this->authorizationService->getGrantedActionsForCurrentUser(
+            $resourceClass, $resourceIdentifier, $resourceType);
     }
 
     /**
@@ -171,12 +180,17 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function getGrantedActionsPageForCurrentUser(string $resourceClass,
+        int $resourceType = self::RESOURCE_RESOURCE_TYPE,
         ?string $whereIsGrantedAction = null,
         bool $excludeCollectionResource = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         return $this->authorizationService->getGrantedActionsPageForCurrentUser(
-            $resourceClass, $whereIsGrantedAction, $excludeCollectionResource,
-            $firstResultIndex, min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
+            $resourceClass,
+            resourceType: $resourceType,
+            whereIsGrantedAction: $whereIsGrantedAction,
+            excludeCollectionResource: $excludeCollectionResource,
+            firstResultIndex: $firstResultIndex,
+            maxNumResults: min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }
 }

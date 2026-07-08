@@ -15,7 +15,6 @@ use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -219,24 +218,10 @@ class ResourceActionGrant
     private ?string $resourceIdentifier = null;
 
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    private int $resourceType = AuthorizationResource::RESOURCE_RESOURCE_TYPE;
+
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $action = null;
-
-    /**
-     * The resource class the action belongs to. Needed in situations where grants are issued for group resources,
-     * which pass it on to their children (of different resource class).
-     * If not provided, the resourceClass of this grant is used.
-     */
-    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
-    private ?string $actionResourceClass = null;
-
-    /**
-     * Whether the action is a collection action (e.g. "create" on a resource class) or an item action (e.g. "read" on a specific resource).
-     * Needed in situations where grants are issued for group resources, which pass it on to their children
-     * (where collection/item resource type does not match between parent and children).
-     * If not provided, the action type is determined from the resourceIdentifier of this grant.
-     */
-    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
-    private ?int $actionType = null;
 
     #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?array $grantedActions = null;
@@ -318,31 +303,6 @@ class ResourceActionGrant
         $this->action = $action;
     }
 
-    public function getActionResourceClass(): ?string
-    {
-        return $this->actionResourceClass ?? $this->availableResourceClassAction?->getResourceClass() ??
-            (null === $this->action ? null : $this->getResourceClass());
-    }
-
-    public function setActionResourceClass(?string $actionResourceClass): void
-    {
-        $this->actionResourceClass = $actionResourceClass;
-    }
-
-    public function getActionType(): ?int
-    {
-        return $this->actionType ?? $this->availableResourceClassAction?->getActionType() ??
-            (null === $this->action ? null :
-                ($this->getResourceIdentifier() === InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER ?
-                    AvailableResourceClassAction::COLLECTION_ACTION_TYPE : AvailableResourceClassAction::ITEM_ACTION_TYPE)
-            );
-    }
-
-    public function setActionType(?int $actionType): void
-    {
-        $this->actionType = $actionType;
-    }
-
     public function getUserIdentifier(): ?string
     {
         return $this->userIdentifier;
@@ -391,6 +351,16 @@ class ResourceActionGrant
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
+    }
+
+    public function getResourceType(): int
+    {
+        return $this->authorizationResource?->getResourceType() ?? $this->resourceType;
+    }
+
+    public function setResourceType(int $resourceType): void
+    {
+        $this->resourceType = $resourceType;
     }
 
     public function getShareable(): bool
