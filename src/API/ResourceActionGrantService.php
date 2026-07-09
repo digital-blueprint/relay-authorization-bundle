@@ -72,9 +72,10 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function removeGrantsForResource(string $resourceClass, string $resourceIdentifier): void
+    public function removeGrantsForResource(
+        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
-        $this->authorizationService->removeGrantsForResource($resourceClass, $resourceIdentifier);
+        $this->authorizationService->removeGrantsForResource($resourceClass, $resourceIdentifier, $resourceType);
     }
 
     /**
@@ -84,10 +85,11 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function removeGrantsForResources(string $resourceClass, array $resourceIdentifiers): void
+    public function removeGrantsForResources(
+        string $resourceClass, array $resourceIdentifiers, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         if (!empty($resourceIdentifiers)) {
-            $this->authorizationService->removeGrantsForResources($resourceClass, $resourceIdentifiers);
+            $this->authorizationService->removeGrantsForResources($resourceClass, $resourceIdentifiers, $resourceType);
         }
     }
 
@@ -123,10 +125,10 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier): array
+        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): array
     {
         return $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier);
+            $resourceClass, $resourceIdentifier, $resourceType);
     }
 
     /**
@@ -157,13 +159,15 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function isCurrentUserGranted(string $resourceClass, string $resourceIdentifier,
-        string $action): bool
+        string $action, int $resourceType = self::RESOURCE_RESOURCE_TYPE): bool
     {
-        return $this->authorizationService->isCurrentUserGranted($resourceClass, $resourceIdentifier, $action);
+        return $this->authorizationService->isCurrentUserGranted(
+            $resourceClass, $resourceIdentifier, $action, $resourceType);
     }
 
     /**
      * Use self::COLLECTION_RESOURCE_IDENTIFIER as resourceIdentifier for collection actions.
+     * Returns null, if the current user is not granted any actions for the given resource.
      *
      * @throws ApiError
      */
@@ -175,19 +179,22 @@ class ResourceActionGrantService
     }
 
     /**
+     * Only includes resources where the current user is granted at least one action.
+     *
      * @return GrantedActions[]
      *
      * @throws ApiError
      */
-    public function getGrantedActionsPageForCurrentUser(string $resourceClass,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+    public function getGrantedActionsPageForCurrentUser(
+        ?string $resourceClass = null,
+        ?string $resourceIdentifier = null,
+        ?int $resourceType = self::RESOURCE_RESOURCE_TYPE,
         ?string $whereIsGrantedAction = null,
         bool $excludeCollectionResource = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         return $this->authorizationService->getGrantedActionsPageForCurrentUser(
-            $resourceClass,
-            resourceType: $resourceType,
+            $resourceClass, $resourceIdentifier, $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
             excludeCollectionResource: $excludeCollectionResource,
             firstResultIndex: $firstResultIndex,

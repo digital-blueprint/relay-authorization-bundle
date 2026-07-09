@@ -30,9 +30,11 @@ class ResourceActionGrantProvider extends AbstractDataProvider
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
         return $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
-            self::getResourceClassFilter($filters),
-            self::getResourceIdentifierFilter($filters),
-            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
+            Common::getResourceClassFilter($filters),
+            Common::getResourceIdentifierFilter($filters),
+            Common::getResourceTypeFilter($filters),
+            firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
+            maxNumResults: $maxNumItemsPerPage);
     }
 
     protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
@@ -40,15 +42,5 @@ class ResourceActionGrantProvider extends AbstractDataProvider
         assert($item instanceof ResourceActionGrant);
 
         return $this->authorizationService->isCurrentUserAuthorizedToReadGrant($item);
-    }
-
-    private static function getResourceClassFilter(array $filters): ?string
-    {
-        return $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
-    }
-
-    private static function getResourceIdentifierFilter(array $filters): ?string
-    {
-        return $filters[Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER] ?? null;
     }
 }
