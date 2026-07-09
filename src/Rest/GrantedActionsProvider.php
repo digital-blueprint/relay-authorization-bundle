@@ -30,10 +30,7 @@ class GrantedActionsProvider extends AbstractDataProvider
      */
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        $resourceClass = $this->getCurrentUriVariables()[Common::RESOURCE_CLASS_URI_VARIABLE_NAME];
-        $resourceIdentifier = $this->getCurrentUriVariables()[Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME];
-
-        return $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier);
+        throw new \RuntimeException('Get item operation not available');
     }
 
     /**
@@ -43,7 +40,15 @@ class GrantedActionsProvider extends AbstractDataProvider
      */
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $resourceClass = $this->getCurrentUriVariables()[Common::RESOURCE_CLASS_URI_VARIABLE_NAME];
+        $resourceClass = Common::getResourceClassFilter($filters);
+        $resourceIdentifier = Common::getResourceIdentifierFilter($filters);
+        $resourceType = Common::getResourceTypeFilter($filters);
+
+        if (null !== $resourceClass && null !== $resourceIdentifier) {
+            return ($grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier, $resourceType)) ?
+                [$grantedActions] :
+                [];
+        }
 
         return $this->authorizationService->getGrantedActionsPageForCurrentUser($resourceClass,
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
