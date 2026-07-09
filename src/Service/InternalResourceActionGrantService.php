@@ -49,7 +49,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
 
     public const ADDITIONAL_CRITERIA_OPTION = 'additional_criteria';
     public const EXCLUDE_COLLECTION_RESOURCE_OPTION = 'exclude_collection_resource';
-    public const RESOURCE_TYPE_OPTION = 'resourceType';
 
     public const RESOURCE_RESOURCE_TYPE = AuthorizationResource::RESOURCE_RESOURCE_TYPE;
     public const RESOURCE_GROUP_RESOURCE_TYPE = AuthorizationResource::RESOURCE_GROUP_RESOURCE_TYPE;
@@ -380,53 +379,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
-     * Parameters with null values will not be filtered on.
-     *
-     * @throws ApiError
-     */
-    public function removeResourceActionGrants(?string $resourceClass = null, ?string $resourceIdentifier = null,
-        ?array $actions = null, ?string $userIdentifier = null, mixed $groupIdentifiers = null,
-        mixed $dynamicUserGroupIdentifiers = null): void
-    {
-        $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
-        $AUTHORIZATION_RESOURCE_ALIAS = self::RESOURCE_ALIAS;
-        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
-
-        $parameterValues = [];
-        $parameterTypes = [];
-        $authorizationResourceCriteria = $this->getAuthorizationResourceCriteria($AUTHORIZATION_RESOURCE_ALIAS,
-            $resourceClass, $resourceIdentifier, null, $parameterValues, $parameterTypes);
-        $actionCriteria = $this->getActionCriteria($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS,
-            $actions, $parameterValues, $parameterTypes);
-        $grantHolderCriteria = $this->getGrantHolderCriteria($RESOURCE_ACTION_GRANT_ALIAS,
-            $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers, $parameterValues, $parameterTypes);
-
-        // NOTE: sqlite doesn't support DELETE ... FROM ... JOIN .... that's why we use a subquery
-        $sql = "
-            DELETE FROM authorization_resource_action_grants 
-            WHERE identifier in (
-                SELECT $RESOURCE_ACTION_GRANT_ALIAS.identifier 
-                FROM authorization_resource_action_grants $RESOURCE_ACTION_GRANT_ALIAS 
-                INNER JOIN authorization_resources $AUTHORIZATION_RESOURCE_ALIAS
-                ON $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $AUTHORIZATION_RESOURCE_ALIAS.identifier 
-                INNER JOIN authorization_available_resource_class_actions $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS
-                ON $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.identifier = $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier
-                WHERE $authorizationResourceCriteria 
-                AND $actionCriteria 
-                AND $grantHolderCriteria)
-        ";
-
-        try {
-            $this->entityManager->getConnection()->executeQuery($sql, $parameterValues, $parameterTypes);
-        } catch (\Throwable $throwable) {
-            dump($throwable->getMessage());
-            $this->logger->error('Failed to remove resource action grants: '.$throwable->getMessage(), ['exception' => $throwable]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Resource action grants could not be removed!', self::REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);
-        }
-    }
-
-    /**
      * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
      *
      * @throws ApiError
@@ -472,9 +424,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function removeAuthorizationResourceByResourceClassAndIdentifier(string $resourceClass, string $resourceIdentifier): void
+    public function removeAuthorizationResourceByResourceClassAndIdentifier(
+        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
-        $this->removeResourcesInternal($resourceClass, $resourceIdentifier);
+        $this->removeResourcesInternal($resourceClass, $resourceIdentifier, $resourceType);
     }
 
     /**
@@ -482,9 +435,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function removeAuthorizationResourcesByResourceClassAndIdentifier(string $resourceClass, array $resourceIdentifiers): void
+    public function removeAuthorizationResourcesByResourceClassAndIdentifier(
+        string $resourceClass, array $resourceIdentifiers, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
-        $this->removeResourcesInternal($resourceClass, $resourceIdentifiers);
+        $this->removeResourcesInternal($resourceClass, $resourceIdentifiers, $resourceType);
     }
 
     /**
@@ -582,7 +536,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 ->findOneBy([
                     'resourceClass' => $resourceClass,
                     'resourceIdentifier' => $resourceIdentifier,
-                    self::RESOURCE_TYPE_OPTION => $resourceType,
+                    'resourceType' => $resourceType,
                 ]);
         } catch (\Exception $e) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get resource item!',
@@ -609,12 +563,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @return ResourceActionGrant[]|AuthorizationResource[]|string[]
      */
     public function get(string $get = self::GET_RESOURCE_ACTION_GRANTS,
-        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
-        return $this->getInternal($get, $resourceClass, $resourceIdentifier,
+        return $this->getInternal($get, $resourceClass, $resourceIdentifier, $resourceType,
             actions: $actions,
             userIdentifier: $userIdentifier,
             groupIdentifiers: $groupIdentifiers,
@@ -637,12 +591,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @throws ApiError
      */
     public function getResourceActionGrantsForResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return $this->getInternal(self::GET_RESOURCE_ACTION_GRANTS,
-            $resourceClass, $resourceIdentifier,
+            $resourceClass, $resourceIdentifier, $resourceType,
             userIdentifier: $userIdentifier,
             groupIdentifiers: $groupIdentifiers,
             dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
@@ -666,10 +620,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): ?GrantedActions
     {
-        $options[self::RESOURCE_TYPE_OPTION] = $resourceType;
-
         return $this->getInternal(self::GET_GRANTED_ACTIONS,
-            $resourceClass, $resourceIdentifier,
+            $resourceClass, $resourceIdentifier, $resourceType,
             userIdentifier: $userIdentifier,
             groupIdentifiers: $groupIdentifiers,
             dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
@@ -690,8 +642,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function getGrantedActionsForResourcePage(string $resourceClass,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+    public function getGrantedActionsForResourcePage(?string $resourceClass = null, ?string $resourceIdentifier = null,
+        ?int $resourceType = self::RESOURCE_RESOURCE_TYPE,
         ?array $whereAuthorizationResourceActionsContainAnyOf = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
@@ -701,10 +653,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         // -> we use two separate queries for now
         try {
             // first get the requested page of authorization resource ids
-            $options[self::RESOURCE_TYPE_OPTION] = $resourceType;
             $authorizationResourceIdPage = $this->getInternal(
                 self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS,
-                $resourceClass,
+                $resourceClass, $resourceIdentifier, $resourceType,
                 actions: $whereAuthorizationResourceActionsContainAnyOf,
                 userIdentifier: $userIdentifier,
                 groupIdentifiers: $groupIdentifiers,
@@ -713,13 +664,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 maxNumResults: $maxNumResults,
                 options: $options);
 
-            unset($options[self::RESOURCE_TYPE_OPTION]);
-
             // then get ALL granted actions for the authorization resource ids page
             return $this->getInternal(
                 self::GET_GRANTED_ACTIONS,
                 authorizationResourceIdentifiers: $authorizationResourceIdPage,
-                userIdentifier: $userIdentifier, groupIdentifiers: $groupIdentifiers,
+                userIdentifier: $userIdentifier,
+                groupIdentifiers: $groupIdentifiers,
                 dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
                 maxNumResults: null
             );
@@ -731,14 +681,15 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     private function getInternal(string $get,
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
+        mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         [$sql, $parameterValues, $parameterTypes] = $this->getQueryInternal(
             $get,
-            $resourceClass, $resourceIdentifier,
+            $resourceClass, $resourceIdentifier, $resourceType,
             authorizationResourceIdentifiers: $authorizationResourceIdentifiers,
             actions: $actions,
             userIdentifier: $userIdentifier,
@@ -818,7 +769,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      * @throws ApiError
      */
     private function getQueryInternal(string $get,
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, mixed $authorizationResourceIdentifiers = null,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
+        mixed $authorizationResourceIdentifiers = null,
         ?array $actions = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
@@ -885,7 +837,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         $authorizationResourceCriteria = $this->getAuthorizationResourceCriteria($AUTHORIZATION_RESOURCE_ALIAS,
-            $resourceClass, $resourceIdentifier, $authorizationResourceIdentifiers,
+            $resourceClass, $resourceIdentifier, $resourceType, $authorizationResourceIdentifiers,
             $parameterValues, $parameterTypes, $options);
 
         $grantHolderCriteria = $this->getGrantHolderCriteria($RESOURCE_ACTION_GRANT_ALIAS,
@@ -1064,15 +1016,17 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @param string|array|null $resourceIdentifiers
      */
-    private function removeResourcesInternal(string $resourceClass, mixed $resourceIdentifiers): void
+    private function removeResourcesInternal(string $resourceClass, mixed $resourceIdentifiers, int $resourceType): void
     {
         try {
-            $RESOURCE_ALIAS = 'r';
+            $RESOURCE_ALIAS = self::RESOURCE_ALIAS;
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder
                 ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
                 ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
-                ->setParameter(':resourceClass', $resourceClass);
+                ->setParameter(':resourceClass', $resourceClass)
+                ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceType", ':resourceType'))
+                ->setParameter(':resourceType', $resourceType);
 
             if (is_array($resourceIdentifiers)) {
                 $queryBuilder
@@ -1082,9 +1036,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
                     ->setParameter(':resourceIdentifier', $resourceIdentifiers);
-            } else {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->isNull("$RESOURCE_ALIAS.resourceIdentifier"));
             }
             $queryBuilder->getQuery()->execute();
         } catch (\Exception $e) {
@@ -1177,8 +1128,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     private function getAuthorizationResourceCriteria(string $authorizationResourceAlias,
-        ?string $resourceClass, ?string $resourceIdentifier, mixed $authorizationResourceIdentifiers,
-        array &$parameterValues, array &$parameterTypes, array $options = []): string
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
+        mixed $authorizationResourceIdentifiers = null,
+        array &$parameterValues = [], array &$parameterTypes = [], array $options = []): string
     {
         $resourceClassCriteria = 'true';
         if ($resourceClass !== null) {
@@ -1211,7 +1163,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
 
         $resourceTypeCriteria = 'true';
-        if (null !== ($resourceType = $options[self::RESOURCE_TYPE_OPTION] ?? null)) {
+        if ($resourceType !== null) {
             switch ($resourceType) {
                 case self::RESOURCE_RESOURCE_TYPE:
                     $resourceTypeCriteria =

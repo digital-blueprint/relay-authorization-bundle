@@ -51,11 +51,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             action: TestResources::DELETE_ACTION,
             userIdentifier: self::ANOTHER_USER_IDENTIFIER.'_2');
 
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => self::TEST_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
             ]);
+        $this->assertCount(1, $grantedActionsCollection);
+        $grantedActions = reset($grantedActionsCollection);
         assert($grantedActions instanceof GrantedActions);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
@@ -64,11 +66,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         // --------------------------------------------------------------------------
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => self::TEST_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
             ]);
+        $this->assertCount(1, $grantedActionsCollection);
+        $grantedActions = reset($grantedActionsCollection);
         assert($grantedActions instanceof GrantedActions);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
@@ -81,11 +85,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         // --------------------------------------------------------------------------
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => self::TEST_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
             ]);
+        $this->assertCount(1, $grantedActionsCollection);
+        $grantedActions = reset($grantedActionsCollection);
         assert($grantedActions instanceof GrantedActions);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
@@ -96,20 +102,21 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         // --------------------------------------------------------------------------
         $this->login('foo');
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => self::TEST_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
             ]);
-        $this->assertNull($grantedActions);
+        $this->assertCount(0, $grantedActionsCollection);
+
         // --------------------------------------------------------------------------
         $this->login(null);
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => self::TEST_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
             ]);
-        $this->assertNull($grantedActions);
+        $this->assertCount(0, $grantedActionsCollection);
     }
 
     public function testGetGrantedActionsItemCollectionResource(): void
@@ -142,11 +149,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         // --------------------------------------------------------------------------
         // current user:
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             ]);
+        $this->assertCount(1, $grantedActionsCollection);
+        $grantedActions = reset($grantedActionsCollection);
         assert($grantedActions instanceof GrantedActions);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(
@@ -157,11 +166,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
         $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             ]);
+        $this->assertCount(1, $grantedActionsCollection);
+        $grantedActions = reset($grantedActionsCollection);
         assert($grantedActions instanceof GrantedActions);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(
@@ -173,11 +184,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         // --------------------------------------------------------------------------
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             ]);
+        $this->assertCount(1, $grantedActionsCollection);
+        $grantedActions = reset($grantedActionsCollection);
         assert($grantedActions instanceof GrantedActions);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(
@@ -189,11 +202,13 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         // --------------------------------------------------------------------------
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2');
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             ]);
+        $this->assertCount(1, $grantedActionsCollection);
+        $grantedActions = reset($grantedActionsCollection);
         assert($grantedActions instanceof GrantedActions);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(
@@ -208,20 +223,21 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         // --------------------------------------------------------------------------
         $this->login('foo');
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => self::TEST_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             ]);
-        $this->assertNull($grantedActions);
+        $this->assertCount(0, $grantedActionsCollection);
+
         // --------------------------------------------------------------------------
         $this->login(null);
-        $grantedActions = $this->grantedActionsProviderTester->getItem(
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-                Common::RESOURCE_IDENTIFIER_URI_VARIABLE_NAME => self::TEST_RESOURCE_IDENTIFIER,
+        $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             ]);
-        $this->assertNull($grantedActions);
+        $this->assertCount(0, $grantedActionsCollection);
     }
 
     public function testGetGrantedActionsCollection(): void
@@ -497,22 +513,18 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         $grantedActionsPage1 = $this->grantedActionsProviderTester->getCollection(
             filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Pagination::CURRENT_PAGE_NUMBER_PARAMETER_NAME => 1,
                 Pagination::MAX_NUM_ITEMS_PER_PAGE_PARAMETER_NAME => 3,
             ],
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-            ]
         );
         $this->assertCount(3, $grantedActionsPage1);
         $grantedActionsPage2 = $this->grantedActionsProviderTester->getCollection(
             filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Pagination::CURRENT_PAGE_NUMBER_PARAMETER_NAME => 2,
                 Pagination::MAX_NUM_ITEMS_PER_PAGE_PARAMETER_NAME => 3,
             ],
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-            ]
         );
         $this->assertCount(1, $grantedActionsPage2);
         $grantedActionsCollection = array_merge($grantedActionsPage1, $grantedActionsPage2);
@@ -573,12 +585,10 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
         $this->login('foo');
         $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
             filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Pagination::CURRENT_PAGE_NUMBER_PARAMETER_NAME => 1,
                 Pagination::MAX_NUM_ITEMS_PER_PAGE_PARAMETER_NAME => 3,
             ],
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-            ]
         );
         $this->assertEmpty($grantedActionsCollection);
 
@@ -586,12 +596,10 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
         $this->login(null);
         $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
             filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Pagination::CURRENT_PAGE_NUMBER_PARAMETER_NAME => 1,
                 Pagination::MAX_NUM_ITEMS_PER_PAGE_PARAMETER_NAME => 3,
             ],
-            uriVariables: [
-                Common::RESOURCE_CLASS_URI_VARIABLE_NAME => TestResources::TEST_RESOURCE_CLASS,
-            ]
         );
         $this->assertEmpty($grantedActionsCollection);
     }
