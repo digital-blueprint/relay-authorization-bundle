@@ -13,6 +13,7 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
 use Doctrine\ORM\Mapping as ORM;
@@ -46,6 +47,19 @@ use Symfony\Component\Serializer\Attribute\Groups;
                         description: 'The resource identifier to get grants for',
                         required: false,
                         schema: ['type' => 'string'],
+                    ),
+                    new Parameter(
+                        name: 'resourceType',
+                        in: 'query',
+                        description: 'The resource type to get grants for: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
+                        required: false,
+                        schema: [
+                            'type' => 'integer',
+                            'enum' => [
+                                AuthorizationService::RESOURCE_RESOURCE_TYPE,
+                                AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                            ],
+                        ],
                     ),
                 ],
             ),
