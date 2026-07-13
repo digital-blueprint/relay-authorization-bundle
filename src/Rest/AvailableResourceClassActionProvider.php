@@ -21,7 +21,7 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
     protected static string $identifierName = 'resourceClass';
 
     public function __construct(
-        private readonly InternalResourceActionGrantService $resourceActionGrantService,
+        private readonly InternalResourceActionGrantService $internalResourceActionGrantService,
         private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
@@ -29,33 +29,33 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        $resourceClass = $id;
-
-        if (false === in_array(
-            $resourceClass,
-            $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead(maxNumResults: 1),
-            true)) {
-            return null;
-        }
-
-        return $this->getAvailableResourceClassActions($resourceClass);
+        throw new \RuntimeException('Get item operation not available');
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $availableResourceClassActions = [];
-        foreach ($this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead(
-            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage) as $resourceClass) {
-            $availableResourceClassActions[] = $this->getAvailableResourceClassActions($resourceClass);
-        }
+        $resourceClass = Common::getResourceClassFilter($filters);
+        $resourceIdentifier = Common::getResourceIdentifierFilter($filters);
 
-        return $availableResourceClassActions;
+        $availableResourceClassActionsEntities =
+            $this->internalResourceActionGrantService->getAvailableResourceClassActionsEntities(
+                $resourceClass,
+                AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier)
+            );
+
+        $resourceClassesCurrentUserMayRead = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead(
+            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
+
+        return array_filter($availableResourceClassActionsEntities,
+            function (AvailableResourceClassActions $availableResourceClassActions) use ($resourceClassesCurrentUserMayRead) {
+                return in_array($availableResourceClassActions->getResourceClass(), $resourceClassesCurrentUserMayRead, true);
+        });
     }
 
     public function getAvailableResourceClassActions(string $resourceClass): AvailableResourceClassActions
     {
         $availableResourceClassActions =
-            $this->resourceActionGrantService->getAvailableResourceClassActions($resourceClass);
+            $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);
 
         return new AvailableResourceClassActions($resourceClass,
             $availableResourceClassActions[AvailableResourceClassAction::ITEM_ACTION_TYPE],

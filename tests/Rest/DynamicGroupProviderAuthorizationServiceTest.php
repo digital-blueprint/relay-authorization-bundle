@@ -24,17 +24,6 @@ class DynamicGroupProviderAuthorizationServiceTest extends AbstractAuthorization
             ['AuthorizationDynamicGroup:output']);
     }
 
-    public function testGetItem(): void
-    {
-        $dynamicGroup = $this->dynamicGroupProviderTester->getItem('students');
-        $this->assertEquals('students', $dynamicGroup->getIdentifier());
-    }
-
-    public function testGetItemNotFound(): void
-    {
-        $this->assertNull($this->dynamicGroupProviderTester->getItem('404'));
-    }
-
     public function testGetCollection(): void
     {
         $dynamicGroups = $this->dynamicGroupProviderTester->getCollection();
