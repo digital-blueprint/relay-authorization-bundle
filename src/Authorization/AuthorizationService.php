@@ -209,11 +209,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeGrantsForResource(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
-        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(
+        $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $resourceType);
     }
 
@@ -221,7 +221,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeGrantsForResources(
-        string $resourceClass, array $resourceIdentifiers, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass, array $resourceIdentifiers, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
@@ -349,7 +349,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function removeUserGroup(string $userGroupIdentifier): void
     {
-        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(
+        $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             self::GROUP_RESOURCE_CLASS, $userGroupIdentifier);
     }
 
@@ -602,7 +602,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                     // however, the manage resource collection policy is not present in config anymore
                     if (empty($resourceClassGrants['other_grants'])) {
                         // (A) no other grants -> delete the authorization resource from DB
-                        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(
+                        $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
                             $policyGrant->getResourceClass(), $policyGrant->getResourceIdentifier());
                         // WORKAROUND for doctrine ORM disregarding ON DELETE CASCADE which auto-removes grants
                         // on parent authorization resource removal. on next persist+flush it mis-interprets the removed authorization resource
@@ -755,7 +755,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    private function assertResourceClassNotReserved(string $resourceClass): void
+    private function assertResourceClassNotReserved(?string $resourceClass): void
     {
         if ($resourceClass === self::GROUP_RESOURCE_CLASS) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST, 'The resource class \''.$resourceClass.'\' is reserved.');

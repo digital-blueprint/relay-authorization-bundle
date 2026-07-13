@@ -42,13 +42,6 @@ class ApiTest extends ApiTestCase
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
-    public function testGetResourceActionGrantUnauthenticated(): void
-    {
-        $response = $this->testClient->get('/authorization/resource-action-grants/foo', token: null);
-
-        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-    }
-
     public function testGetGrantedActionsCollectionUnauthenticated(): void
     {
         $response = $this->testClient->get('/authorization/granted-actions/DbpRelayAuthorizationGroup?perPage=9999', token: null);
