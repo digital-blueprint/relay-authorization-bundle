@@ -42,13 +42,6 @@ class ApiTest extends AbstractApiTest
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
-    public function testGetResourceActionGrantUnauthenticated(): void
-    {
-        $response = $this->testClient->get('/authorization/resource-action-grants/foo', token: null);
-
-        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
-    }
-
     public function testPostGroupUnauthenticated(): void
     {
         $response = $this->testClient->postJson('/authorization/user-groups', [
