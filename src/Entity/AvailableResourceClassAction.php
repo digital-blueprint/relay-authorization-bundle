@@ -4,14 +4,51 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use ApiPlatform\Metadata\ApiProperty;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\OpenApi\Model\Operation;
+use ApiPlatform\OpenApi\Model\Parameter;
+use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionProvider;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
-/**
- * @internal
- */
+#[ApiResource(
+    shortName: 'AuthorizationAvailableResourceClassAction',
+    operations: [
+        new GetCollection(
+            uriTemplate: '/authorization/available-resource-class-actions',
+            openapi: new Operation(
+                tags: ['Authorization'],
+                parameters: [
+                    new Parameter(
+                        name: 'resourceClass',
+                        in: 'query',
+                        description: 'The resource class to get available actions for',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                    new Parameter(
+                        name: 'resourceIdentifier',
+                        in: 'query',
+                        description: 'The resource identifier to get available actions for',
+                        required: false,
+                        schema: ['type' => 'string'],
+                    ),
+                ],
+            ),
+            provider: AvailableResourceClassActionProvider::class
+        ),
+    ],
+    normalizationContext: [
+        'groups' => [
+            'AuthorizationAvailableResourceClassAction:output',
+        ],
+    ],
+)]
 #[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class AvailableResourceClassAction
@@ -30,15 +67,20 @@ class AvailableResourceClassAction
     private ?string $identifier = null;
 
     #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN_NAME, type: 'string', length: 40, nullable: true)]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?string $resourceClass = null;
 
     #[ORM\Column(name: self::ACTION_COLUMN_NAME, type: 'string', length: 40, nullable: false)]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?string $action = null;
 
     #[ORM\Column(name: self::ACTION_TYPE_COLUMN_NAME, type: 'smallint', nullable: true)]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?int $actionType = null;
 
     #[ORM\OneToMany(targetEntity: AvailableResourceClassActionName::class, mappedBy: 'availableResourceClassAction', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
+    #[ApiProperty(genId: false)]
     private Collection $names;
 
     #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'availableResourceClassAction')]

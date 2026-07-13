@@ -6,8 +6,9 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
-use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
-use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionsProvider;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
+use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionProvider;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
@@ -20,44 +21,11 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
     {
         parent::setUp();
 
-        $provider = new AvailableResourceClassActionsProvider($this->internalResourceActionGrantService,
+        $provider = new AvailableResourceClassActionProvider($this->internalResourceActionGrantService,
             $this->authorizationService);
         $this->availableResourceClassActionsProviderTester = DataProviderTester::create($provider,
-            AvailableResourceClassActions::class,
-            ['AuthorizationAvailableResourceClassActions:output'], identifierName: 'resourceClass');
-    }
-
-    public function testGetAvailableResourceClassActionsItem(): void
-    {
-        $resource1 = $this->testEntityManager->addAuthorizationResource(
-            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier');
-        $this->testEntityManager->addResourceActionGrant($resource1,
-            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
-
-        $availableResourceClassActions =
-            $this->availableResourceClassActionsProviderTester->getItem(
-                TestResources::TEST_RESOURCE_CLASS);
-        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS,
-            $availableResourceClassActions->getResourceClass());
-
-        $retrievedItemActions = $availableResourceClassActions->getItemActions();
-        $retrievedCollectionActions = $availableResourceClassActions->getCollectionActions();
-
-        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedItemActions);
-        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedCollectionActions);
-        unset($retrievedItemActions[AuthorizationService::MANAGE_ACTION]);
-        unset($retrievedCollectionActions[AuthorizationService::MANAGE_ACTION]);
-
-        $this->assertEquals(TestResources::TEST_RESOURCE_ITEM_ACTIONS, $retrievedItemActions);
-        $this->assertEquals(TestResources::TEST_RESOURCE_COLLECTION_ACTIONS, $retrievedCollectionActions);
-    }
-
-    public function testGetAvailableResourceClassActionsItemNotFound(): void
-    {
-        $availableResourceClassActions =
-            $this->availableResourceClassActionsProviderTester->getItem('404');
-
-        $this->assertNull($availableResourceClassActions);
+            AvailableResourceClassAction::class,
+            ['AuthorizationAvailableResourceClassAction:output']);
     }
 
     public function testGetAvailableResourceClassActionsCollection(): void
@@ -110,127 +78,212 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
             userGroup: $group3
         );
 
-        $testResourceClassActions = $this->internalResourceActionGrantService->getAvailableResourceClassActions(
-            TestResources::TEST_RESOURCE_CLASS);
-        $testResourceClass2Actions = $this->internalResourceActionGrantService->getAvailableResourceClassActions(
-            TestResources::TEST_RESOURCE_CLASS_2);
-        $testResourceClass3Actions = $this->internalResourceActionGrantService->getAvailableResourceClassActions(
-            TestResources::TEST_RESOURCE_CLASS_3);
-        $testCollectionResourceActions = $this->internalResourceActionGrantService->getAvailableResourceClassActions(
-            TestResources::TEST_COLLECTION_RESOURCE_CLASS);
+        // TEST_RESOURCE_CLASS:  4 item actions (read, write, update, delete) + 3 collection actions (create, read, update) = 7
+        // TEST_RESOURCE_CLASS_2: 2 item actions (update, delete) + 3 collection actions (read, create, delete_all)      = 5
+        // TEST_RESOURCE_CLASS_3: 1 item action  (write)          + 2 collection actions (read, create)                  = 3
 
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_STUDENT'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
-        $availableResourceClassActionCollection =
-            $this->availableResourceClassActionsProviderTester->getCollection();
-        $this->assertCount(3, $availableResourceClassActionCollection);
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClassActions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS
-                    && $availableResourceClassActions->getItemActions() === $testResourceClassActions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClassActions[1];
-            }));
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClass2Actions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS_2
-                    && $availableResourceClassActions->getItemActions() === $testResourceClass2Actions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClass2Actions[1];
-            }));
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS_3
-                    && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
-            }));
 
-        // test pagination:
-        $availableResourceClassActionPage1 =
-            $this->availableResourceClassActionsProviderTester->getCollection([
-                'page' => 1,
-                'perPage' => 2,
-            ]);
-        $this->assertCount(2, $availableResourceClassActionPage1);
+        // CURRENT_USER has access to TEST_RESOURCE_CLASS, TEST_RESOURCE_CLASS_2 and TEST_RESOURCE_CLASS_3 => 7+5+3 = 15
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection();
+        $this->assertCount(15, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
 
-        $availableResourceClassActionPage2 =
-            $this->availableResourceClassActionsProviderTester->getCollection([
-                'page' => 2,
-                'perPage' => 2,
-            ]);
-        $this->assertCount(1, $availableResourceClassActionPage2);
+        // test pagination: 15 total actions, perPage=10 → page 1 has 10, page 2 has 5
+        $page1 = $this->availableResourceClassActionsProviderTester->getCollection(['page' => 1, 'perPage' => 10]);
+        $this->assertCount(10, $page1);
 
-        $availableResourceClassActionCollection = array_merge($availableResourceClassActionPage1, $availableResourceClassActionPage2);
-        $this->assertCount(3, $availableResourceClassActionCollection);
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClassActions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS
-                    && $availableResourceClassActions->getItemActions() === $testResourceClassActions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClassActions[1];
-            }));
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClass2Actions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS_2
-                    && $availableResourceClassActions->getItemActions() === $testResourceClass2Actions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClass2Actions[1];
-            }));
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS_3
-                    && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
-            }));
+        $page2 = $this->availableResourceClassActionsProviderTester->getCollection(['page' => 2, 'perPage' => 10]);
+        $this->assertCount(5, $page2);
 
+        $this->assertCount(15, array_merge($page1, $page2));
+
+        // ANOTHER_USER is member of group1 => access to TEST_RESOURCE_CLASS_3 only => 3
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $availableResourceClassActionCollection =
-            $this->availableResourceClassActionsProviderTester->getCollection();
-        $this->assertCount(1, $availableResourceClassActionCollection);
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS_3
-                    && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
-            }));
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection();
+        $this->assertCount(3, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
 
+        // ANOTHER_USER_2 is student => access to TEST_RESOURCE_CLASS_2 and TEST_RESOURCE_CLASS_3 => 5+3 = 8
         $userAttributes = $this->getDefaultUserAttributes();
         $userAttributes['IS_STUDENT'] = true;
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_2', $userAttributes);
-        $availableResourceClassActionCollection =
-            $this->availableResourceClassActionsProviderTester->getCollection();
-        $this->assertCount(2, $availableResourceClassActionCollection);
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClass2Actions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS_2
-                    && $availableResourceClassActions->getItemActions() === $testResourceClass2Actions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClass2Actions[1];
-            }));
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClass3Actions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS_3
-                    && $availableResourceClassActions->getItemActions() === $testResourceClass3Actions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClass3Actions[1];
-            }));
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection();
+        $this->assertCount(8, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
 
+        // ANOTHER_USER_3 is member of group3 => access to TEST_RESOURCE_CLASS (via resource group) => 7
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_3');
-        $availableResourceClassActionCollection =
-            $this->availableResourceClassActionsProviderTester->getCollection();
-        $this->assertCount(1, $availableResourceClassActionCollection);
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection();
+        $this->assertCount(7, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
 
-        $this->assertCount(1, $this->selectWhere($availableResourceClassActionCollection,
-            function ($availableResourceClassActions) use ($testResourceClassActions) {
-                return $availableResourceClassActions->getResourceClass() === TestResources::TEST_RESOURCE_CLASS
-                    && $availableResourceClassActions->getItemActions() === $testResourceClassActions[0]
-                    && $availableResourceClassActions->getCollectionActions() === $testResourceClassActions[1];
-            }));
-
+        // ANOTHER_USER_4 has no grants => 0
         $this->login(self::ANOTHER_USER_IDENTIFIER.'_4');
-        $availableResourceClassActionCollection =
-            $this->availableResourceClassActionsProviderTester->getCollection();
-        $this->assertCount(0, $availableResourceClassActionCollection);
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection();
+        $this->assertCount(0, $collection);
 
+        // anonymous => 0
         $this->login(null);
-        $availableResourceClassActionCollection =
-            $this->availableResourceClassActionsProviderTester->getCollection();
-        $this->assertCount(0, $availableResourceClassActionCollection);
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection();
+        $this->assertCount(0, $collection);
+    }
+
+    public function testGetAvailableResourceClassActionsCollectionWithResourceClassFilter(): void
+    {
+        $group2 = $this->testEntityManager->addUserGroup();
+        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER);
+
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier_2');
+        $resource3_coll = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_3, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
+
+        $this->testEntityManager->addResourceActionGrant($resource,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, null, $group2);
+        $this->testEntityManager->addResourceActionGrant($resource3_coll,
+            TestResources::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        // CURRENT_USER has access to all three resource classes
+        $this->login(self::CURRENT_USER_IDENTIFIER);
+
+        // filter by TEST_RESOURCE_CLASS_2 only => 2 item + 3 collection = 5 actions
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceClass' => TestResources::TEST_RESOURCE_CLASS_2,
+        ]);
+        $this->assertCount(5, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+
+        // filter by TEST_RESOURCE_CLASS_3 only => 1 item + 2 collection = 3 actions
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceClass' => TestResources::TEST_RESOURCE_CLASS_3,
+        ]);
+        $this->assertCount(3, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+
+        // filter by TEST_RESOURCE_CLASS only => 4 item + 3 collection = 7 actions
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceClass' => TestResources::TEST_RESOURCE_CLASS,
+        ]);
+        $this->assertCount(7, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+
+        // filter by resource class the user has no access to => 0
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceClass' => TestResources::TEST_RESOURCE_CLASS_2,
+        ]);
+        $this->assertCount(0, $collection);
+    }
+
+    public function testGetAvailableResourceClassActionsCollectionWithResourceIdentifierFilter(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier_2');
+        $resource3_coll = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_3, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
+
+        $this->testEntityManager->addResourceActionGrant($resource,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource2,
+            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addResourceActionGrant($resource3_coll,
+            TestResources::CREATE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        // CURRENT_USER has access to all three resource classes
+        $this->login(self::CURRENT_USER_IDENTIFIER);
+
+        // filter by a specific item resource identifier => only item actions (ITEM_ACTION_TYPE) returned
+        // TEST_RESOURCE_CLASS: 4 item actions + TEST_RESOURCE_CLASS_2: 2 item actions + TEST_RESOURCE_CLASS_3: 1 item action = 7
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceIdentifier' => 'someItemIdentifier',
+        ]);
+        $this->assertCount(7, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        foreach ($collection as $action) {
+            $this->assertSame(AvailableResourceClassAction::ITEM_ACTION_TYPE, $action->getActionType());
+        }
+
+        // filter by the collection resource identifier => only collection actions (COLLECTION_ACTION_TYPE) returned
+        // TEST_RESOURCE_CLASS: 3 + TEST_RESOURCE_CLASS_2: 3 + TEST_RESOURCE_CLASS_3: 2 = 8
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceIdentifier' => InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
+        ]);
+        $this->assertCount(8, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
+            TestResources::TEST_RESOURCE_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_3,
+            TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        foreach ($collection as $action) {
+            $this->assertSame(AvailableResourceClassAction::COLLECTION_ACTION_TYPE, $action->getActionType());
+        }
+
+        // combine resourceClass and resourceIdentifier filters:
+        // TEST_RESOURCE_CLASS_2, item identifier => 2 item actions (update, delete)
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceClass' => TestResources::TEST_RESOURCE_CLASS_2,
+            'resourceIdentifier' => 'someItemIdentifier',
+        ]);
+        $this->assertCount(2, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_ITEM_ACTIONS, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+
+        // TEST_RESOURCE_CLASS_2, collection identifier => 3 collection actions (read, create, delete_all)
+        $collection = $this->availableResourceClassActionsProviderTester->getCollection([
+            'resourceClass' => TestResources::TEST_RESOURCE_CLASS_2,
+            'resourceIdentifier' => InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
+        ]);
+        $this->assertCount(3, $collection);
+        $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS_2,
+            TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
     }
 
     protected function getTestConfig(): array
@@ -252,5 +305,25 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $defaultUserAttributes['IS_STUDENT'] = false;
 
         return $defaultUserAttributes;
+    }
+
+    /**
+     * Asserts that for each action name in $actions there is exactly one AvailableResourceClassAction
+     * in $collection matching the given resourceClass, action name, and actionType.
+     *
+     * @param AvailableResourceClassAction[] $collection
+     */
+    private function assertContainsActions(array $collection, string $resourceClass, array $actions, int $actionType): void
+    {
+        foreach (array_keys($actions) as $action) {
+            $matches = $this->selectWhere($collection,
+                function (AvailableResourceClassAction $item) use ($resourceClass, $action, $actionType) {
+                    return $item->getResourceClass() === $resourceClass
+                        && $item->getAction() === $action
+                        && $item->getActionType() === $actionType;
+                });
+            $this->assertCount(1, $matches,
+                "Expected exactly one AvailableResourceClassAction for resourceClass='$resourceClass', action='$action', actionType=$actionType");
+        }
     }
 }

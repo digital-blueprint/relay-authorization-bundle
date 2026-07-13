@@ -6,17 +6,16 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
-use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActions;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
 /**
- * @extends AbstractDataProvider<AvailableResourceClassActions>
+ * @extends AbstractDataProvider<AvailableResourceClassAction>
  *
  * @internal
  */
-class AvailableResourceClassActionsProvider extends AbstractDataProvider
+class AvailableResourceClassActionProvider extends AbstractDataProvider
 {
     protected static string $identifierName = 'resourceClass';
 
@@ -37,28 +36,25 @@ class AvailableResourceClassActionsProvider extends AbstractDataProvider
         $resourceClass = Common::getResourceClassFilter($filters);
         $resourceIdentifier = Common::getResourceIdentifierFilter($filters);
 
-        $availableResourceClassActionsEntities =
-            $this->internalResourceActionGrantService->getAvailableResourceClassActionsEntities(
+        $actionType = $resourceIdentifier !== null ?
+            AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier) :
+            null;
+
+        $availableResourceClassActionEntities =
+            $this->internalResourceActionGrantService->getAvailableResourceClassActionEntities(
                 $resourceClass,
-                AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier)
+                $actionType
             );
 
         $resourceClassesCurrentUserMayRead = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead(
-            Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage);
+            0, AuthorizationService::MAX_NUM_RESULTS_DEFAULT);
 
-        return array_filter($availableResourceClassActionsEntities,
-            function (AvailableResourceClassActions $availableResourceClassActions) use ($resourceClassesCurrentUserMayRead) {
-                return in_array($availableResourceClassActions->getResourceClass(), $resourceClassesCurrentUserMayRead, true);
-        });
-    }
+        $filteredEntities = array_values(array_filter($availableResourceClassActionEntities,
+            function (AvailableResourceClassAction $availableResourceClassAction) use ($resourceClassesCurrentUserMayRead) {
+                return in_array($availableResourceClassAction->getResourceClass(), $resourceClassesCurrentUserMayRead, true);
+            }
+        ));
 
-    public function getAvailableResourceClassActions(string $resourceClass): AvailableResourceClassActions
-    {
-        $availableResourceClassActions =
-            $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);
-
-        return new AvailableResourceClassActions($resourceClass,
-            $availableResourceClassActions[AvailableResourceClassAction::ITEM_ACTION_TYPE],
-            $availableResourceClassActions[AvailableResourceClassAction::COLLECTION_ACTION_TYPE]);
+        return array_slice($filteredEntities, Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage));
     }
 }
