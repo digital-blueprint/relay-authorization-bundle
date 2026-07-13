@@ -7,7 +7,9 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 
 abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase extends AbstractAuthorizationServiceTestCase
@@ -17,10 +19,13 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
         return $this->testEntityManager->getResourceActionGrantByIdentifier($identifier);
     }
 
-    protected function addResource(string $resourceClass = self::TEST_RESOURCE_CLASS,
-        string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER): AuthorizationResource
+    protected function addResource(
+        string $resourceClass = self::TEST_RESOURCE_CLASS,
+        string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER,
+        int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
     {
-        return $this->testEntityManager->addAuthorizationResource($resourceClass, $resourceIdentifier);
+        return $this->testEntityManager->addAuthorizationResource(
+            $resourceClass, $resourceIdentifier, $resourceType);
     }
 
     protected function addResourceAndManageGrant(string $resourceClass = self::TEST_RESOURCE_CLASS,
@@ -50,10 +55,15 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
     }
 
     protected function addGrant(AuthorizationResource $resource,
-        string $action = 'action',
-        string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
+        ?string $action = null,
+        ?string $userIdentifier = self::CURRENT_USER_IDENTIFIER,
+        ?Role $role = null): ResourceActionGrant
     {
-        return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
+        return $this->testEntityManager->addResourceActionGrant($resource,
+            action: $action,
+            userIdentifier: $userIdentifier,
+            role: $role
+        );
     }
 
     protected function addManageGrant(AuthorizationResource $resource,
