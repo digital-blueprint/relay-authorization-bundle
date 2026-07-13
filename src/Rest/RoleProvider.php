@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
@@ -24,22 +25,21 @@ class RoleProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->internalResourceActionGrantService->getRoleByIdentifier($id);
+        throw new \RuntimeException('Get item operation is not available');
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $getRoleFilters = [];
-        if ($resourceClass = $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null) {
-            $getRoleFilters[Common::RESOURCE_CLASS_QUERY_PARAMETER] = $resourceClass;
-        }
-        if ($resourceIdentifier = $filters[Common::ACTION_TYPE_QUERY_PARAMETER] ?? null) {
-            $getRoleFilters[Common::ACTION_TYPE_QUERY_PARAMETER] = $resourceIdentifier;
-        }
+        $resourceClass = $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
+        $resourceIdentifier = $filters[Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER] ?? null;
 
         return $this->internalResourceActionGrantService->getRoles(
+            $resourceClass,
+            $resourceIdentifier !== null ?
+                AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier) :
+                null,
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
-            $maxNumItemsPerPage,
-            $getRoleFilters);
+            $maxNumItemsPerPage
+        );
     }
 }

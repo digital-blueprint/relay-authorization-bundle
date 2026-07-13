@@ -6,7 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
@@ -19,13 +18,6 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiResource(
     shortName: 'AuthorizationRole',
     operations: [
-        new Get(
-            uriTemplate: '/authorization/roles/{identifier}',
-            openapi: new Operation(
-                tags: ['Authorization']
-            ),
-            provider: RoleProvider::class
-        ),
         new GetCollection(
             uriTemplate: '/authorization/roles',
             openapi: new Operation(
@@ -39,14 +31,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
                         schema: ['type' => 'string'],
                     ),
                     new Parameter(
-                        name: 'actionType',
+                        name: 'resourceIdentifier',
                         in: 'query',
-                        description: 'The action type to get roles for (0 = item actions, 1 = collection actions)',
+                        description: 'The resource identifier to get roles for',
                         required: false,
-                        schema: [
-                            'type' => 'integer',
-                            'enum' => [0, 1],
-                        ],
+                        schema: ['type' => 'string'],
                     ),
                 ],
             ),

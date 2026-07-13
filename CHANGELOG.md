@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- get available resource class actions operations: remove item operation; provide (expanded) collection of AvailableResourceClassAction entities, 
+  as found int the db instead collecting actions per resource class
+- Remove ResourceActionGrant get item operation
 - Add 'resourceType' to AuthorizationResource entity, do distinguish between simple resource and resource group resource types
 - Only allow to add resources to resource groups if they have the same resource class
 - Rename 'group' to 'user group' everywhere

@@ -14,7 +14,6 @@ class Common
     public const RESOURCE_IDENTIFIER_QUERY_PARAMETER = 'resourceIdentifier';
     public const RESOURCE_TYPE_QUERY_PARAMETER = 'resourceType';
     public const REQUIRED_PARAMETER_MISSION_ERROR_ID = 'authorization:required-parameter-missing';
-    public const ACTION_TYPE_QUERY_PARAMETER = 'actionType';
 
     public static function getResourceClassFilter(array $filters): ?string
     {

@@ -18,7 +18,6 @@ use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
-use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\ArrayParameterType;
@@ -206,6 +205,23 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
+     * @return AvailableResourceClassAction[]
+     */
+    public function getAvailableResourceClassActionEntities(?string $resourceClass = null, ?int $actionType = 0): array
+    {
+        $criteria = [];
+        if (null !== $resourceClass) {
+            $criteria['resourceClass'] = $resourceClass;
+        }
+        if (null !== $actionType) {
+            $criteria['actionType'] = $actionType;
+        }
+
+        return $this->entityManager->getRepository(AvailableResourceClassAction::class)
+            ->findBy($criteria);
+    }
+
+    /**
      * @throws ApiError
      */
     public function addRole(array $localizedRoleNames, array $roleActions): Role
@@ -275,14 +291,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
      *
      * @throws ApiError
      */
-    public function getRoles(int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT, array $filters = []): array
+    public function getRoles(?string $resourceClass = null, ?int $actionType = null,
+        int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $ROLE_ALIAS = 'r';
         $ROLE_ACTION_ALIAS = 'ra';
         $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
-
-        $resourceClass = $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
-        $actionType = $filters[Common::ACTION_TYPE_QUERY_PARAMETER] ?? null;
 
         try {
             // only get roles that have at least one role action for the given resource class and action type
@@ -1075,6 +1089,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         return $authorizationResource;
     }
 
+    /**
+     * @param string|null $resourceClass May be null for manage action
+     */
     private function getAvailableResourceClassAction(
         ?string $resourceClass,
         string $action,

@@ -23,30 +23,54 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->roleProviderTester = DataProviderTester::create($resourceActionGrantProvider, Role::class);
     }
 
-    public function testGetRoleByIdentifier(): void
+    public function testGetRolesBasic(): void
     {
-        $roleActions = [];
-        $roleActions[] = ResourceActionGrantService::createRoleAction(
-            TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE);
-        $roleActions[] = ResourceActionGrantService::createRoleAction(
-            TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE);
-        $localizedRoleNames = [
-            'en' => 'Creator',
-            'de' => 'Ersteller',
-        ];
-        $role = $this->internalResourceActionGrantService->addRole(
-            $localizedRoleNames, $roleActions
+        $roleActionRead = ResourceActionGrantService::createRoleAction(
+            TestResources::TEST_RESOURCE_CLASS,
+            TestResources::READ_ACTION,
+            ResourceActionGrantService::ITEM_ACTION_TYPE);
+        $roleActionCreate = ResourceActionGrantService::createRoleAction(
+            TestResources::TEST_RESOURCE_CLASS,
+            TestResources::CREATE_ACTION,
+            ResourceActionGrantService::COLLECTION_ACTION_TYPE);
+
+        $roleReadCreate = $this->internalResourceActionGrantService->addRole(
+            [
+                'en' => 'Creator',
+                'de' => 'Ersteller',
+            ],
+            [
+                $roleActionRead,
+                $roleActionCreate,
+            ]
+        );
+        $roleRead = $this->internalResourceActionGrantService->addRole([],
+            [
+                $roleActionRead,
+            ]
+        );
+        $roleCreate = $this->internalResourceActionGrantService->addRole([],
+            [
+                $roleActionCreate,
+            ]
         );
 
-        $roleReturned = $this->roleProviderTester->getItem($role->getIdentifier());
-        $this->assertEquals($role->getIdentifier(), $roleReturned->getIdentifier());
-        $roleNameEntities = $role->getRoleNames();
+        $rolesReturned = $this->roleProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
+            ]
+        );
+        $this->assertCount(2, $rolesReturned);
+        $roleReturned = $rolesReturned[0];
+        $this->assertEquals($roleReadCreate->getIdentifier(), $roleReturned->getIdentifier());
+        $roleNameEntities = $roleReadCreate->getRoleNames();
         $this->assertCount(2, $roleNameEntities);
         $this->assertEquals('en', $roleNameEntities[0]->getLanguageTag());
         $this->assertEquals('Creator', $roleNameEntities[0]->getName());
         $this->assertEquals('de', $roleNameEntities[1]->getLanguageTag());
         $this->assertEquals('Ersteller', $roleNameEntities[1]->getName());
-        $roleActionEntities = $role->getRoleActions();
+        $roleActionEntities = $roleReadCreate->getRoleActions();
         $this->assertCount(2, $roleActionEntities);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[0]->getAvailableResourceClassAction()->getResourceClass());
         $this->assertEquals(TestResources::READ_ACTION, $roleActionEntities[0]->getAvailableResourceClassAction()->getAction());
@@ -54,12 +78,52 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[1]->getAvailableResourceClassAction()->getResourceClass());
         $this->assertEquals(TestResources::CREATE_ACTION, $roleActionEntities[1]->getAvailableResourceClassAction()->getAction());
         $this->assertEquals(ResourceActionGrantService::COLLECTION_ACTION_TYPE, $roleActionEntities[1]->getAvailableResourceClassAction()->getActionType());
-    }
+        $rolesReturned = $rolesReturned[1];
+        $this->assertEquals($roleCreate->getIdentifier(), $rolesReturned->getIdentifier());
+        $roleActionEntities = $rolesReturned->getRoleActions();
+        $this->assertCount(1, $roleActionEntities);
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[0]->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals(TestResources::CREATE_ACTION, $roleActionEntities[0]->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(ResourceActionGrantService::COLLECTION_ACTION_TYPE, $roleActionEntities[0]->getAvailableResourceClassAction()->getActionType());
 
-    public function testGetRoleByIdentifierNotExisting(): void
-    {
-        $roleReturned = $this->roleProviderTester->getItem('non-existing-identifier');
-        $this->assertNull($roleReturned);
+        $rolesReturned = $this->roleProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
+            ]
+        );
+        $this->assertCount(2, $rolesReturned);
+        $roleReturned = $rolesReturned[0];
+        $this->assertEquals($roleReadCreate->getIdentifier(), $roleReturned->getIdentifier());
+        $roleNameEntities = $roleReadCreate->getRoleNames();
+        $this->assertCount(2, $roleNameEntities);
+        $this->assertEquals('en', $roleNameEntities[0]->getLanguageTag());
+        $this->assertEquals('Creator', $roleNameEntities[0]->getName());
+        $this->assertEquals('de', $roleNameEntities[1]->getLanguageTag());
+        $this->assertEquals('Ersteller', $roleNameEntities[1]->getName());
+        $roleActionEntities = $roleReadCreate->getRoleActions();
+        $this->assertCount(2, $roleActionEntities);
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[0]->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals(TestResources::READ_ACTION, $roleActionEntities[0]->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(ResourceActionGrantService::ITEM_ACTION_TYPE, $roleActionEntities[0]->getAvailableResourceClassAction()->getActionType());
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[1]->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals(TestResources::CREATE_ACTION, $roleActionEntities[1]->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(ResourceActionGrantService::COLLECTION_ACTION_TYPE, $roleActionEntities[1]->getAvailableResourceClassAction()->getActionType());
+        $rolesReturned = $rolesReturned[1];
+        $this->assertEquals($roleRead->getIdentifier(), $rolesReturned->getIdentifier());
+        $roleActionEntities = $rolesReturned->getRoleActions();
+        $this->assertCount(1, $roleActionEntities);
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[0]->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals(TestResources::READ_ACTION, $roleActionEntities[0]->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(ResourceActionGrantService::ITEM_ACTION_TYPE, $roleActionEntities[0]->getAvailableResourceClassAction()->getActionType());
+
+        $rolesReturned = $this->roleProviderTester->getCollection(
+            filters: [
+                Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS_2,
+                Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
+            ]
+        );
+        $this->assertCount(0, $rolesReturned);
     }
 
     public function testGetRoles(): void
