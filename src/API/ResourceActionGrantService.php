@@ -73,7 +73,7 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function removeGrantsForResource(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         $this->authorizationService->removeGrantsForResource($resourceClass, $resourceIdentifier, $resourceType);
     }
@@ -86,7 +86,7 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function removeGrantsForResources(
-        string $resourceClass, array $resourceIdentifiers, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null, array $resourceIdentifiers = [], ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         if (!empty($resourceIdentifiers)) {
             $this->authorizationService->removeGrantsForResources($resourceClass, $resourceIdentifiers, $resourceType);

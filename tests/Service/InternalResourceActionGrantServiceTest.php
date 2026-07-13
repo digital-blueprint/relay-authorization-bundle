@@ -365,7 +365,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertEquals($resourceActionGrant->getIdentifier(),
             $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier())->getIdentifier());
 
-        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(
+        $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
 
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($authorizationResource->getIdentifier()));
@@ -378,7 +378,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertEquals($authorizationResource->getIdentifier(),
             $this->testEntityManager->getAuthorizationResourceByIdentifier($authorizationResource->getIdentifier())->getIdentifier());
 
-        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
 
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($authorizationResource->getIdentifier()));
     }
@@ -403,7 +403,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertEquals($resourceActionGrantGroup->getIdentifier(),
             $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrantGroup->getIdentifier())->getIdentifier());
 
-        $this->internalResourceActionGrantService->removeAuthorizationResourceByResourceClassAndIdentifier(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
 
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($authorizationResource->getIdentifier()));
         // assert that group has not been deleted alongside with group grant
