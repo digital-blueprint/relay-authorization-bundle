@@ -23,12 +23,7 @@ class DynamicUserGroupProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        $dynamicGroup = null;
-        if (in_array($id, $this->authorizationService->getDynamicGroupsCurrentUserIsAuthorizedToRead(), true)) {
-            $dynamicGroup = new DynamicUserGroup($id);
-        }
-
-        return $dynamicGroup;
+        throw new \RuntimeException('Item operation is not available for this resource');
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
