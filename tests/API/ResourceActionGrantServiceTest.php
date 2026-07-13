@@ -126,6 +126,79 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier()));
     }
 
+    public function testRemoveGrantsForResourceWithResourceType(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resourceActionGrant = $this->testEntityManager->addResourceActionGrant(
+            $resource, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER, null);
+
+        $this->assertEquals($resource->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier())->getIdentifier());
+
+        $this->resourceActionGrantService->removeGrantsForResource(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE);
+
+        $this->assertEquals($resource->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier())->getIdentifier());
+
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER, null);
+
+        $this->assertEquals($resource2->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant2->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier())->getIdentifier());
+
+        $this->resourceActionGrantService->removeGrantsForResource(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: null);
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+    }
+
+    public function testRemoveGrantsForResourceWithoutResourceClass(): void
+    {
+        $resource1 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resourceActionGrant1 = $this->testEntityManager->addResourceActionGrant(
+            $resource1,
+            action: ResourceActionGrantService::MANAGE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertEquals($resource1->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant1->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier())->getIdentifier());
+
+        $resource2 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2,
+            action: ResourceActionGrantService::MANAGE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertEquals($resource2->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant2->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier())->getIdentifier());
+
+        $this->resourceActionGrantService->removeGrantsForResource(resourceIdentifier: self::TEST_RESOURCE_IDENTIFIER);
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+    }
+
     public function testRemoveGrantsForResources(): void
     {
         $resource1 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier1');
@@ -158,6 +231,244 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
         $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier()));
+    }
+
+    public function testRemoveGrantsForResourcesWithoutResourceClass(): void
+    {
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier1');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier2');
+        $resource3 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier3');
+
+        $resourceActionGrant1 = $this->testEntityManager->addResourceActionGrant(
+            $resource1, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant3 = $this->testEntityManager->addResourceActionGrant(
+            $resource3, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertEquals($resource1->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant1->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier())->getIdentifier());
+        $this->assertEquals($resource2->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant2->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resource3->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant3->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier())->getIdentifier());
+
+        $this->resourceActionGrantService->removeGrantsForResources(resourceIdentifiers: ['resourceIdentifier1', 'resourceIdentifier3']);
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier()));
+    }
+
+    public function testRemoveGrantsForResourcesWithResourceType(): void
+    {
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier1');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+        );
+        $resourceGroup2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE
+        );
+        $resource3 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier3');
+
+        $resourceActionGrant1 = $this->testEntityManager->addResourceActionGrant(
+            $resource1, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceGroupActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resourceGroup2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant3 = $this->testEntityManager->addResourceActionGrant(
+            $resource3, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertEquals($resource1->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant1->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier())->getIdentifier());
+        $this->assertEquals($resource2->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant2->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceGroup2->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resourceGroup2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceGroupActionGrant2->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceGroupActionGrant2->getIdentifier())->getIdentifier());
+        $this->assertEquals($resource3->getIdentifier(),
+            $this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier())->getIdentifier());
+        $this->assertEquals($resourceActionGrant3->getIdentifier(),
+            $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier())->getIdentifier());
+
+        $this->resourceActionGrantService->removeGrantsForResources(TestResources::TEST_RESOURCE_CLASS,
+            ['resourceIdentifier1', 'resourceIdentifier2', 'resourceIdentifier3'],
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE
+        );
+
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resourceGroup2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceGroupActionGrant2->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier()));
+
+        // -------------------------------------------------------------------------------------
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier1');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+        );
+        $resourceGroup2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE
+        );
+        $resource3 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier3');
+
+        $resourceActionGrant1 = $this->testEntityManager->addResourceActionGrant(
+            $resource1, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceGroupActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resourceGroup2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant3 = $this->testEntityManager->addResourceActionGrant(
+            $resource3, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->resourceActionGrantService->removeGrantsForResources(TestResources::TEST_RESOURCE_CLASS,
+            ['resourceIdentifier1', 'resourceIdentifier2', 'resourceIdentifier3'],
+            resourceType: ResourceActionGrantService::RESOURCE_RESOURCE_TYPE
+        );
+
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resourceGroup2->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceGroupActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier()));
+
+        // -------------------------------------------------------------------------------------
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier1');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+        );
+        $resourceGroup2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE
+        );
+        $resource3 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier3');
+
+        $resourceActionGrant1 = $this->testEntityManager->addResourceActionGrant(
+            $resource1, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceGroupActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resourceGroup2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant3 = $this->testEntityManager->addResourceActionGrant(
+            $resource3, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->resourceActionGrantService->removeGrantsForResources(TestResources::TEST_RESOURCE_CLASS,
+            ['resourceIdentifier1', 'resourceIdentifier2', 'resourceIdentifier3'],
+            resourceType: null
+        );
+
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resourceGroup2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceGroupActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier()));
+
+        // -------------------------------------------------------------------------------------
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier1');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+        );
+        $resourceGroup2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE
+        );
+        $resource3 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier3');
+
+        $resourceActionGrant1 = $this->testEntityManager->addResourceActionGrant(
+            $resource1, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceGroupActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resourceGroup2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant3 = $this->testEntityManager->addResourceActionGrant(
+            $resource3, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->resourceActionGrantService->removeGrantsForResources(null,
+            ['resourceIdentifier1', 'resourceIdentifier2', 'resourceIdentifier3'],
+            resourceType: ResourceActionGrantService::RESOURCE_RESOURCE_TYPE
+        );
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resourceGroup2->getIdentifier()));
+        $this->assertNotNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceGroupActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier()));
+
+        // -------------------------------------------------------------------------------------
+        $resource1 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS_2, 'resourceIdentifier1');
+        $resource2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+        );
+        $resourceGroup2 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier2',
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE
+        );
+        $resource3 = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, 'resourceIdentifier3');
+
+        $resourceActionGrant1 = $this->testEntityManager->addResourceActionGrant(
+            $resource1, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resource2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceGroupActionGrant2 = $this->testEntityManager->addResourceActionGrant(
+            $resourceGroup2, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrant3 = $this->testEntityManager->addResourceActionGrant(
+            $resource3, ResourceActionGrantService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+
+        $this->resourceActionGrantService->removeGrantsForResources(null,
+            ['resourceIdentifier1', 'resourceIdentifier2', 'resourceIdentifier3'],
+            resourceType: null
+        );
+
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant1->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resourceGroup2->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceGroupActionGrant2->getIdentifier()));
         $this->assertNull($this->testEntityManager->getAuthorizationResourceByIdentifier($resource3->getIdentifier()));
         $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant3->getIdentifier()));
     }
