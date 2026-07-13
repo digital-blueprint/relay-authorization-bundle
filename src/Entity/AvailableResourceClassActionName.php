@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
-/**
- * @internal
- */
+#[ApiResource(
+    shortName: 'AuthorizationAvailableResourceClassActionName',
+    operations: [],
+)]
 #[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class AvailableResourceClassActionName
@@ -25,9 +28,11 @@ class AvailableResourceClassActionName
 
     #[ORM\Id]
     #[ORM\Column(name: self::LANGUAGE_TAG_COLUMN_NAME, type: 'string', length: 2)]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?string $languageTag = null;
 
     #[ORM\Column(name: self::NAME_COLUMN_NAME, type: 'string', length: 64)]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?string $name = null;
 
     public function getAvailableResourceClassAction(): ?AvailableResourceClassAction
