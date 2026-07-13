@@ -436,23 +436,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     }
 
     /**
-     * @throws ApiError
-     */
-    public function removeAuthorizationResourceByResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
-    {
-        $this->removeResourcesInternal($resourceClass, $resourceIdentifier, $resourceType);
-    }
-
-    /**
-     * @param string[] $resourceIdentifiers
+     * @param string|array|null $resourceIdentifier
      *
      * @throws ApiError
      */
     public function removeAuthorizationResourcesByResourceClassAndIdentifier(
-        string $resourceClass, array $resourceIdentifiers, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null, mixed $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
-        $this->removeResourcesInternal($resourceClass, $resourceIdentifiers, $resourceType);
+        $this->removeResourcesInternal($resourceClass, $resourceIdentifier, $resourceType);
     }
 
     /**
@@ -1030,18 +1021,23 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
     /**
      * @param string|array|null $resourceIdentifiers
      */
-    private function removeResourcesInternal(string $resourceClass, mixed $resourceIdentifiers, int $resourceType): void
+    private function removeResourcesInternal(?string $resourceClass, mixed $resourceIdentifiers, ?int $resourceType): void
     {
         try {
             $RESOURCE_ALIAS = self::RESOURCE_ALIAS;
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-            $queryBuilder
-                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
-                ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
-                ->setParameter(':resourceClass', $resourceClass)
-                ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceType", ':resourceType'))
-                ->setParameter(':resourceType', $resourceType);
+            $queryBuilder = $this->entityManager->createQueryBuilder()
+                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS);
 
+            if (null !== $resourceClass) {
+                $queryBuilder
+                    ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
+                    ->setParameter(':resourceClass', $resourceClass);
+            }
+            if (null !== $resourceType) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceType", ':resourceType'))
+                    ->setParameter(':resourceType', $resourceType);
+            }
             if (is_array($resourceIdentifiers)) {
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->in("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifiers'))
