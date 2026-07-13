@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
 use Dbp\Relay\AuthorizationBundle\Rest\DynamicUserGroupProvider;
@@ -17,13 +16,6 @@ use Symfony\Component\Serializer\Attribute\Groups;
 #[ApiResource(
     shortName: 'AuthorizationDynamicUserGroup',
     operations: [
-        new Get(
-            uriTemplate: '/authorization/dynamic-user-groups/{identifier}',
-            openapi: new Operation(
-                tags: ['Authorization']
-            ),
-            provider: DynamicUserGroupProvider::class
-        ),
         new GetCollection(
             uriTemplate: '/authorization/dynamic-user-groups',
             openapi: new Operation(
