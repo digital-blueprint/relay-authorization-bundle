@@ -48,14 +48,14 @@ class TestEntityManager extends CoreTestEntityManager
         string $resourceClass, string $resourceIdentifier,
         int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
         ?string $action = null,
-        ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicGroupIdentifier = null,
+        ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         ?Role $role = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource(
             $resourceClass, $resourceIdentifier, $resourceType);
 
         return $this->addResourceActionGrant($authorizationResource,
-            $action, $userIdentifier, $userGroup, $dynamicGroupIdentifier, $role
+            $action, $userIdentifier, $userGroup, $dynamicUserGroupIdentifier, $role
         );
     }
 
@@ -257,20 +257,20 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addGroupMember(UserGroup $userGroup, ?string $userIdentifier = null, ?UserGroup $childGroup = null): UserGroupMember
     {
-        $groupMember = new UserGroupMember();
-        $groupMember->setIdentifier(Uuid::v7()->toRfc4122());
-        $groupMember->setUserGroup($userGroup);
-        $groupMember->setUserIdentifier($userIdentifier);
-        $groupMember->setChildGroup($childGroup);
+        $userGroupMember = new UserGroupMember();
+        $userGroupMember->setIdentifier(Uuid::v7()->toRfc4122());
+        $userGroupMember->setUserGroup($userGroup);
+        $userGroupMember->setUserIdentifier($userIdentifier);
+        $userGroupMember->setChildGroup($childGroup);
 
         try {
-            $this->entityManager->persist($groupMember);
+            $this->entityManager->persist($userGroupMember);
             $this->entityManager->flush();
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
 
-        return $groupMember;
+        return $userGroupMember;
     }
 
     public function deleteGroupMember(string $identifier): void
