@@ -69,17 +69,15 @@ class GrantedActions
     #[Groups(['AuthorizationGrantedActions:output'])]
     private ?string $resourceIdentifier = null;
 
+    #[ApiProperty(identifier: true)]
+    #[Groups(['AuthorizationGrantedActions:output'])]
+    private ?int $resourceType = null;
+
     /**
      * @var string[]
      */
     #[Groups(['AuthorizationGrantedActions:output'])]
     private array $actions = [];
-
-    /**
-     * @var AvailableResourceClassAction[]
-     */
-    #[Groups(['AuthorizationGrantedActions:output'])]
-    private array $otherResourceTypeActions = [];
 
     public function getResourceClass(): ?string
     {
@@ -96,19 +94,24 @@ class GrantedActions
         return $this->resourceIdentifier;
     }
 
-    public function getActions(): array
-    {
-        return $this->actions;
-    }
-
     public function setResourceIdentifier(?string $resourceIdentifier): void
     {
         $this->resourceIdentifier = $resourceIdentifier;
     }
 
-    public function getOtherResourceTypeActions(): ?array
+    public function getResourceType(): ?int
     {
-        return $this->otherResourceTypeActions;
+        return $this->resourceType;
+    }
+
+    public function setResourceType(?int $resourceType): void
+    {
+        $this->resourceType = $resourceType;
+    }
+
+    public function getActions(): array
+    {
+        return $this->actions;
     }
 
     #[Ignore]
@@ -121,11 +124,5 @@ class GrantedActions
                 $this->actions[] = $action;
             }
         }
-    }
-
-    #[Ignore]
-    public function addAvailableResourceClassAction(AvailableResourceClassAction $availableResourceClassAction): void
-    {
-        $this->otherResourceTypeActions[] = $availableResourceClassAction;
     }
 }
