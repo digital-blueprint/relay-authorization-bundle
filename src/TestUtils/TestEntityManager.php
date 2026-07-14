@@ -63,20 +63,27 @@ class TestEntityManager extends CoreTestEntityManager
         string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER,
         int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
     {
-        $resource = new AuthorizationResource();
-        $resource->setIdentifier(Uuid::v7()->toRfc4122());
-        $resource->setResourceClass($resourceClass);
-        $resource->setResourceIdentifier($resourceIdentifier);
-        $resource->setResourceType($resourceType);
+        $authorizationResource = $this->entityManager->getRepository(AuthorizationResource::class)->findOneBy([
+            'resourceClass' => $resourceClass,
+            'resourceIdentifier' => $resourceIdentifier,
+            'resourceType' => $resourceType,
+        ]);
+        if (null === $authorizationResource) {
+            $authorizationResource = new AuthorizationResource();
+            $authorizationResource->setIdentifier(Uuid::v7()->toRfc4122());
+            $authorizationResource->setResourceClass($resourceClass);
+            $authorizationResource->setResourceIdentifier($resourceIdentifier);
+            $authorizationResource->setResourceType($resourceType);
 
-        try {
-            $this->entityManager->persist($resource);
-            $this->entityManager->flush();
-        } catch (\Exception $exception) {
-            throw new \RuntimeException($exception->getMessage());
+            try {
+                $this->entityManager->persist($authorizationResource);
+                $this->entityManager->flush();
+            } catch (\Exception $exception) {
+                throw new \RuntimeException($exception->getMessage());
+            }
         }
 
-        return $resource;
+        return $authorizationResource;
     }
 
     public function deleteResourceActionGrant(string $identifier): void
@@ -316,10 +323,8 @@ class TestEntityManager extends CoreTestEntityManager
                 )
             );
             if ($resourceActionGrant->getAvailableResourceClassAction() === null) {
-                dump($resourceActionGrant->getResourceClass(), $action,
-                    AvailableResourceClassAction::getActionTypeForResourceIdentifier($authorizationResource->getResourceIdentifier()));
+                throw new \RuntimeException("action {$action} not defined for resource class {$resourceActionGrant->getResourceClass()}");
             }
-            assert($resourceActionGrant->getAvailableResourceClassAction() !== null);
         }
         $resourceActionGrant->setRole($role);
         $resourceActionGrant->setUserIdentifier($userIdentifier);
