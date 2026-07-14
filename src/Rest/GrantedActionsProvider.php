@@ -50,7 +50,7 @@ class GrantedActionsProvider extends AbstractDataProvider
                 [];
         }
 
-        return $this->authorizationService->getGrantedActionsPageForCurrentUser($resourceClass,
+        return $this->authorizationService->getGrantedActionsCollectionForCurrentUser($resourceClass,
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
             maxNumResults: $maxNumItemsPerPage
         );

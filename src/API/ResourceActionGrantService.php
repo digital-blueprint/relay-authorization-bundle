@@ -185,7 +185,7 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function getGrantedActionsPageForCurrentUser(
+    public function getGrantedActionsCollectionForCurrentUser(
         ?string $resourceClass = null,
         ?string $resourceIdentifier = null,
         ?int $resourceType = self::RESOURCE_RESOURCE_TYPE,
@@ -193,7 +193,7 @@ class ResourceActionGrantService
         bool $excludeCollectionResource = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        return $this->authorizationService->getGrantedActionsPageForCurrentUser(
+        return $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
             $resourceClass, $resourceIdentifier, $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
             excludeCollectionResource: $excludeCollectionResource,
