@@ -516,7 +516,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $resource1 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $resource2 = $this->testEntityManager->addAuthorizationResource(TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS);
         $this->assertEmpty($grantedActionsPage);
 
@@ -528,7 +528,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             ResourceActionGrantService::MANAGE_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($resource2, 'read', self::CURRENT_USER_IDENTIFIER);
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS);
         $this->assertCount(2, $grantedActionsPage);
         $this->assertCount(1, $this->selectWhere($grantedActionsPage,
@@ -546,7 +546,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             }
         ));
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS,
             whereIsGrantedAction: ResourceActionGrantService::MANAGE_ACTION);
         $this->assertCount(1, $grantedActionsPage);
@@ -558,7 +558,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             }
         ));
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS,
             whereIsGrantedAction: TestResources::WRITE_ACTION
         );
@@ -571,7 +571,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             }
         ));
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS,
             whereIsGrantedAction: TestResources::DELETE_ACTION);
         $this->assertCount(1, $grantedActionsPage);
@@ -583,7 +583,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             }
         ));
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS_2);
         $this->assertCount(0, $grantedActionsPage);
 
@@ -591,7 +591,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         // another user:
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS);
         $this->assertCount(2, $grantedActionsPage);
         $this->assertCount(1, $this->selectWhere($grantedActionsPage,
@@ -609,7 +609,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             }
         ));
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS,
             whereIsGrantedAction: ResourceActionGrantService::MANAGE_ACTION);
         $this->assertCount(1, $grantedActionsPage);
@@ -621,7 +621,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             }
         ));
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS,
             whereIsGrantedAction: TestResources::READ_ACTION);
         $this->assertCount(2, $grantedActionsPage);
@@ -640,7 +640,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             }
         ));
 
-        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsPageForCurrentUser(
+        $grantedActionsPage = $this->resourceActionGrantService->getGrantedActionsCollectionForCurrentUser(
             TestResources::TEST_RESOURCE_CLASS,
             whereIsGrantedAction: TestResources::WRITE_ACTION);
         $this->assertCount(1, $grantedActionsPage);
