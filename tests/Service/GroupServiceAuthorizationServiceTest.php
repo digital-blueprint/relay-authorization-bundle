@@ -91,7 +91,10 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
 
         $resourceActionGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             TestEntityManager::DEFAULT_RESOURCE_CLASS,
-            TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, 'read', null, $userGroup);
+            TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER,
+            action: 'read',
+            userGroup: $userGroup
+        );
         $this->assertEquals($resourceActionGrant->getIdentifier(),
             $this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier())->getIdentifier());
 

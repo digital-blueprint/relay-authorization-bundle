@@ -3027,7 +3027,8 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             self::TEST_RESOURCE_CLASS_2,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
-            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            action: AuthorizationService::MANAGE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrants = $this->testEntityManager->getResourceActionGrants(
             $collectionResource->getIdentifier());
@@ -3220,7 +3221,8 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $manageGroupCollectionGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             AuthorizationService::GROUP_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
-            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            action: AuthorizationService::MANAGE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($manageGroupCollectionGrant->getAuthorizationResource(),
             AuthorizationService::CREATE_GROUPS_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
