@@ -258,7 +258,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $this->entityManager->persist($role);
             $this->entityManager->flush();
         } catch (\Throwable $throwable) {
-            dump($throwable);
             $this->logger->error('Failed to add role: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Role could not be added!',
                 self::ADDING_ROLE_FAILED_ERROR_ID);
@@ -754,7 +753,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                 }
             }
         } catch (\Throwable $throwable) {
-            dump($throwable);
             $this->logger->error("Failed to get $get: ".$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 "Failed to get $get",
@@ -1147,7 +1145,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
             $this->entityManager->persist($resourceActionGrant);
             $this->entityManager->flush();
         } catch (\Throwable $throwable) {
-            dump($throwable->getMessage());
             $this->logger->error('Failed to add resource action grant: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
                 self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);

@@ -322,7 +322,6 @@ class UserGroupService implements LoggerAwareInterface
                 'userGroupIdentifier' => $userGroupIdentifier,
                 'exception' => $throwable,
             ]);
-            dump($throwable);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection',
                 self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID);
         }

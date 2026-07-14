@@ -2542,6 +2542,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $resource2 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2);
+
+        // NOTE: remove the already existing collection resource and manage resource collection grant (automatically created)
+        $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
+            self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $resourceCollection = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $resourceGroup = $this->testEntityManager->addAuthorizationResource(
