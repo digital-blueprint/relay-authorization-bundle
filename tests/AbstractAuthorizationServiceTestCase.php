@@ -85,7 +85,9 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         $userGroup = $this->testEntityManager->addUserGroup($groupName);
         $manageGroupGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             AuthorizationService::GROUP_RESOURCE_CLASS, $userGroup->getIdentifier(),
-            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            action: AuthorizationService::MANAGE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER
+        );
 
         return [$userGroup, $manageGroupGrant];
     }
