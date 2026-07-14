@@ -713,8 +713,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     case self::GET_GRANTED_ACTIONS:
                         $effectiveResourceIdentifier = $row['effective_resource_identifier'];
                         $effectiveResourceClass = $row['effective_resource_class'];
+                        $effectiveResourceType = (int) $row['effective_resource_type'];
                         $actionResourceClass = $row['action_resource_class'];
-                        $availableResourceClassActionIdentifier = $row['identifier'];
                         $action = $row['action'];
                         $actionType = $row['action_type'];
 
@@ -722,6 +722,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                             $grantedActionsEntity = new GrantedActions();
                             $grantedActionsEntity->setResourceClass($effectiveResourceClass);
                             $grantedActionsEntity->setResourceIdentifier($effectiveResourceIdentifier);
+                            $grantedActionsEntity->setResourceType($effectiveResourceType);
                             $results[] = $grantedActionsEntity;
                         }
 
@@ -731,12 +732,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                         ) {
                             $grantedActionsEntity->addAction($action);
                         } else {
-                            $availableResourceClassAction = new AvailableResourceClassAction();
-                            $availableResourceClassAction->setIdentifier($availableResourceClassActionIdentifier);
-                            $availableResourceClassAction->setResourceClass($actionResourceClass);
-                            $availableResourceClassAction->setAction($action);
-                            $availableResourceClassAction->setActionType($actionType);
-                            $grantedActionsEntity->addAvailableResourceClassAction($availableResourceClassAction);
+                            throw new \RuntimeException(sprintf(
+                                'Invalid action "%s" for resource class "%s" and resource identifier "%s"!',
+                                $action, $effectiveResourceClass, $effectiveResourceIdentifier));
                         }
                         break;
                     case self::GET_RESOURCE_ACTION_GRANTS:
@@ -785,6 +783,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         $EXPANDED_RESOURCE_ALIAS = self::EXPANDED_RESOURCE_ALIAS;
         $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
         $ROLE_ACTION_ALIAS = self::ROLE_ACTION_ALIAS;
+        $COLLECTION_RESOURCE_IDENTIFIER = self::COLLECTION_RESOURCE_IDENTIFIER;
 
         $parameterValues = [];
         $parameterTypes = [];
@@ -800,7 +799,22 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.resource_class as action_resource_class,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_class,
-                    $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier";
+                    $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier,
+                    $EXPANDED_RESOURCE_ALIAS.effective_resource_type";
+
+                $actionsAvailabilityCriteria = "
+                (
+                    $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.resource_class IS NULL
+                    OR $EXPANDED_RESOURCE_ALIAS.effective_resource_class = $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.resource_class
+                ) AND (
+                    (
+                        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type = 0
+                        AND $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier != '$COLLECTION_RESOURCE_IDENTIFIER'
+                    ) OR (
+                        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type = 1
+                        AND $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier = '$COLLECTION_RESOURCE_IDENTIFIER'
+                    )
+                )";
                 break;
 
             case self::GET_RESOURCE_ACTION_GRANTS:
@@ -816,6 +830,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_class,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier,
+                    $EXPANDED_RESOURCE_ALIAS.effective_resource_type,
                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
                 $groupByStatement = "GROUP BY
                     $RESOURCE_ACTION_GRANT_ALIAS.identifier,
@@ -884,22 +899,25 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
                         SELECT $AUTHORIZATION_RESOURCE_ALIAS.identifier as authorization_resource_identifier,
                                $AUTHORIZATION_RESOURCE_ALIAS.identifier AS effective_authorization_resource_identifier,
                                $AUTHORIZATION_RESOURCE_ALIAS.resource_class AS effective_resource_class,
-                               $AUTHORIZATION_RESOURCE_ALIAS.resource_identifier AS effective_resource_identifier
+                               $AUTHORIZATION_RESOURCE_ALIAS.resource_identifier AS effective_resource_identifier,
+                               $AUTHORIZATION_RESOURCE_ALIAS.resource_type AS effective_resource_type
                         FROM authorization_resources $AUTHORIZATION_RESOURCE_ALIAS
                         WHERE $authorizationResourceCriteria
                         UNION ALL
                         SELECT ar_rgm_n.group_authorization_resource_identifier as authorization_resource_identifier,
                                cte.effective_authorization_resource_identifier,
                                cte.effective_resource_class,
-                               cte.effective_resource_identifier
+                               cte.effective_resource_identifier,
+                               cte.effective_resource_type
                         FROM authorization_resource_group_members ar_rgm_n
-                        INNER JOIN cte 
+                        INNER JOIN cte
                             ON ar_rgm_n.member_authorization_resource_identifier = cte.authorization_resource_identifier
                     )
                     SELECT cte.authorization_resource_identifier,
                            cte.effective_authorization_resource_identifier,
                            cte.effective_resource_class,
-                           cte.effective_resource_identifier FROM cte
+                           cte.effective_resource_identifier,
+                           cte.effective_resource_type FROM cte
                 ) AS $EXPANDED_RESOURCE_ALIAS
                     ON $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $EXPANDED_RESOURCE_ALIAS.authorization_resource_identifier
                         OR $RESOURCE_ACTION_GRANT_ALIAS.authorization_resource_identifier = $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier
@@ -1282,6 +1300,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
         $resourceActionGrant->setResourceClass($row['effective_resource_class']);
         $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
+        $resourceActionGrant->setResourceType((int) $row['effective_resource_type']);
         $resourceActionGrant->setAuthorizationResourceIdentifier(
             UuidUtils::toStringUuid($row['effective_authorization_resource_identifier']));
         if (($role_identifier = $row['role_identifier']) !== null) {
