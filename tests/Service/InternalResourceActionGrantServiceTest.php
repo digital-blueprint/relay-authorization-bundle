@@ -418,7 +418,8 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
     {
         $resourceActionGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
+            action: TestResources::READ_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $this->internalResourceActionGrantService->removeResourceActionGrant($resourceActionGrant);
 
