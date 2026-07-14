@@ -279,7 +279,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      *
      * @throws ApiError
      */
-    public function getGrantedActionsPageForCurrentUser(
+    public function getGrantedActionsCollectionForCurrentUser(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE,
         ?string $whereIsGrantedAction = null, bool $excludeCollectionResource = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
