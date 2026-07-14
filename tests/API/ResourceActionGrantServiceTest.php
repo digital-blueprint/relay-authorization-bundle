@@ -729,7 +729,8 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
     {
         $rag1 = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0], self::CURRENT_USER_IDENTIFIER);
+            action: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0],
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $rag2 = $this->testEntityManager->addResourceActionGrant($rag1->getAuthorizationResource(),
             array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[1], dynamicUserGroupIdentifier: 'everybody');
 

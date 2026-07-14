@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
+use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
@@ -44,11 +45,14 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addAuthorizationResourceAndActionGrant(
-        string $resourceClass, string $resourceIdentifier, ?string $action = null,
+        string $resourceClass, string $resourceIdentifier,
+        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+        ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicGroupIdentifier = null,
         ?Role $role = null): ResourceActionGrant
     {
-        $authorizationResource = $this->addAuthorizationResource($resourceClass, $resourceIdentifier);
+        $authorizationResource = $this->addAuthorizationResource(
+            $resourceClass, $resourceIdentifier, $resourceType);
 
         return $this->addResourceActionGrant($authorizationResource,
             $action, $userIdentifier, $userGroup, $dynamicGroupIdentifier, $role
