@@ -411,7 +411,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 ->setMaxResults($maxNumResults)
                 ->execute();
         } catch (\Throwable $throwable) {
-            dump($throwable);
             $this->logger->error('Failed to get groups: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get groups!');
@@ -736,7 +735,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
             return $results;
         } catch (\Exception $e) {
-            dump($e);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get resource action grant collection!',
                 InternalResourceActionGrantService::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID,
