@@ -33,8 +33,8 @@ class AvailableResourceClassActionProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $resourceClass = Common::getResourceClassFilter($filters);
-        $resourceIdentifier = Common::getResourceIdentifierFilter($filters);
+        $resourceClass = Common::getResourceClassQueryParameter($filters);
+        $resourceIdentifier = Common::getResourceIdentifierQueryParameter($filters);
 
         $actionType = $resourceIdentifier !== null ?
             AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier) :

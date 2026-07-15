@@ -30,9 +30,9 @@ class ResourceActionGrantProvider extends AbstractDataProvider
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
         return $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
-            Common::getResourceClassFilter($filters),
-            Common::getResourceIdentifierFilter($filters),
-            Common::getResourceTypeFilter($filters),
+            Common::getResourceClassQueryParameter($filters),
+            Common::getResourceIdentifierQueryParameter($filters),
+            Common::getResourceTypeQueryParameter($filters),
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
             maxNumResults: $maxNumItemsPerPage);
     }
