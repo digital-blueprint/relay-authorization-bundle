@@ -196,7 +196,7 @@ class ResourceActionGrantService
         return $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
             $resourceClass, $resourceIdentifier, $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
-            excludeCollectionResource: $excludeCollectionResource,
+            excludeCollectionResources: $excludeCollectionResource,
             firstResultIndex: $firstResultIndex,
             maxNumResults: min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }

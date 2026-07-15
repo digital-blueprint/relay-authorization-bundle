@@ -40,17 +40,26 @@ class GrantedActionsProvider extends AbstractDataProvider
      */
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $resourceClass = Common::getResourceClassFilter($filters);
-        $resourceIdentifier = Common::getResourceIdentifierFilter($filters);
-        $resourceType = Common::getResourceTypeFilter($filters);
+        $resourceClass = Common::getResourceClassQueryParameter($filters);
+        $resourceIdentifier = Common::getResourceIdentifierQueryParameter($filters);
+        $resourceType = Common::getResourceTypeQueryParameter($filters);
+        $excludeCollectionResources = Common::getExcludeCollectionResourcesFilter($filters);
+        $whereIsGrantedAction = Common::getWhereIsGrantedActionFilter($filters);
 
-        if (null !== $resourceClass && null !== $resourceIdentifier) {
+        if (null !== $resourceClass
+            && null !== $resourceIdentifier
+            && null !== $resourceType
+            && null === $whereIsGrantedAction
+            && (false === $excludeCollectionResources
+                || AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER !== $resourceIdentifier)) {
             return ($grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier, $resourceType)) ?
                 [$grantedActions] :
                 [];
         }
 
         return $this->authorizationService->getGrantedActionsCollectionForCurrentUser($resourceClass,
+            whereIsGrantedAction: $whereIsGrantedAction,
+            excludeCollectionResources: $excludeCollectionResources,
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
             maxNumResults: $maxNumItemsPerPage
         );
