@@ -816,6 +816,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
         $actionsAvailabilityCriteria = 'true';
         $groupByStatement = '';
+        // we order the results to make pagination results deterministic
+        $orderByStatement = '';
 
         switch ($get) {
             case self::GET_GRANTED_ACTIONS:
@@ -841,6 +843,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         AND $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier = '$COLLECTION_RESOURCE_IDENTIFIER'
                     )
                 )";
+
+                $orderByStatement = "ORDER BY
+                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
                 break;
 
             case self::GET_RESOURCE_ACTION_GRANTS:
@@ -858,6 +863,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_type,
                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
+
                 $groupByStatement = "GROUP BY
                     $RESOURCE_ACTION_GRANT_ALIAS.identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.user_identifier,
@@ -866,6 +872,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $RESOURCE_ACTION_GRANT_ALIAS.role_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier,
                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
+
+                $orderByStatement = "ORDER BY
+                    $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier,
+                    $RESOURCE_ACTION_GRANT_ALIAS.identifier";
                 break;
 
             case self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS:
@@ -873,6 +883,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_class,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier";
+
+                $orderByStatement = "ORDER BY
+                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
                 break;
 
             case self::GET_RESOURCE_CLASSES:
@@ -902,23 +915,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $parameterTypes = array_merge($parameterTypes, $additionalCriteriaOption[2] ?? []);
         }
 
-        // order the results to make pagination results deterministic
-        $orderByStatement = $limitAndOffsetStatement = '';
-        if ($maxNumResults !== null || $firstResultIndex > 0) {
-            if ($get === self::GET_RESOURCE_ACTION_GRANTS) {
-                $orderByStatement =
-                    "ORDER BY
-                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
-            } else {
-                $orderByStatement =
-                    "ORDER BY
-                    $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.identifier";
-            }
-
-            $limitAndOffsetStatement = ($maxNumResults !== null ? "LIMIT $maxNumResults" : '').
-                ($firstResultIndex > 0 ? " OFFSET $firstResultIndex" : '');
-        }
+        $limitAndOffsetStatement = ($maxNumResults !== null ? "LIMIT $maxNumResults" : '').
+            ($firstResultIndex > 0 ? " OFFSET $firstResultIndex" : '');
 
         $sql = "SELECT $select
                 FROM authorization_resource_action_grants $RESOURCE_ACTION_GRANT_ALIAS
