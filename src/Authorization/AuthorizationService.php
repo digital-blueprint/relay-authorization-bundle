@@ -281,11 +281,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getGrantedActionsCollectionForCurrentUser(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $whereIsGrantedAction = null, bool $excludeCollectionResource = true,
+        ?string $whereIsGrantedAction = null, bool $excludeCollectionResources = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        // TODO: if resourceClass is not provided and whereIsGrantedAction is provided and other than manage we can't test
-        // for action availability
         $currentUserIdentifier = $this->getUserIdentifier();
 
         if ($whereIsGrantedAction === null) {
@@ -293,14 +291,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         } elseif ($whereIsGrantedAction === self::MANAGE_ACTION) {
             $whereActionsContainAnyOf = [self::MANAGE_ACTION];
         } else {
-            // if the requested action is not available, it can't be granted either
-            // we might overthink this, to still return granted actions for resources where the user has a manage grant
-            if ($this->internalResourceActionGrantService->isAvailableResourceClassAction(
-                $resourceClass, $whereIsGrantedAction, null)) {
-                $whereActionsContainAnyOf = [$whereIsGrantedAction, self::MANAGE_ACTION];
-            } else {
-                return [];
-            }
+            $whereActionsContainAnyOf = [$whereIsGrantedAction, self::MANAGE_ACTION];
         }
 
         return $this->internalResourceActionGrantService->getGrantedActionsForResourcePage(
@@ -312,7 +303,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
             firstResultIndex: $firstResultIndex,
             maxNumResults: $maxNumResults,
-            options: [InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResource]);
+            options: [InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResources]);
     }
 
     /**
