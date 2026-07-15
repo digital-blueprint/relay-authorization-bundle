@@ -1929,7 +1929,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS));
     }
 
-    public function testGetGrantedResourceActionsPageForCurrentUserWithCommonResourceAttributes(): void
+    public function testGetGrantedActionsCollectionForCurrentUserWithCommonResourceAttributes(): void
     {
         $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             self::TEST_RESOURCE_CLASS,
@@ -2040,6 +2040,79 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER_2
                 && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE;
         }));
+    }
+
+    public function testGetGrantedActionsCollectionForCurrentUserOrderByAuthorizationResource(): void
+    {
+        // add grants unordered by resource to see if the result is ordered by resource (which the granted actions collection logic
+        // depends on)
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER,
+            action: AuthorizationService::MANAGE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER
+        );
+        $rag2 = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER_2,
+            action: AuthorizationService::MANAGE_ACTION,
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER
+        );
+        $rag3 = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER.'_3',
+            action: AuthorizationService::MANAGE_ACTION,
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER
+        );
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+            action: TestResources::UPDATE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER
+        );
+
+        $this->testEntityManager->addResourceToResourceGroup(
+            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_GROUP_IDENTIFIER,
+            self::TEST_RESOURCE_IDENTIFIER_2
+        );
+
+        $this->testEntityManager->addResourceActionGrant($rag2->getAuthorizationResource(),
+            action: TestResources::READ_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER
+        );
+        $this->testEntityManager->addResourceActionGrant($rag3->getAuthorizationResource(),
+            action: TestResources::WRITE_ACTION,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER
+        );
+
+        $grantedActionsCollection = $this->authorizationService->getGrantedActionsCollectionForCurrentUser();
+        $this->assertCount(3, $grantedActionsCollection);
+
+        $this->assertCount(1, $this->selectWhere($grantedActionsCollection,
+            function (GrantedActions $grantedActions) {
+                return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
+                    && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER;
+            }
+        ));
+        $this->assertCount(1, $this->selectWhere($grantedActionsCollection,
+            function (GrantedActions $grantedActions) {
+                return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $this->isPermutationOf([
+                        TestResources::READ_ACTION,
+                        TestResources::UPDATE_ACTION,
+                    ], $grantedActions->getActions())
+                    && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER_2;
+            }
+        ));
+        $this->assertCount(1, $this->selectWhere($grantedActionsCollection,
+            function (GrantedActions $grantedActions) {
+                return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $grantedActions->getActions() === [TestResources::WRITE_ACTION]
+                    && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3';
+            }
+        ));
     }
 
     public function testIsCurrentUserGrantedItemActionWithManageGrant(): void
