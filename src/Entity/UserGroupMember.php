@@ -15,9 +15,6 @@ use Dbp\Relay\AuthorizationBundle\Rest\UserGroupMemberProvider;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
-/**
- * @internal
- */
 #[ApiResource(
     shortName: 'AuthorizationUserGroupMember',
     operations: [

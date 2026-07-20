@@ -6,9 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @internal
- */
 #[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class ResourceGroupMember
