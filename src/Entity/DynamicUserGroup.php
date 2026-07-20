@@ -10,9 +10,6 @@ use ApiPlatform\OpenApi\Model\Operation;
 use Dbp\Relay\AuthorizationBundle\Rest\DynamicUserGroupProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 
-/**
- * @internal
- */
 #[ApiResource(
     shortName: 'AuthorizationDynamicUserGroup',
     operations: [
