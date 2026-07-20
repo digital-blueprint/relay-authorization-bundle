@@ -16,6 +16,7 @@ class ResourceActionGrantService
     public const COLLECTION_RESOURCE_IDENTIFIER = AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
 
     public const MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
+    public const MANAGER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
 
     public const ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
     public const COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;
@@ -26,7 +27,10 @@ class ResourceActionGrantService
     public const MAX_NUM_RESULTS_DEFAULT = 30;
     public const MAX_NUM_RESULTS_MAX = 1024;
 
-    public static function createRoleAction(string $resourceClass, string $action, int $actionType): array
+    public static function createRoleAction(
+        ?string $resourceClass,
+        string $action,
+        int $actionType = AvailableResourceClassAction::ITEM_ACTION_TYPE): array
     {
         return [
             'resourceClass' => $resourceClass,
@@ -61,9 +65,9 @@ class ResourceActionGrantService
             $resourceClass, $itemActions, $collectionActions);
     }
 
-    public function addRole(array $localizedRoleNames, array $roleActions): Role
+    public function addRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
     {
-        return $this->authorizationService->addRole($localizedRoleNames, $roleActions);
+        return $this->authorizationService->addRole($localizedRoleNames, $roleActions, $identifier);
     }
 
     /**

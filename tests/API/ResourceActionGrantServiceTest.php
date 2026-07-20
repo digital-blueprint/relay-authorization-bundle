@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
 
 class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCase
@@ -775,5 +776,9 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleActionEntities[1]->getAvailableResourceClassAction()->getResourceClass());
         $this->assertEquals(TestResources::CREATE_ACTION, $roleActionEntities[1]->getAvailableResourceClassAction()->getAction());
         $this->assertEquals(ResourceActionGrantService::COLLECTION_ACTION_TYPE, $roleActionEntities[1]->getAvailableResourceClassAction()->getActionType());
+
+        $roleIdentifier = Uuid::v7()->toRfc4122();
+        $role = $this->resourceActionGrantService->addRole($localizedRoleNames, $roleActions, $roleIdentifier);
+        $this->assertEquals($roleIdentifier, $role->getIdentifier());
     }
 }
