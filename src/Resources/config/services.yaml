@@ -33,6 +33,7 @@ services:
   Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService:
     autowire: true
     autoconfigure: true
+    public: true
 
   Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider:
     autowire: true
