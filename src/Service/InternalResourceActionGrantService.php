@@ -232,10 +232,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * @throws ApiError
      */
-    public function addRole(array $localizedRoleNames, array $roleActions): Role
+    public function addRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
     {
         $role = new Role();
-        $role->setIdentifier(Uuid::v7()->toRfc4122());
+        $role->setIdentifier($identifier ?? Uuid::v7()->toRfc4122());
         foreach ($localizedRoleNames as $languageTag => $name) {
             $roleName = new RoleName();
             $roleName->setRole($role);

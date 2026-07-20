@@ -131,9 +131,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $resourceClass, $itemActions, $collectionActions);
     }
 
-    public function addRole(array $localizedRoleNames, array $roleActions): Role
+    public function addRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
     {
-        return $this->internalResourceActionGrantService->addRole($localizedRoleNames, $roleActions);
+        return $this->internalResourceActionGrantService->addRole($localizedRoleNames, $roleActions, $identifier);
     }
 
     /**
