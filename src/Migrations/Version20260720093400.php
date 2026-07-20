@@ -36,6 +36,5 @@ final class Version20260720093400 extends EntityManagerMigration
             ],
             identifier: ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
         );
-
     }
 }

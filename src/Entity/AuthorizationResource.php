@@ -8,9 +8,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * @internal
- */
 #[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class AuthorizationResource

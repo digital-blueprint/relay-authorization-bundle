@@ -59,9 +59,9 @@ class ResourceActionGrantService
      * @param array<string, array<string, string>> $collectionActions A mapping from collection action names to their localized names
      */
     public function setAvailableResourceClassActions(string $resourceClass,
-        array $itemActions, array $collectionActions): void
+        array $itemActions, array $collectionActions): array
     {
-        $this->authorizationService->setAvailableResourceClassActions(
+        return $this->authorizationService->setAvailableResourceClassActions(
             $resourceClass, $itemActions, $collectionActions);
     }
 

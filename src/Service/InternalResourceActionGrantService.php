@@ -107,28 +107,34 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     public static function updateAvailableResourceClassActionsStatic(EntityManagerInterface $entityManager,
-        string $resourceClass, array $itemActions, array $collectionActions): void
+        string $resourceClass, array $itemActions, array $collectionActions): array
     {
-        self::updateAvailableResourceClassActionsInternal($entityManager,
-            $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE);
-        self::updateAvailableResourceClassActionsInternal($entityManager,
-            $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        return [
+            AvailableResourceClassAction::ITEM_ACTION_TYPE => self::updateAvailableResourceClassActionsInternal($entityManager,
+                $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+            AvailableResourceClassAction::COLLECTION_ACTION_TYPE => self::updateAvailableResourceClassActionsInternal($entityManager,
+                $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
+        ];
     }
 
     /**
+     * @return AvailableResourceClassAction[]
+     *
      * @throw ApiError
      */
     public static function updateAvailableResourceClassActionsInternal(EntityManagerInterface $entityManager,
-        string $resourceClass, array $availableActions, int $actionType): void
+        string $resourceClass, array $availableActions, int $actionType): array
     {
+        $availableResourceClassActions = [];
         try {
             foreach ($availableActions as $action => $actionNames) {
-                $availableResourceClassAction = $entityManager->getRepository(AvailableResourceClassAction::class)
-                    ->findOneBy([
-                        'resourceClass' => $resourceClass,
-                        'action' => $action,
-                        'actionType' => $actionType,
-                    ]);
+                $availableResourceClassAction =
+                    $entityManager->getRepository(AvailableResourceClassAction::class)
+                        ->findOneBy([
+                            'resourceClass' => $resourceClass,
+                            'action' => $action,
+                            'actionType' => $actionType,
+                        ]);
                 if (null === $availableResourceClassAction) {
                     $availableResourceClassAction = new AvailableResourceClassAction();
                     $availableResourceClassAction->setIdentifier(Uuid::v7()->toRfc4122());
@@ -136,6 +142,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $availableResourceClassAction->setAction($action);
                     $availableResourceClassAction->setActionType($actionType);
                 }
+                $availableResourceClassActions[] = $availableResourceClassAction;
 
                 $names = [];
                 foreach ($actionNames as $languageTag => $name) {
@@ -161,6 +168,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 'Available resource class actions could not be added!',
                 self::ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID);
         }
+
+        return $availableResourceClassActions;
     }
 
     private array $isAvailableResourceClassActionsRequestCache = [];
@@ -185,9 +194,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      * @throws ApiError
      */
     public function setAvailableResourceClassActions(string $resourceClass,
-        array $itemActions, array $collectionActions): void
+        array $itemActions, array $collectionActions): array
     {
-        self::updateAvailableResourceClassActionsStatic($this->entityManager,
+        return self::updateAvailableResourceClassActionsStatic($this->entityManager,
             $resourceClass, $itemActions, $collectionActions);
     }
 
