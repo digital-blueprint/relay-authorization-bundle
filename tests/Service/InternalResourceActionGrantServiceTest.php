@@ -21,7 +21,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
     {
         parent::setUp();
 
-        $this->internalResourceActionGrantService->ensureManageActionsAreAvailable();
+        InternalResourceActionGrantService::ensureManageActionsAndRoleAreAvailable($this->testEntityManager->getEntityManager());
         $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
             TestResources::TEST_RESOURCE_ITEM_ACTIONS,
             TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);

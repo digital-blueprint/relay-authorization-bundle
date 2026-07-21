@@ -16,7 +16,7 @@ class ResourceActionGrantService
     public const COLLECTION_RESOURCE_IDENTIFIER = AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
 
     public const MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
-    public const MANAGER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
+    public const MANAGER_ROLE_IDENTIFIER = AuthorizationService::MANAGER_ROLE_IDENTIFIER;
 
     public const ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
     public const COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;
@@ -104,12 +104,12 @@ class ResourceActionGrantService
      */
     public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier,
         int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $action = null, ?Role $role = null,
+        ?string $action = null, ?string $roleIdentifier = null,
         ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
     {
         return $this->authorizationService->addResourceActionGrant(
             $resourceClass, $resourceIdentifier, $resourceType,
-            $action, $role,
+            $action, $roleIdentifier,
             $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
     }
 
