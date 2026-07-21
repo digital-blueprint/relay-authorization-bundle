@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Rest\RoleProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -27,15 +28,28 @@ use Symfony\Component\Serializer\Attribute\Groups;
                         name: 'resourceClass',
                         in: 'query',
                         description: 'The resource class to get roles for',
-                        required: false,
+                        required: true,
                         schema: ['type' => 'string'],
                     ),
                     new Parameter(
                         name: 'resourceIdentifier',
                         in: 'query',
                         description: 'The resource identifier to get roles for',
-                        required: false,
+                        required: true,
                         schema: ['type' => 'string'],
+                    ),
+                    new Parameter(
+                        name: 'resourceType',
+                        in: 'query',
+                        description: 'The resource type to get grants for: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
+                        required: false,
+                        schema: [
+                            'type' => 'integer',
+                            'enum' => [
+                                AuthorizationService::RESOURCE_RESOURCE_TYPE,
+                                AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                            ],
+                        ],
                     ),
                 ],
             ),

@@ -86,6 +86,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const RESOURCE_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE;
     public const RESOURCE_GROUP_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE;
 
+    public const MANAGER_ROLE_IDENTIFIER = InternalResourceActionGrantService::MANAGER_ROLE_IDENTIFIER;
+
     private ?array $config = null;
 
     public function __construct(
@@ -126,7 +128,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function setAvailableResourceClassActions(string $resourceClass,
         array $itemActions, array $collectionActions): array
     {
-        $this->internalResourceActionGrantService->ensureManageActionsAreAvailable();
+        InternalResourceActionGrantService::ensureManageActionsAndRoleAreAvailable(
+            $this->internalResourceActionGrantService->getEntityManager());
 
         return $this->internalResourceActionGrantService->setAvailableResourceClassActions(
             $resourceClass, $itemActions, $collectionActions);
@@ -185,14 +188,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier,
         int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $action = null, ?Role $role = null,
+        ?string $action = null, ?string $roleIdentifier = null,
         ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicUserGroupIdentifier = null): ResourceActionGrant
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
         return $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $resourceType,
-            $action, $role,
+            $action, $roleIdentifier,
             $userIdentifier,
             $groupIdentifier !== null ? $this->groupService->getUserGroup($groupIdentifier) : null,
             $dynamicUserGroupIdentifier);
@@ -323,6 +326,22 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                         $resourceClass, $action, $resourceIdentifier)
                 )
             );
+    }
+
+    public function getRolesCurrentUserMayGrant(
+        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
+    {
+        $grantedActions = $this->getGrantedActionsForCurrentUser(
+            $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
+
+        return $this->internalResourceActionGrantService->getRoles(
+            $resourceClass,
+            AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
+            whereActionsAreASubsetOrEqual: $grantedActions,
+            firstItemIndex: $firstItemIndex,
+            maxNumItemsPerPage: $maxNumItemsPerPage
+        );
     }
 
     /**

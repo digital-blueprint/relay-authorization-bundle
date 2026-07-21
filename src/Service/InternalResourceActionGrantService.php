@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
+use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
@@ -42,6 +43,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     public const MANAGE_ITEM_ACTION_UUID = '019ecac3-2eea-7297-ae1a-486de6fca628';
     public const MANAGE_COLLECTION_ACTION_UUID = '019ecac3-d095-7ae7-b10b-30bff78040a7';
+
+    public const MANAGER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
 
     public const COLLECTION_RESOURCE_IDENTIFIER = 'null';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
@@ -117,12 +120,96 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         ];
     }
 
+    public static function ensureManageActionsAndRoleAreAvailable(EntityManagerInterface $entityManager): void
+    {
+        if (null === $entityManager->getRepository(AvailableResourceClassAction::class)
+                ->find(self::MANAGE_ITEM_ACTION_UUID)) {
+            $manageItemAction = new AvailableResourceClassAction();
+            $manageItemAction->setIdentifier(self::MANAGE_ITEM_ACTION_UUID);
+            $manageItemAction->setAction(AuthorizationService::MANAGE_ACTION);
+            $manageItemAction->setActionType(AvailableResourceClassAction::ITEM_ACTION_TYPE);
+            $entityManager->persist($manageItemAction);
+            $entityManager->flush();
+        }
+        if (null === $entityManager->getRepository(AvailableResourceClassAction::class)
+                ->find(self::MANAGE_COLLECTION_ACTION_UUID)) {
+            $manageCollectionAction = new AvailableResourceClassAction();
+            $manageCollectionAction->setIdentifier(self::MANAGE_COLLECTION_ACTION_UUID);
+            $manageCollectionAction->setAction(AuthorizationService::MANAGE_ACTION);
+            $manageCollectionAction->setActionType(AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+            $entityManager->persist($manageCollectionAction);
+            $entityManager->flush();
+        }
+        if (null === $entityManager->getRepository(Role::class)->find(self::MANAGER_ROLE_IDENTIFIER)) {
+            self::addRoleStatic($entityManager,
+                [
+                    'en' => 'Manager',
+                    'de' => 'Verwalter',
+                ],
+                [
+                    // works for both item and collection resources:
+                    ResourceActionGrantService::createRoleAction(
+                        null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                    ResourceActionGrantService::createRoleAction(
+                        null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
+                ],
+                identifier: ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
+            );
+        }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public static function addRoleStatic(EntityManagerInterface $entityManager,
+        array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
+    {
+        $role = new Role();
+        $role->setIdentifier($identifier ?? Uuid::v7()->toRfc4122());
+        foreach ($localizedRoleNames as $languageTag => $name) {
+            $roleName = new RoleName();
+            $roleName->setRole($role);
+            $roleName->setLanguageTag($languageTag);
+            $roleName->setName($name);
+            $role->getRoleNames()->add($roleName);
+        }
+        foreach ($roleActions as $roleActionData) {
+            $roleAction = new RoleAction();
+            $roleAction->setRole($role);
+            $resourceClass = $roleActionData['resourceClass'] ?? null;
+            $action = $roleActionData['action'] ?? null;
+            $actionType = $roleActionData['actionType'] ?? null;
+            if (null === $action || null === $actionType || ($action !== AuthorizationService::MANAGE_ACTION && null === $resourceClass)) {
+                throw new \RuntimeException('adding role failed: resource action is invalid');
+            }
+
+            $availableResourceClassAction = self::getAvailableResourceClassActionStatic(
+                $entityManager, $resourceClass, $action, $actionType);
+            if (null === $availableResourceClassAction) {
+                throw new \RuntimeException(
+                    "adding role failed: resource action '$action' (action type: '.$actionType.') is not defined for resource class '$resourceClass'");
+            }
+            $roleAction->setAvailableResourceClassAction($availableResourceClassAction);
+            $role->getRoleActions()->add($roleAction);
+        }
+
+        try {
+            $entityManager->persist($role);
+            $entityManager->flush();
+        } catch (\Throwable $throwable) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Role could not be added!',
+                self::ADDING_ROLE_FAILED_ERROR_ID);
+        }
+
+        return $role;
+    }
+
     /**
      * @return AvailableResourceClassAction[]
      *
      * @throw ApiError
      */
-    public static function updateAvailableResourceClassActionsInternal(EntityManagerInterface $entityManager,
+    private static function updateAvailableResourceClassActionsInternal(EntityManagerInterface $entityManager,
         string $resourceClass, array $availableActions, int $actionType): array
     {
         $availableResourceClassActions = [];
@@ -200,27 +287,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $resourceClass, $itemActions, $collectionActions);
     }
 
-    public function ensureManageActionsAreAvailable(): void
-    {
-        if (null === $this->entityManager->getRepository(AvailableResourceClassAction::class)
-                ->find(self::MANAGE_ITEM_ACTION_UUID)) {
-            $manageItemAction = new AvailableResourceClassAction();
-            $manageItemAction->setIdentifier(self::MANAGE_ITEM_ACTION_UUID);
-            $manageItemAction->setAction(AuthorizationService::MANAGE_ACTION);
-            $manageItemAction->setActionType(AvailableResourceClassAction::ITEM_ACTION_TYPE);
-            $this->entityManager->persist($manageItemAction);
-        }
-        if (null === $this->entityManager->getRepository(AvailableResourceClassAction::class)
-                ->find(self::MANAGE_COLLECTION_ACTION_UUID)) {
-            $manageCollectionAction = new AvailableResourceClassAction();
-            $manageCollectionAction->setIdentifier(self::MANAGE_COLLECTION_ACTION_UUID);
-            $manageCollectionAction->setAction(AuthorizationService::MANAGE_ACTION);
-            $manageCollectionAction->setActionType(AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
-            $this->entityManager->persist($manageCollectionAction);
-        }
-        $this->entityManager->flush();
-    }
-
     /**
      * @return AvailableResourceClassAction[]
      */
@@ -243,55 +309,23 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      */
     public function addRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
     {
-        $role = new Role();
-        $role->setIdentifier($identifier ?? Uuid::v7()->toRfc4122());
-        foreach ($localizedRoleNames as $languageTag => $name) {
-            $roleName = new RoleName();
-            $roleName->setRole($role);
-            $roleName->setLanguageTag($languageTag);
-            $roleName->setName($name);
-            $role->getRoleNames()->add($roleName);
-        }
-        foreach ($roleActions as $roleActionData) {
-            $roleAction = new RoleAction();
-            $roleAction->setRole($role);
-            $resourceClass = $roleActionData['resourceClass'] ?? null;
-            $action = $roleActionData['action'] ?? null;
-            $actionType = $roleActionData['actionType'] ?? null;
-            if (null === $action || null === $actionType || ($action !== AuthorizationService::MANAGE_ACTION && null === $resourceClass)) {
-                throw new \RuntimeException('adding role failed: resource action is invalid');
-            }
-
-            $availableResourceClassAction = $this->getAvailableResourceClassAction($resourceClass, $action, $actionType);
-            if (null === $availableResourceClassAction) {
-                throw new \RuntimeException(
-                    "adding role failed: resource action '$action' (action type: '.$actionType.') is not defined for resource class '$resourceClass'");
-            }
-            $roleAction->setAvailableResourceClassAction($availableResourceClassAction);
-            $role->getRoleActions()->add($roleAction);
-        }
-
-        try {
-            $this->entityManager->persist($role);
-            $this->entityManager->flush();
-        } catch (\Throwable $throwable) {
-            $this->logger->error('Failed to add role: '.$throwable->getMessage(), ['exception' => $throwable]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Role could not be added!',
-                self::ADDING_ROLE_FAILED_ERROR_ID);
-        }
-
-        return $role;
+        return self::addRoleStatic($this->entityManager, $localizedRoleNames, $roleActions, $identifier);
     }
 
     /**
      * @throws ApiError
      */
-    public function getRoleByIdentifier(string $identifier): ?Role
+    public function getRoleByIdentifier(string $identifier): Role
     {
         try {
-            return UuidV7::isValid($identifier) ?
+            $role = UuidV7::isValid($identifier) ?
                 $this->entityManager->getRepository(Role::class)->find($identifier) :
                 null;
+            if (null === $role) {
+                throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'Role not found', self::GETTING_ROLE_ITEM_FAILED_ERROR_ID);
+            }
+
+            return $role;
         } catch (\Throwable $throwable) {
             $this->logger->error('Failed to get role by identifier: '.$throwable->getMessage(), [
                 'identifier' => $identifier,
@@ -308,6 +342,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      * @throws ApiError
      */
     public function getRoles(?string $resourceClass = null, ?int $actionType = null,
+        ?array $whereActionsAreASubsetOrEqual = null,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $ROLE_ALIAS = 'r';
@@ -326,14 +361,42 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $ROLE_ACTION_ALIAS.availableResourceClassAction = $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.identifier");
 
             if (null !== $resourceClass) {
-                $queryBuilder
-                    ->where($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass', ':resourceClass'))
+                // NOTE: currently, we don't check if the resource class actually exists and return the manager role even if it doesn't exist
+                $or = $queryBuilder->expr()->orX();
+                $or->add($queryBuilder->expr()->isNull($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass'));
+                $or->add($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass', ':resourceClass'));
+                $queryBuilder->andWhere($or)
                     ->setParameter(':resourceClass', $resourceClass);
             }
             if (null !== $actionType) {
                 $queryBuilder
                     ->andWhere($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.actionType', ':actionType'))
                     ->setParameter(':actionType', $actionType);
+            }
+
+            if (null !== $whereActionsAreASubsetOrEqual
+                && false === in_array(AuthorizationService::MANAGE_ACTION, $whereActionsAreASubsetOrEqual, true)) {
+                if ([] === $whereActionsAreASubsetOrEqual) {
+                    $queryBuilder->andWhere('0 = 1'); // no roles can have no actions, so return empty result
+                } else {
+                    $subSubSelectBuilder = $this->entityManager->createQueryBuilder();
+                    $subSubSelectBuilder->select('arca_candidate.identifier')
+                        ->from(AvailableResourceClassAction::class, 'arca_candidate')
+                        ->where('arca_candidate.action IN (:whereActionsAreASubsetOf)');
+
+                    $subSelectBuilder = $this->entityManager->createQueryBuilder();
+                    $subSelectBuilder->select('1')
+                        ->from(RoleAction::class, 'ra_candidate')
+                        ->where("ra_candidate.role = $ROLE_ALIAS.identifier")
+                        ->andWhere($subSelectBuilder->expr()->notIn('ra_candidate.availableResourceClassAction',
+                            $subSubSelectBuilder->getDQL()));
+
+                    $queryBuilder->andWhere(
+                        $queryBuilder->expr()->not(
+                            $queryBuilder->expr()->exists($subSelectBuilder->getDQL())
+                        )
+                    )->setParameter(':whereActionsAreASubsetOf', $whereActionsAreASubsetOrEqual, ArrayParameterType::STRING);
+                }
             }
 
             return $queryBuilder
@@ -415,7 +478,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      */
     public function addResourceActionGrantByResourceClassAndIdentifier(
         string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $action = null, ?Role $role = null,
+        ?string $action = null, ?string $roleIdentifier = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         bool $shareable = false, ?string $currentUserIdentifier = null): ResourceActionGrant
     {
@@ -428,7 +491,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 $this->getOrCreateAuthorizationResource($resourceClass, $resourceIdentifier, $resourceType)
             );
             $resourceActionGrant->setAction($action);
-            $resourceActionGrant->setRole($role);
+            $resourceActionGrant->setRole($roleIdentifier !== null ?
+                $this->getRoleByIdentifier($roleIdentifier) :
+                null);
             $resourceActionGrant->setUserIdentifier($userIdentifier);
             $resourceActionGrant->setUserGroup($userGroup);
             $resourceActionGrant->setDynamicUserGroupIdentifier($dynamicUserGroupIdentifier);
