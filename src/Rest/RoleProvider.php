@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Rest;
 
-use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
@@ -18,7 +17,7 @@ use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 class RoleProvider extends AbstractDataProvider
 {
     public function __construct(
-        private readonly InternalResourceActionGrantService $internalResourceActionGrantService)
+        private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
     }
@@ -30,14 +29,14 @@ class RoleProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $resourceClass = $filters[Common::RESOURCE_CLASS_QUERY_PARAMETER] ?? null;
-        $resourceIdentifier = $filters[Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER] ?? null;
+        $resourceClass = Common::getResourceClassQueryParameter($filters, true);
+        $resourceIdentifier = Common::getResourceIdentifierQueryParameter($filters, true);
+        $resourceType = Common::getResourceTypeQueryParameter($filters, true);
 
-        return $this->internalResourceActionGrantService->getRoles(
+        return $this->authorizationService->getRolesCurrentUserMayGrant(
             $resourceClass,
-            $resourceIdentifier !== null ?
-                AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier) :
-                null,
+            $resourceIdentifier,
+            $resourceType,
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
             $maxNumItemsPerPage
         );
