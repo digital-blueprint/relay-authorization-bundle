@@ -24,7 +24,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             $this->authorizationService);
     }
 
-    public function testAddResource(): void
+    public function testAddResourceActionGrantWithManageAction(): void
     {
         $this->resourceActionGrantService->addResourceActionGrant(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
@@ -91,7 +91,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertEquals($collectionActions, $retrievedCollectionActions);
     }
 
-    public function testAddResourceActionGrant(): void
+    public function testAddResourceActionGrantWithAction(): void
     {
         $action = TestResources::WRITE_ACTION;
         $userIdentifier = self::ANOTHER_USER_IDENTIFIER;
@@ -108,6 +108,32 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertSame($resourcePersistence->getIdentifier(), $resourceActionGrantPersistence->getAuthorizationResource()->getIdentifier());
         $this->assertSame($action, $resourceActionGrantPersistence->getAction());
         $this->assertSame($userIdentifier, $resourceActionGrantPersistence->getUserIdentifier());
+    }
+
+    public function testAddResourceActionGrantWithRoleIdentifier(): void
+    {
+        $rag = $this->resourceActionGrantService->addResourceActionGrant(
+            TestResources::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER,
+            roleIdentifier: ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
+
+        $this->assertTrue(UuidV7::isValid($rag->getIdentifier()));
+        $this->assertEquals(ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER, $rag->getRole()->getIdentifier());
+        $this->assertEquals(null, $rag->getAction());
+        $this->assertEquals(null, $rag->getAvailableResourceClassAction());
+        $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $rag->getUserIdentifier());
+        $this->assertEquals(null, $rag->getUserGroup());
+        $this->assertEquals(null, $rag->getDynamicUserGroupIdentifier());
+
+        $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrantByIdentifier($rag->getIdentifier());
+        $this->assertEquals($rag->getIdentifier(), $resourceActionGrantPersistence->getIdentifier());
+        $this->assertEquals($rag->getRole(), $resourceActionGrantPersistence->getRole());
+        $this->assertEquals($rag->getAction(), $resourceActionGrantPersistence->getAction());
+        $this->assertEquals($rag->getAvailableResourceClassAction(), $resourceActionGrantPersistence->getAvailableResourceClassAction());
+        $this->assertEquals($rag->getUserIdentifier(), $resourceActionGrantPersistence->getUserIdentifier());
+        $this->assertEquals($rag->getUserGroup(), $resourceActionGrantPersistence->getUserGroup());
+        $this->assertEquals($rag->getDynamicUserGroupIdentifier(), $resourceActionGrantPersistence->getDynamicUserGroupIdentifier());
     }
 
     public function testRemoveGrantsForResource(): void
