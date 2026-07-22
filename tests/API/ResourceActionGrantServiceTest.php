@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\API;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
-use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
@@ -44,7 +44,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertSame(self::CURRENT_USER_IDENTIFIER, $resourceActionGrantPersistence->getUserIdentifier());
     }
 
-    public function testAddAvailableResourceClassActions(): void
+    public function testSetAvailableResourceClassActions(): void
     {
         $resourceClass = 'MyResourceClass';
         $itemActions = [
@@ -65,30 +65,12 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         ];
         $this->resourceActionGrantService->setAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
 
-        [$retrievedItemActions, $retrievedCollectionActions] =
-            $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);
-
-        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedItemActions);
-        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedCollectionActions);
-        unset($retrievedItemActions[AuthorizationService::MANAGE_ACTION]);
-        unset($retrievedCollectionActions[AuthorizationService::MANAGE_ACTION]);
-
-        $this->assertEquals($itemActions, $retrievedItemActions);
-        $this->assertEquals($collectionActions, $retrievedCollectionActions);
-
-        // test again, to see if available resource class actions are cleared before adding the new ones
-        $this->resourceActionGrantService->setAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
-
-        [$retrievedItemActions, $retrievedCollectionActions] =
-            $this->internalResourceActionGrantService->getAvailableResourceClassActions($resourceClass);
-
-        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedItemActions);
-        $this->assertArrayHasKey(AuthorizationService::MANAGE_ACTION, $retrievedCollectionActions);
-        unset($retrievedItemActions[AuthorizationService::MANAGE_ACTION]);
-        unset($retrievedCollectionActions[AuthorizationService::MANAGE_ACTION]);
-
-        $this->assertEquals($itemActions, $retrievedItemActions);
-        $this->assertEquals($collectionActions, $retrievedCollectionActions);
+        $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
+            $resourceClass, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($availableResourceClassActions, $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
+            $resourceClass, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($availableResourceClassActions, $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
     }
 
     public function testAddResourceActionGrantWithAction(): void

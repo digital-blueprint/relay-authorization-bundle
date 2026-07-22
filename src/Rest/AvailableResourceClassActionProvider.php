@@ -6,7 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
@@ -20,7 +19,6 @@ class AvailableResourceClassActionProvider extends AbstractDataProvider
     protected static string $identifierName = 'resourceClass';
 
     public function __construct(
-        private readonly InternalResourceActionGrantService $internalResourceActionGrantService,
         private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
@@ -33,28 +31,17 @@ class AvailableResourceClassActionProvider extends AbstractDataProvider
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
-        $resourceClass = Common::getResourceClassQueryParameter($filters);
-        $resourceIdentifier = Common::getResourceIdentifierQueryParameter($filters);
+        $resourceClass = Common::getResourceClassQueryParameter($filters, true);
+        $resourceIdentifier = Common::getResourceIdentifierQueryParameter($filters, true);
+        $resourceType = Common::getResourceTypeQueryParameter($filters, true);
 
-        $actionType = $resourceIdentifier !== null ?
-            AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier) :
-            null;
-
-        $availableResourceClassActionEntities =
-            $this->internalResourceActionGrantService->getAvailableResourceClassActionEntities(
+        return
+            $this->authorizationService->getAvailableResourceClassActionsUserMayGrant(
                 $resourceClass,
-                $actionType
+                $resourceIdentifier,
+                $resourceType,
+                Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
+                $maxNumItemsPerPage
             );
-
-        $resourceClassesCurrentUserMayRead = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead(
-            0, AuthorizationService::MAX_NUM_RESULTS_DEFAULT);
-
-        $filteredEntities = array_values(array_filter($availableResourceClassActionEntities,
-            function (AvailableResourceClassAction $availableResourceClassAction) use ($resourceClassesCurrentUserMayRead) {
-                return in_array($availableResourceClassAction->getResourceClass(), $resourceClassesCurrentUserMayRead, true);
-            }
-        ));
-
-        return array_slice($filteredEntities, Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage));
     }
 }
