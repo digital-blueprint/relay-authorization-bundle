@@ -10,6 +10,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
+use Doctrine\ORM\EntityManagerInterface;
 
 class ResourceActionGrantService
 {
@@ -42,6 +43,11 @@ class ResourceActionGrantService
     public function __construct(
         private readonly AuthorizationService $authorizationService)
     {
+    }
+
+    public function getEntityManager(): EntityManagerInterface
+    {
+        return $this->authorizationService->getEntityManager();
     }
 
     /**

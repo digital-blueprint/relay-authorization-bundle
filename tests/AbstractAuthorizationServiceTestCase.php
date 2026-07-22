@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 
@@ -90,5 +91,26 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         );
 
         return [$userGroup, $manageGroupGrant];
+    }
+
+    /**
+     * Asserts that for each action name in $actions there is exactly one AvailableResourceClassAction
+     * in $collection matching the given resourceClass, action name, and actionType.
+     *
+     * @param AvailableResourceClassAction[] $collection
+     */
+    protected function assertContainsActions(array $collection, string $resourceClass, array $actions, int $actionType): void
+    {
+        foreach (array_keys($actions) as $action) {
+            $matches = $this->selectWhere($collection,
+                function (AvailableResourceClassAction $item) use ($resourceClass, $action, $actionType) {
+                    return ($item->getResourceClass() === $resourceClass
+                        || ($item->getResourceClass() === null && $item->getAction() === AuthorizationService::MANAGE_ACTION))
+                        && $item->getAction() === $action
+                        && $item->getActionType() === $actionType;
+                });
+            $this->assertCount(1, $matches,
+                "Expected exactly one AvailableResourceClassAction for resourceClass='$resourceClass', action='$action', actionType=$actionType");
+        }
     }
 }

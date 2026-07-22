@@ -67,6 +67,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     private const RESOURCE_GROUP_MEMBER_ALIAS = 'rgm';
     private const AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
+    private const ROLE_ALIAS = 'r';
     private const ROLE_ACTION_ALIAS = 'ra';
 
     public const GET_GRANTED_ACTIONS = 'granted actions';
@@ -93,6 +94,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     private const ADDING_ROLE_FAILED_ERROR_ID = 'authorization:adding-role-failed';
     private const GETTING_ROLE_ITEM_FAILED_ERROR_ID = 'authorization:getting-role-item-failed';
     private const GETTING_ROLE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-role-collection-failed';
+    private const GETTING_AVAILABLE_RESOURCE_CLASS_ACTION_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-available-resource-class-action-collection-failed';
 
     public static function getAvailableResourceClassActionStatic(EntityManagerInterface $entityManager,
         ?string $resourceClass, string $action, int $actionType): ?AvailableResourceClassAction
@@ -288,23 +290,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     /**
-     * @return AvailableResourceClassAction[]
-     */
-    public function getAvailableResourceClassActionEntities(?string $resourceClass = null, ?int $actionType = 0): array
-    {
-        $criteria = [];
-        if (null !== $resourceClass) {
-            $criteria['resourceClass'] = $resourceClass;
-        }
-        if (null !== $actionType) {
-            $criteria['actionType'] = $actionType;
-        }
-
-        return $this->entityManager->getRepository(AvailableResourceClassAction::class)
-            ->findBy($criteria);
-    }
-
-    /**
      * @throws ApiError
      */
     public function addRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
@@ -341,16 +326,15 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      *
      * @throws ApiError
      */
-    public function getRoles(?string $resourceClass = null, ?int $actionType = null,
+    public function getRoles(string $resourceClass, int $actionType,
         ?array $whereActionsAreASubsetOrEqual = null,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $ROLE_ALIAS = 'r';
-        $ROLE_ACTION_ALIAS = 'ra';
-        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
+        $ROLE_ALIAS = self::ROLE_ALIAS;
+        $ROLE_ACTION_ALIAS = self::ROLE_ACTION_ALIAS;
+        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
 
         try {
-            // only get roles that have at least one role action for the given resource class and action type
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder->select($ROLE_ALIAS)
                 ->from(Role::class, $ROLE_ALIAS)
@@ -360,22 +344,18 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     Join::WITH, "
                     $ROLE_ACTION_ALIAS.availableResourceClassAction = $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.identifier");
 
-            if (null !== $resourceClass) {
-                // NOTE: currently, we don't check if the resource class actually exists and return the manager role even if it doesn't exist
-                $or = $queryBuilder->expr()->orX();
-                $or->add($queryBuilder->expr()->isNull($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass'));
-                $or->add($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass', ':resourceClass'));
-                $queryBuilder->andWhere($or)
-                    ->setParameter(':resourceClass', $resourceClass);
-            }
-            if (null !== $actionType) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.actionType', ':actionType'))
-                    ->setParameter(':actionType', $actionType);
-            }
+            // NOTE: currently, we don't check if the resource class actually exists and return the manager role
+            // even if the resource class doesn't exist
+            $or = $queryBuilder->expr()->orX();
+            $or->add($queryBuilder->expr()->isNull($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass'));
+            $or->add($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass', ':resourceClass'));
+            $queryBuilder
+                ->andWhere($or)
+                ->setParameter(':resourceClass', $resourceClass)
+                ->andWhere($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.actionType', ':actionType'))
+                ->setParameter(':actionType', $actionType);
 
-            if (null !== $whereActionsAreASubsetOrEqual
-                && false === in_array(AuthorizationService::MANAGE_ACTION, $whereActionsAreASubsetOrEqual, true)) {
+            if (null !== $whereActionsAreASubsetOrEqual) {
                 if ([] === $whereActionsAreASubsetOrEqual) {
                     $queryBuilder->andWhere('0 = 1'); // no roles can have no actions, so return empty result
                 } else {
@@ -413,6 +393,81 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get roles',
                 self::GETTING_ROLE_COLLECTION_FAILED_ERROR_ID);
         }
+    }
+
+    /**
+     * @return AvailableResourceClassAction[]
+     */
+    public function getAvailableResourceClassActions(string $resourceClass, int $actionType,
+        ?array $whereActionsIn = null,
+        int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
+    {
+        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
+
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $queryBuilder
+            ->select($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS)
+            ->from(AvailableResourceClassAction::class, $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS);
+
+        // NOTE: currently, we don't check if the resource class actually exists and return the manage actions
+        // even if the resource class doesn't exist
+        $or = $queryBuilder->expr()->orX();
+        $or->add($queryBuilder->expr()->isNull($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass'));
+        $or->add($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass', ':resourceClass'));
+        $queryBuilder
+            ->andWhere($or)
+            ->setParameter(':resourceClass', $resourceClass)
+            ->andWhere($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.actionType', ':actionType'))
+            ->setParameter(':actionType', $actionType);
+
+        if (null !== $whereActionsIn) {
+            if ([] === $whereActionsIn) {
+                $queryBuilder
+                    ->andWhere('1 = 0'); // no actions will be returned
+            } else {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->in(
+                        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.action', ':whereActionsIn'))
+                    ->setParameter(':whereActionsIn', $whereActionsIn);
+            }
+        }
+
+        try {
+            return $queryBuilder
+                ->setFirstResult($firstItemIndex)
+                ->setMaxResults($maxNumItemsPerPage)
+                ->getQuery()
+                ->getResult();
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get available resource class actions: '.$throwable->getMessage(), ['exception' => $throwable]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Failed to get available resource class actions!',
+                self::GETTING_AVAILABLE_RESOURCE_CLASS_ACTION_COLLECTION_FAILED_ERROR_ID);
+        }
+    }
+
+    public function isAvailableResourceClassAction(
+        string $resourceClass, string $action, string $resourceIdentifier): bool
+    {
+        $criteria = [
+            'resourceClass' => $resourceClass,
+            'actionType' => AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
+        ];
+
+        // DESIGN NOTE: we require at least one action to be defined for a resource class to be 'available'
+        if ($action !== AuthorizationService::MANAGE_ACTION) {
+            $criteria['action'] = $action;
+        }
+
+        $cacheKey = hash('sha256', json_encode($criteria));
+
+        if (null === ($isAvailable = $this->isAvailableResourceClassActionsRequestCache[$cacheKey] ?? null)) {
+            $isAvailable = [] !==
+                $this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy($criteria);
+            $this->isAvailableResourceClassActionsRequestCache[$cacheKey] = $isAvailable;
+        }
+
+        return $isAvailable;
     }
 
     /**
@@ -1076,69 +1131,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             }
             $resourceActionGrant->setAvailableResourceClassAction($availableResourceClassAction);
         }
-    }
-
-    public function isAvailableResourceClassAction(
-        string $resourceClass, string $action, string $resourceIdentifier): bool
-    {
-        $criteria = [
-            'resourceClass' => $resourceClass,
-            'actionType' => AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
-        ];
-
-        // DESIGN NOTE: we require at least one action to be defined for a resource class to be 'available'
-        if ($action !== AuthorizationService::MANAGE_ACTION) {
-            $criteria['action'] = $action;
-        }
-
-        $cacheKey = hash('sha256', json_encode($criteria));
-
-        if (null === ($isAvailable = $this->isAvailableResourceClassActionsRequestCache[$cacheKey] ?? null)) {
-            $isAvailable = [] !==
-                $this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy($criteria);
-            $this->isAvailableResourceClassActionsRequestCache[$cacheKey] = $isAvailable;
-        }
-
-        return $isAvailable;
-    }
-
-    public function getAvailableResourceClassActions(string $resourceClass): array
-    {
-        $itemActions = [];
-        $collectionActions = [];
-
-        /** @var AvailableResourceClassAction $availableResourceClassAction */
-        foreach ($this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy([
-            'resourceClass' => $resourceClass,
-        ]) as $availableResourceClassAction) {
-            $names = [];
-            /** @var AvailableResourceClassActionName $availableResourceClassActionName */
-            foreach ($availableResourceClassAction->getNames() as $availableResourceClassActionName) {
-                $names[$availableResourceClassActionName->getLanguageTag()] = $availableResourceClassActionName->getName();
-            }
-            if ($availableResourceClassAction->getActionType() === AvailableResourceClassAction::ITEM_ACTION_TYPE) {
-                $itemActions[$availableResourceClassAction->getAction()] = $names;
-            } elseif ($availableResourceClassAction->getActionType() === AvailableResourceClassAction::COLLECTION_ACTION_TYPE) {
-                $collectionActions[$availableResourceClassAction->getAction()] = $names;
-            }
-        }
-
-        // DESIGN NOTE: we require at least one action to be defined for a resource class to be 'available'
-        if ([] !== $itemActions || [] !== $collectionActions) {
-            $itemActions[AuthorizationService::MANAGE_ACTION] = [
-                'en' => 'Manage',
-                'de' => 'Verwalten',
-            ];
-            $collectionActions[AuthorizationService::MANAGE_ACTION] = [
-                'en' => 'Manage',
-                'de' => 'Verwalten',
-            ];
-        }
-
-        return [
-            AvailableResourceClassAction::ITEM_ACTION_TYPE => $itemActions,
-            AvailableResourceClassAction::COLLECTION_ACTION_TYPE => $collectionActions,
-        ];
     }
 
     /**
