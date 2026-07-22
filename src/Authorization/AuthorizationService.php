@@ -19,6 +19,7 @@ use Dbp\Relay\CoreBundle\Authorization\AbstractAuthorizationService;
 use Dbp\Relay\CoreBundle\Authorization\AuthorizationException;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Log\LoggerAwareInterface;
@@ -96,6 +97,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         private bool $debug = false)
     {
         parent::__construct();
+    }
+
+    public function getEntityManager(): EntityManagerInterface
+    {
+        return $this->internalResourceActionGrantService->getEntityManager();
     }
 
     public function setConfig(array $config): void
@@ -317,15 +323,35 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         int $resourceType = self::RESOURCE_RESOURCE_TYPE): bool
     {
         $grantedActions = $this->getGrantedActionsForCurrentUser(
-            $resourceClass, $resourceIdentifier, $resourceType);
+            $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
 
-        return null !== $grantedActions
-            && (in_array($action, $grantedActions->getActions(), true)
-                || (in_array(self::MANAGE_ACTION, $grantedActions->getActions(), true)
-                    && $this->internalResourceActionGrantService->isAvailableResourceClassAction(
+        return in_array($action, $grantedActions, true)
+            || (in_array(self::MANAGE_ACTION, $grantedActions, true)
+                && (self::MANAGE_ACTION === $action
+                    || $this->internalResourceActionGrantService->isAvailableResourceClassAction(
                         $resourceClass, $action, $resourceIdentifier)
                 )
             );
+    }
+
+    /**
+     * @return AvailableResourceClassAction[]
+     */
+    public function getAvailableResourceClassActionsUserMayGrant(
+        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
+    {
+        $grantedActions = $this->getGrantedActionsForCurrentUser(
+            $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
+
+        return $this->internalResourceActionGrantService->getAvailableResourceClassActions(
+            $resourceClass,
+            AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
+            whereActionsIn: in_array(AuthorizationService::MANAGE_ACTION, $grantedActions, true) ?
+                null : $grantedActions,
+            firstItemIndex: $firstItemIndex,
+            maxNumItemsPerPage: $maxNumItemsPerPage
+        );
     }
 
     public function getRolesCurrentUserMayGrant(
@@ -338,7 +364,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->internalResourceActionGrantService->getRoles(
             $resourceClass,
             AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
-            whereActionsAreASubsetOrEqual: $grantedActions,
+            whereActionsAreASubsetOrEqual: in_array(AuthorizationService::MANAGE_ACTION, $grantedActions, true) ?
+                null : $grantedActions,
             firstItemIndex: $firstItemIndex,
             maxNumItemsPerPage: $maxNumItemsPerPage
         );

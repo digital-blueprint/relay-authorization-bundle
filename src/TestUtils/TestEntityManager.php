@@ -388,4 +388,24 @@ class TestEntityManager extends CoreTestEntityManager
     {
         $this->entityManager->clear();
     }
+
+    /**
+     * @return AvailableResourceClassAction[]
+     */
+    public function getAvailableResourceClassActions(string $resourceClass, ?int $actionType): array
+    {
+        $criteria = [
+            'resourceClass' => $resourceClass,
+        ];
+        if ($actionType !== null) {
+            $criteria['actionType'] = $actionType;
+        }
+
+        try {
+            return $this->entityManager->getRepository(AvailableResourceClassAction::class)
+                ->findBy($criteria);
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
+    }
 }
