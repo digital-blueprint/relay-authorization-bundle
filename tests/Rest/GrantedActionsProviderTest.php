@@ -30,7 +30,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
     public function testGetGrantedActionsItem(): void
     {
-        $roleEditor = $this->internalResourceActionGrantService->addRole([],
+        $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
@@ -147,7 +147,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
     public function testGetGrantedActionsItemWithResourceGroup(): void
     {
-        $roleEditor = $this->internalResourceActionGrantService->addRole([],
+        $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
@@ -331,7 +331,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
     public function testGetGrantedActionsItemCollectionResource(): void
     {
-        $roleCreator = $this->internalResourceActionGrantService->addRole([],
+        $roleCreator = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::UPDATE_ACTION, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
@@ -477,7 +477,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
     public function testGetGrantedActionsCollection(): void
     {
-        $roleEditor = $this->internalResourceActionGrantService->addRole([],
+        $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
@@ -872,7 +872,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
     public function testGetGrantedActionsCollectionPagination(): void
     {
-        $roleEditor = $this->internalResourceActionGrantService->addRole([],
+        $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
                 ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),

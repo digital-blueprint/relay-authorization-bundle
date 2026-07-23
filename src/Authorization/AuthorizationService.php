@@ -131,19 +131,16 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @param array<string, array<string, string>> $itemActions       A mapping from item action names to their localized names
      * @param array<string, array<string, string>> $collectionActions A mapping from collection action names to their localized names
      */
-    public function setAvailableResourceClassActions(string $resourceClass,
+    public function addOrUpdateAvailableResourceClassActions(string $resourceClass,
         array $itemActions, array $collectionActions): array
     {
-        InternalResourceActionGrantService::ensureManageActionsAndRoleAreAvailable(
-            $this->internalResourceActionGrantService->getEntityManager());
-
-        return $this->internalResourceActionGrantService->setAvailableResourceClassActions(
+        return $this->internalResourceActionGrantService->addOrUpdateAvailableResourceClassActions(
             $resourceClass, $itemActions, $collectionActions);
     }
 
-    public function addRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
+    public function addOrUpdateRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
     {
-        return $this->internalResourceActionGrantService->addRole($localizedRoleNames, $roleActions, $identifier);
+        return $this->internalResourceActionGrantService->addOrUpdateRole($localizedRoleNames, $roleActions, $identifier);
     }
 
     /**

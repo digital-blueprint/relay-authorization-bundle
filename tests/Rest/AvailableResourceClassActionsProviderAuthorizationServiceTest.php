@@ -31,7 +31,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
 
     public function testGetAvailableResourceClassActionsCollection(): void
     {
-        $editorRole = $this->internalResourceActionGrantService->addRole([], [
+        $editorRole = $this->internalResourceActionGrantService->addOrUpdateRole([], [
             ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
             ResourceActionGrantService::createRoleAction(TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
         ]);
