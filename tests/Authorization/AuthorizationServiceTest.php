@@ -461,7 +461,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $userGroup = $this->testEntityManager->addUserGroup();
         $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
 
-        $roleEditor = $this->internalResourceActionGrantService->addRole([],
+        $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
@@ -476,13 +476,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     TestResources::TEST_RESOURCE_CLASS_2, TestResources::DELETE_ALL_ACTION, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
             ]
         );
-        $roleItemUpdater = $this->internalResourceActionGrantService->addRole([],
+        $roleItemUpdater = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::UPDATE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
             ]
         );
-        $roleCollectionUpdater = $this->internalResourceActionGrantService->addRole([],
+        $roleCollectionUpdater = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::UPDATE_ACTION, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
@@ -558,7 +558,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             $resourceGroup->getResourceClass(), $resourceGroup->getResourceIdentifier(),
             $resource->getResourceIdentifier());
 
-        $roleWriter = $this->internalResourceActionGrantService->addRole([],
+        $roleWriter = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
@@ -571,7 +571,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     TestResources::TEST_RESOURCE_CLASS_2, TestResources::UPDATE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
             ]
         );
-        $roleReader = $this->internalResourceActionGrantService->addRole([],
+        $roleReader = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
@@ -808,7 +808,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testGetGrantedResourceActionsForCurrentUserForCollectionResourceWithGroupResources(): void
     {
-        $roleReadAll = $this->internalResourceActionGrantService->addRole([],
+        $roleReadAll = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
@@ -819,7 +819,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
             ]
         );
-        $roleCreator = $this->internalResourceActionGrantService->addRole([],
+        $roleCreator = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
@@ -966,7 +966,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $testGroup = $this->testEntityManager->addUserGroup();
         $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $roleReader = $this->internalResourceActionGrantService->addRole([],
+        $roleReader = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     self::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
@@ -1389,7 +1389,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $testGroup = $this->testEntityManager->addUserGroup();
         $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $roleReviewer = $this->internalResourceActionGrantService->addRole([],
+        $roleReviewer = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
@@ -2390,7 +2390,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $resourceCollection = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
 
-        $roleManager = $this->internalResourceActionGrantService->addRole([],
+        $roleManager = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, AuthorizationService::MANAGE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
@@ -2398,7 +2398,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS_2, TestResources::UPDATE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
             ]);
-        $roleEditor = $this->internalResourceActionGrantService->addRole([],
+        $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
@@ -2409,7 +2409,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     TestResources::TEST_RESOURCE_CLASS_2, TestResources::DELETE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
             ]
         );
-        $roleCreator = $this->internalResourceActionGrantService->addRole([],
+        $roleCreator = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
@@ -2481,7 +2481,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $groupItemResource = $this->testEntityManager->addAuthorizationResource(
             AuthorizationService::GROUP_RESOURCE_CLASS, $userGroup->getIdentifier());
 
-        $roleGroupManager = $this->internalResourceActionGrantService->addRole(
+        $roleGroupManager = $this->internalResourceActionGrantService->addOrUpdateRole(
             ['en' => 'Group Manager', 'de' => 'Gruppenverwalter'],
             [
                 ResourceActionGrantService::createRoleAction(
@@ -2516,7 +2516,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testGetGrantedResourceActionsForCurrentForGroupCollectionResource(): void
     {
-        $roleGroupCreator = $this->internalResourceActionGrantService->addRole(
+        $roleGroupCreator = $this->internalResourceActionGrantService->addOrUpdateRole(
             ['en' => 'Group Creator', 'de' => 'Gruppenersteller'],
             [
                 ResourceActionGrantService::createRoleAction(
@@ -2596,7 +2596,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testGetResourceActionGrantsUserIsAuthorizedToRead(): void
     {
-        $roleEditor = $this->internalResourceActionGrantService->addRole([],
+        $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
@@ -2609,7 +2609,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
             ]);
 
-        $roleCreator = $this->internalResourceActionGrantService->addRole([],
+        $roleCreator = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
@@ -2990,7 +2990,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testGetResourceClassesCurrentUserIsAuthorizedToRead(): void
     {
-        $roleUpdater = $this->internalResourceActionGrantService->addRole([],
+        $roleUpdater = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS_2, TestResources::DELETE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
@@ -2998,7 +2998,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     TestResources::TEST_RESOURCE_CLASS_2, TestResources::UPDATE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
             ]
         );
-        $roleRC3Delete = $this->internalResourceActionGrantService->addRole([],
+        $roleRC3Delete = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS_3, TestResources::WRITE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),

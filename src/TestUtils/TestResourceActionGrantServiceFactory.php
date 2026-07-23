@@ -22,14 +22,13 @@ class TestResourceActionGrantServiceFactory
     {
         $testEntityManager = new TestEntityManager($container);
 
-        if ($testConfig !== null || false === empty($availableResourceClassActions)) {
-            $authorizationService = $container->get(AuthorizationService::class);
-            assert($authorizationService instanceof AuthorizationService);
-            if ($testConfig !== null) {
-                $authorizationService->setConfig($testConfig);
-            }
-            self::setAvailableResourceClassActions($availableResourceClassActions, $authorizationService);
+        $authorizationService = $container->get(AuthorizationService::class);
+        assert($authorizationService instanceof AuthorizationService);
+        if ($testConfig !== null) {
+            $authorizationService->setConfig($testConfig);
         }
+
+        self::ensureActionsAndRoles($authorizationService, $availableResourceClassActions);
 
         return $testEntityManager;
     }
@@ -76,7 +75,8 @@ class TestResourceActionGrantServiceFactory
             $currentUserAttributes, isServiceAccount: $isServiceAccount);
         $authorizationService->setConfig($testConfig ?? self::getTestConfig());
         $authorizationService->setLogger(new NullLogger());
-        self::setAvailableResourceClassActions($availableResourceClassActions, $authorizationService);
+
+        self::ensureActionsAndRoles($authorizationService, $availableResourceClassActions);
 
         return $authorizationService;
     }
@@ -89,10 +89,11 @@ class TestResourceActionGrantServiceFactory
         ];
     }
 
-    private static function setAvailableResourceClassActions(array $availableResourceClassActions, AuthorizationService $authorizationService): void
+    private static function ensureActionsAndRoles(AuthorizationService $authorizationService, array $availableResourceClassActions): void
     {
+        InternalResourceActionGrantService::ensureManageActionsAndRoleAreAvailable($authorizationService->getEntityManager());
         foreach ($availableResourceClassActions as $resourceClass => $actions) {
-            $authorizationService->setAvailableResourceClassActions($resourceClass,
+            $authorizationService->addOrUpdateAvailableResourceClassActions($resourceClass,
                 $actions[0] ?? [],
                 $actions[1] ?? []);
         }

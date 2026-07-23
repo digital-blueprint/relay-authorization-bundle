@@ -26,6 +26,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
@@ -111,14 +112,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         }
     }
 
-    public static function updateAvailableResourceClassActionsStatic(EntityManagerInterface $entityManager,
-        string $resourceClass, array $itemActions, array $collectionActions): array
+    public static function addOrUpdateAvailableResourceClassActionsStatic(EntityManagerInterface $entityManager,
+        string $resourceClass, array $itemActions, array $collectionActions, ?LoggerInterface $logger = null): array
     {
         return [
-            AvailableResourceClassAction::ITEM_ACTION_TYPE => self::updateAvailableResourceClassActionsInternal($entityManager,
-                $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE),
-            AvailableResourceClassAction::COLLECTION_ACTION_TYPE => self::updateAvailableResourceClassActionsInternal($entityManager,
-                $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
+            AvailableResourceClassAction::ITEM_ACTION_TYPE => self::addOrUpdateAvailableResourceClassActionsInternal(
+                $entityManager, $resourceClass, $itemActions,
+                AvailableResourceClassAction::ITEM_ACTION_TYPE, $logger),
+            AvailableResourceClassAction::COLLECTION_ACTION_TYPE => self::addOrUpdateAvailableResourceClassActionsInternal(
+                $entityManager, $resourceClass, $collectionActions,
+                AvailableResourceClassAction::COLLECTION_ACTION_TYPE, $logger),
         ];
     }
 
@@ -143,7 +146,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $entityManager->flush();
         }
         if (null === $entityManager->getRepository(Role::class)->find(self::MANAGER_ROLE_IDENTIFIER)) {
-            self::addRoleStatic($entityManager,
+            self::addOrUpdateRoleStatic($entityManager,
                 [
                     'en' => 'Manager',
                     'de' => 'Verwalter',
@@ -163,11 +166,19 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * @throws ApiError
      */
-    public static function addRoleStatic(EntityManagerInterface $entityManager,
-        array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
+    public static function addOrUpdateRoleStatic(EntityManagerInterface $entityManager,
+        array $localizedRoleNames, array $roleActions, ?string $identifier = null, ?LoggerInterface $logger = null): Role
     {
-        $role = new Role();
-        $role->setIdentifier($identifier ?? Uuid::v7()->toRfc4122());
+        $role = null !== $identifier ?
+            $entityManager->getRepository(Role::class)->find($identifier) : null;
+        if (null !== $role) {
+            $role->getRoleNames()->clear();
+            $role->getRoleActions()->clear();
+        } else {
+            $role = new Role();
+            $role->setIdentifier($identifier ?? Uuid::v7()->toRfc4122());
+        }
+
         foreach ($localizedRoleNames as $languageTag => $name) {
             $roleName = new RoleName();
             $roleName->setRole($role);
@@ -199,6 +210,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $entityManager->persist($role);
             $entityManager->flush();
         } catch (\Throwable $throwable) {
+            $logger?->error('Failed to add/update role: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+                'identifier' => $identifier,
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Role could not be added!',
                 self::ADDING_ROLE_FAILED_ERROR_ID);
         }
@@ -211,8 +226,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      *
      * @throw ApiError
      */
-    private static function updateAvailableResourceClassActionsInternal(EntityManagerInterface $entityManager,
-        string $resourceClass, array $availableActions, int $actionType): array
+    private static function addOrUpdateAvailableResourceClassActionsInternal(EntityManagerInterface $entityManager,
+        string $resourceClass, array $availableActions, int $actionType, ?LoggerInterface $logger): array
     {
         $availableResourceClassActions = [];
         try {
@@ -230,6 +245,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $availableResourceClassAction->setResourceClass($resourceClass);
                     $availableResourceClassAction->setAction($action);
                     $availableResourceClassAction->setActionType($actionType);
+                } else {
+                    $availableResourceClassAction->getNames()->clear();
                 }
                 $availableResourceClassActions[] = $availableResourceClassAction;
 
@@ -253,6 +270,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             }
             $entityManager->flush();
         } catch (\Throwable $throwable) {
+            $logger?->error('Failed to add/update available resource class actions: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+                'resourceClass' => $resourceClass,
+                'actionType' => $actionType,
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Available resource class actions could not be added!',
                 self::ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID);
@@ -282,19 +304,21 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * @throws ApiError
      */
-    public function setAvailableResourceClassActions(string $resourceClass,
+    public function addOrUpdateAvailableResourceClassActions(string $resourceClass,
         array $itemActions, array $collectionActions): array
     {
-        return self::updateAvailableResourceClassActionsStatic($this->entityManager,
-            $resourceClass, $itemActions, $collectionActions);
+        return self::addOrUpdateAvailableResourceClassActionsStatic($this->entityManager,
+            $resourceClass, $itemActions, $collectionActions,
+            logger: $this->logger);
     }
 
     /**
      * @throws ApiError
      */
-    public function addRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
+    public function addOrUpdateRole(array $localizedRoleNames, array $roleActions, ?string $identifier = null): Role
     {
-        return self::addRoleStatic($this->entityManager, $localizedRoleNames, $roleActions, $identifier);
+        return self::addOrUpdateRoleStatic($this->entityManager, $localizedRoleNames, $roleActions, $identifier,
+            logger: $this->logger);
     }
 
     /**
