@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- offer both removeGrantsForResource and removeResource via the PHP API
 - allow removing grants for a resource without specifying a resource class, a resource identifier, or a resource type
 - get available resource class actions operations: remove item operation; provide (expanded) collection of AvailableResourceClassAction entities, 
   as found int the db instead collecting actions per resource class
