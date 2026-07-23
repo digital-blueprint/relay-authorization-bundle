@@ -7,7 +7,6 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
@@ -57,12 +56,12 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
     protected function addGrant(AuthorizationResource $resource,
         ?string $action = null,
         ?string $userIdentifier = self::CURRENT_USER_IDENTIFIER,
-        ?Role $role = null): ResourceActionGrant
+        ?string $roleIdentifier = null): ResourceActionGrant
     {
         return $this->testEntityManager->addResourceActionGrant($resource,
             action: $action,
             userIdentifier: $userIdentifier,
-            role: $role
+            roleIdentifier: $roleIdentifier
         );
     }
 

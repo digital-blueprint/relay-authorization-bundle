@@ -561,6 +561,17 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         bool $shareable = false, ?string $currentUserIdentifier = null): ResourceActionGrant
     {
+        $providedIdentifiers = array_filter([
+            $userIdentifier !== null,
+            $userGroup !== null,
+            $dynamicUserGroupIdentifier !== null,
+        ]);
+        if (1 !== count($providedIdentifiers)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                'Exactly one of userIdentifier, userGroup or dynamicUserGroupIdentifier must be provided',
+                self::RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING_ERROR_ID);
+        }
+
         $connection = $this->entityManager->getConnection();
         try {
             $connection->beginTransaction();

@@ -155,6 +155,40 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertEquals($resourceActionGrant->getAuthorizationResource()->getResourceIdentifier(), $resourceActionGrantPersistence->getAuthorizationResource()->getResourceIdentifier());
     }
 
+    public function testAddResourceActionGrantByResourceClassAndIdentifierWithoutGrantHolder(): void
+    {
+        try {
+            $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+                self::TEST_RESOURCE_CLASS,
+                self::TEST_RESOURCE_IDENTIFIER,
+                action: AuthorizationService::MANAGE_ACTION,
+            );
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(
+                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING_ERROR_ID,
+                $apiError->getErrorId());
+        }
+    }
+
+    public function testAddResourceActionGrantByResourceClassAndIdentifierWithTooManyGrantHolders(): void
+    {
+        try {
+            $this->internalResourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
+                self::TEST_RESOURCE_CLASS,
+                self::TEST_RESOURCE_IDENTIFIER,
+                action: AuthorizationService::MANAGE_ACTION,
+                userIdentifier: self::CURRENT_USER_IDENTIFIER,
+                dynamicUserGroupIdentifier: 'everybody'
+            );
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(
+                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING_ERROR_ID,
+                $apiError->getErrorId());
+        }
+    }
+
     public function testAddResourceActionGrantWithAction(): void
     {
         $authorizationResource = $this->testEntityManager->addAuthorizationResource(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
