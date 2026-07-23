@@ -223,6 +223,18 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
+        $this->internalResourceActionGrantService->removeGrantsByResourceClassAndIdentifier(
+            $resourceClass, $resourceIdentifier, $resourceType);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function removeResource(
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+    {
+        $this->assertResourceClassNotReserved($resourceClass);
+
         $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $resourceType);
     }
@@ -230,7 +242,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function removeGrantsForResources(
+    public function removeResources(
         ?string $resourceClass, array $resourceIdentifiers, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         $this->assertResourceClassNotReserved($resourceClass);

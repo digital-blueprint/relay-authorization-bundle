@@ -576,10 +576,21 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      *
      * @throws ApiError
      */
+    public function removeGrantsByResourceClassAndIdentifier(
+        ?string $resourceClass = null, mixed $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+    {
+        $this->removeResourcesInternal(true, $resourceClass, $resourceIdentifier, $resourceType);
+    }
+
+    /**
+     * @param string|array|null $resourceIdentifier
+     *
+     * @throws ApiError
+     */
     public function removeAuthorizationResourcesByResourceClassAndIdentifier(
         ?string $resourceClass = null, mixed $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
-        $this->removeResourcesInternal($resourceClass, $resourceIdentifier, $resourceType);
+        $this->removeResourcesInternal(false, $resourceClass, $resourceIdentifier, $resourceType);
     }
 
     /**
@@ -1136,37 +1147,65 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * @param string|array|null $resourceIdentifiers
      */
-    private function removeResourcesInternal(?string $resourceClass, mixed $resourceIdentifiers, ?int $resourceType): void
+    private function removeResourcesInternal(bool $removeGrantsOnly, ?string $resourceClass, mixed $resourceIdentifiers, ?int $resourceType): void
     {
         try {
+            $RESOURCE_ACTION_GRANT_ALIAS = self::RESOURCE_ACTION_GRANT_ALIAS;
+            $RESOURCE_ALIAS_INNER = self::RESOURCE_ALIAS.'2';
             $RESOURCE_ALIAS = self::RESOURCE_ALIAS;
-            $queryBuilder = $this->entityManager->createQueryBuilder()
-                ->delete(AuthorizationResource::class, $RESOURCE_ALIAS);
+
+            // NOTE: sqlite doesn't support DELETE with JOIN, so we use a subquery instead
+            $resourceQueryBuilder = $this->entityManager->createQueryBuilder()
+                ->select("$RESOURCE_ALIAS_INNER.identifier")
+                ->from(AuthorizationResource::class, $RESOURCE_ALIAS_INNER);
 
             if (null !== $resourceClass) {
-                $queryBuilder
-                    ->where($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceClass", ':resourceClass'))
-                    ->setParameter(':resourceClass', $resourceClass);
+                $resourceQueryBuilder
+                    ->andWhere("$RESOURCE_ALIAS_INNER.resourceClass = :resourceClass")
+                    ->setParameter('resourceClass', $resourceClass);
             }
             if (null !== $resourceType) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceType", ':resourceType'))
-                    ->setParameter(':resourceType', $resourceType);
+                $resourceQueryBuilder
+                    ->andWhere("$RESOURCE_ALIAS_INNER.resourceType = :resourceType")
+                    ->setParameter('resourceType', $resourceType);
             }
-            if (is_array($resourceIdentifiers)) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->in("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifiers'))
-                    ->setParameter(':resourceIdentifiers', $resourceIdentifiers);
-            } elseif (is_string($resourceIdentifiers)) {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->eq("$RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
-                    ->setParameter(':resourceIdentifier', $resourceIdentifiers);
+            if (null !== $resourceIdentifiers) {
+                if (is_array($resourceIdentifiers)) {
+                    if ([] === $resourceIdentifiers) {
+                        $resourceQueryBuilder->andWhere('1=0');
+                    } else {
+                        $resourceQueryBuilder
+                            ->andWhere("$RESOURCE_ALIAS_INNER.resourceIdentifier IN (:resourceIdentifiers)")
+                            ->setParameter('resourceIdentifiers', $resourceIdentifiers);
+                    }
+                } elseif (is_string($resourceIdentifiers)) {
+                    $resourceQueryBuilder
+                        ->andWhere("$RESOURCE_ALIAS_INNER.resourceIdentifier = :resourceIdentifier")
+                        ->setParameter('resourceIdentifier', $resourceIdentifiers);
+                }
             }
+
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            if ($removeGrantsOnly) {
+                $queryBuilder
+                    ->delete(ResourceActionGrant::class, $RESOURCE_ACTION_GRANT_ALIAS)
+                    ->where($queryBuilder->expr()->in(
+                        "$RESOURCE_ACTION_GRANT_ALIAS.authorizationResource",
+                        $resourceQueryBuilder->getDQL()))
+                    ->setParameters($resourceQueryBuilder->getParameters());
+            } else {
+                $queryBuilder
+                    ->delete(AuthorizationResource::class, $RESOURCE_ALIAS)
+                    ->where($queryBuilder->expr()->in("$RESOURCE_ALIAS.identifier", $resourceQueryBuilder->getDQL()))
+                    ->setParameters($resourceQueryBuilder->getParameters());
+            }
+
             $queryBuilder->getQuery()->execute();
-        } catch (\Exception $e) {
+        } catch (\Throwable $throwable) {
+            dump($throwable);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
-                ['message' => $e->getMessage()]);
+                ['message' => $throwable->getMessage()]);
         }
     }
 

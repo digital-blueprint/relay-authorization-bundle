@@ -89,17 +89,24 @@ class ResourceActionGrantService
     }
 
     /**
-     * Deletes all resource action grants for the given resources.
-     *
+     * @throws ApiError
+     */
+    public function removeResource(
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+    {
+        $this->authorizationService->removeResource($resourceClass, $resourceIdentifier, $resourceType);
+    }
+
+    /**
      * @param string[] $resourceIdentifiers
      *
      * @throws ApiError
      */
-    public function removeGrantsForResources(
+    public function removeResources(
         ?string $resourceClass = null, array $resourceIdentifiers = [], ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
     {
         if (!empty($resourceIdentifiers)) {
-            $this->authorizationService->removeGrantsForResources($resourceClass, $resourceIdentifiers, $resourceType);
+            $this->authorizationService->removeResources($resourceClass, $resourceIdentifiers, $resourceType);
         }
     }
 
