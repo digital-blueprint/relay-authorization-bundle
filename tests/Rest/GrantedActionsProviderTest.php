@@ -46,7 +46,8 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             userIdentifier: self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             userIdentifier: self::ANOTHER_USER_IDENTIFIER,
-            role: $roleEditor);
+            roleIdentifier: $roleEditor->getIdentifier()
+        );
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             action: TestResources::DELETE_ACTION,
             userIdentifier: self::ANOTHER_USER_IDENTIFIER.'_2');
@@ -172,7 +173,8 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->addGrant($resourceGroup,
             userIdentifier: self::ANOTHER_USER_IDENTIFIER,
-            role: $roleEditor);
+            roleIdentifier: $roleEditor->getIdentifier()
+        );
         $this->addGrant($resource,
             action: TestResources::DELETE_ACTION,
             userIdentifier: self::ANOTHER_USER_IDENTIFIER.'_2'
@@ -350,7 +352,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             userIdentifier: self::ANOTHER_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             userIdentifier: self::ANOTHER_USER_IDENTIFIER.'_2',
-            role: $roleCreator
+            roleIdentifier: $roleCreator->getIdentifier()
         );
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             action: TestResources::UPDATE_ACTION,
@@ -511,7 +513,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         $this->testEntityManager->addResourceActionGrant($res2_manage->getAuthorizationResource(),
             userIdentifier: self::CURRENT_USER_IDENTIFIER,
-            role: $roleEditor);
+            roleIdentifier: $roleEditor->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($res2_manage->getAuthorizationResource(),
             action: TestResources::UPDATE_ACTION,
             userIdentifier: self::ANOTHER_USER_IDENTIFIER.'_2');
@@ -906,7 +908,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
 
         $this->testEntityManager->addResourceActionGrant($res2_manage->getAuthorizationResource(),
             userIdentifier: self::CURRENT_USER_IDENTIFIER,
-            role: $roleEditor);
+            roleIdentifier: $roleEditor->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($res2_manage->getAuthorizationResource(),
             action: TestResources::UPDATE_ACTION,
             userIdentifier: self::ANOTHER_USER_IDENTIFIER.'_2');
