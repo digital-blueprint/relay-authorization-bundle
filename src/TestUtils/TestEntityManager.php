@@ -378,7 +378,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     private static function addAvailableGroupResourceClassActions(EntityManagerInterface $entityManager): void
     {
-        InternalResourceActionGrantService::updateAvailableResourceClassActionsStatic($entityManager,
+        InternalResourceActionGrantService::addOrUpdateAvailableResourceClassActionsStatic($entityManager,
             AuthorizationService::GROUP_RESOURCE_CLASS,
             AuthorizationService::GROUP_ITEM_ACTIONS,
             AuthorizationService::GROUP_COLLECTION_ACTIONS);
