@@ -63,7 +63,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
                 'fr' => 'Créer',
             ],
         ];
-        $this->resourceActionGrantService->setAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
+        $this->resourceActionGrantService->addOrUpdateAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
 
         $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
             $resourceClass, AvailableResourceClassAction::ITEM_ACTION_TYPE);
@@ -807,7 +807,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertContainsResourceActionGrant($rags, $rag1);
         $this->assertContainsResourceActionGrant($rags, $rag2);
 
-        $this->internalResourceActionGrantService->setAvailableResourceClassActions(
+        $this->internalResourceActionGrantService->addOrUpdateAvailableResourceClassActions(
             TestResources::TEST_RESOURCE_CLASS, [], []);
 
         $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
@@ -826,7 +826,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             'en' => 'Creator',
             'de' => 'Ersteller',
         ];
-        $role = $this->resourceActionGrantService->addRole($localizedRoleNames, $roleActions);
+        $role = $this->resourceActionGrantService->addOrUpdateRole($localizedRoleNames, $roleActions);
         $this->assertTrue(UuidV7::isValid($role->getIdentifier()));
         $roleNameEntities = $role->getRoleNames();
         $this->assertCount(2, $roleNameEntities);
@@ -844,7 +844,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertEquals(ResourceActionGrantService::COLLECTION_ACTION_TYPE, $roleActionEntities[1]->getAvailableResourceClassAction()->getActionType());
 
         $roleIdentifier = Uuid::v7()->toRfc4122();
-        $role = $this->resourceActionGrantService->addRole($localizedRoleNames, $roleActions, $roleIdentifier);
+        $role = $this->resourceActionGrantService->addOrUpdateRole($localizedRoleNames, $roleActions, $roleIdentifier);
         $this->assertEquals($roleIdentifier, $role->getIdentifier());
     }
 }
