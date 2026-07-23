@@ -22,8 +22,9 @@ class TestResourceActionGrantServiceFactory
     {
         $testEntityManager = new TestEntityManager($container);
 
-        $authorizationService = $container->get(AuthorizationService::class);
-        assert($authorizationService instanceof AuthorizationService);
+        $resourceActionGrantService = $container->get(ResourceActionGrantService::class);
+        assert($resourceActionGrantService instanceof ResourceActionGrantService);
+        $authorizationService = $resourceActionGrantService->getAuthorizationService();
         if ($testConfig !== null) {
             $authorizationService->setConfig($testConfig);
         }
