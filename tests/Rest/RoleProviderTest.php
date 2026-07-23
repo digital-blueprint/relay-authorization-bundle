@@ -126,7 +126,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
             TestResources::CREATE_ACTION,
             ResourceActionGrantService::COLLECTION_ACTION_TYPE);
 
-        $roleReadCreate = $this->internalResourceActionGrantService->addRole(
+        $roleReadCreate = $this->internalResourceActionGrantService->addOrUpdateRole(
             [
                 'en' => 'Creator',
                 'de' => 'Ersteller',
@@ -136,12 +136,12 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
                 $roleActionCreate,
             ]
         );
-        $roleRead = $this->internalResourceActionGrantService->addRole([],
+        $roleRead = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 $roleActionRead,
             ]
         );
-        $roleCreate = $this->internalResourceActionGrantService->addRole([],
+        $roleCreate = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 $roleActionCreate,
             ]
@@ -259,7 +259,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
             'en' => 'Reader',
             'de' => 'Leser',
         ];
-        $role1 = $this->internalResourceActionGrantService->addRole(
+        $role1 = $this->internalResourceActionGrantService->addOrUpdateRole(
             $localizedRoleNames, $roleActions
         );
 
@@ -272,12 +272,12 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
             'en' => 'Editor',
             'de' => 'Redakteur',
         ];
-        $role2 = $this->internalResourceActionGrantService->addRole(
+        $role2 = $this->internalResourceActionGrantService->addOrUpdateRole(
             $localizedRoleNames2, $roleActions2
         );
 
         // noise:
-        $this->internalResourceActionGrantService->addRole([],
+        $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
                 ResourceActionGrantService::createRoleAction(
                     TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
@@ -373,20 +373,20 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
 
     public function testGetRolesCollectionResource(): void
     {
-        $role1 = $this->internalResourceActionGrantService->addRole([], [
+        $role1 = $this->internalResourceActionGrantService->addOrUpdateRole([], [
             ResourceActionGrantService::createRoleAction(
                 TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
             ResourceActionGrantService::createRoleAction(
                 TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
         ]
         );
-        $role2 = $this->internalResourceActionGrantService->addRole([], [
+        $role2 = $this->internalResourceActionGrantService->addOrUpdateRole([], [
             ResourceActionGrantService::createRoleAction(
                 TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
         ]
         );
         // noise:
-        $this->internalResourceActionGrantService->addRole([], [
+        $this->internalResourceActionGrantService->addOrUpdateRole([], [
             ResourceActionGrantService::createRoleAction(
                 TestResources::TEST_RESOURCE_CLASS, TestResources::DELETE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE
             ),
@@ -394,7 +394,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
                 TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
         ]
         );
-        $this->internalResourceActionGrantService->addRole([], [
+        $this->internalResourceActionGrantService->addOrUpdateRole([], [
             ResourceActionGrantService::createRoleAction(
                 TestResources::TEST_RESOURCE_CLASS_2, TestResources::CREATE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE
             ),

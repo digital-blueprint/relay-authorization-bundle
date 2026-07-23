@@ -22,16 +22,16 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         parent::setUp();
 
         InternalResourceActionGrantService::ensureManageActionsAndRoleAreAvailable($this->testEntityManager->getEntityManager());
-        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
+        $this->internalResourceActionGrantService->addOrUpdateAvailableResourceClassActions(self::TEST_RESOURCE_CLASS,
             TestResources::TEST_RESOURCE_ITEM_ACTIONS,
             TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
-        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_GROUP_CLASS,
+        $this->internalResourceActionGrantService->addOrUpdateAvailableResourceClassActions(self::TEST_RESOURCE_GROUP_CLASS,
             TestResources::TEST_RESOURCE_ITEM_ACTIONS,
             TestResources::TEST_RESOURCE_COLLECTION_ACTIONS);
-        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2,
+        $this->internalResourceActionGrantService->addOrUpdateAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2,
             TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
             TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS);
-        $this->internalResourceActionGrantService->setAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_3,
+        $this->internalResourceActionGrantService->addOrUpdateAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_3,
             TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
             TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS);
     }
@@ -247,7 +247,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
 
     public function testAddResourceActionGrantWithRole(): void
     {
-        $roleReader = $this->internalResourceActionGrantService->addRole(
+        $roleReader = $this->internalResourceActionGrantService->addOrUpdateRole(
             ['en' => 'Reader', 'de' => 'Leser'],
             [
                 ResourceActionGrantService::createRoleAction(
