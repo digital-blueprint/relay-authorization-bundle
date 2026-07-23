@@ -37,10 +37,15 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addResourceActionGrant(AuthorizationResource $resource, ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?Role $role = null): ResourceActionGrant
+        ?string $roleIdentifier = null): ResourceActionGrant
     {
         return $this->addResourceActionGrantInternal(
-            $resource, $action, $userIdentifier, $userGroup, $dynamicUserGroupIdentifier, $role
+            $resource,
+            action: $action,
+            userIdentifier: $userIdentifier,
+            userGroup: $userGroup,
+            dynamicUserGroupIdentifier: $dynamicUserGroupIdentifier,
+            roleIdentifier: $roleIdentifier
         );
     }
 
@@ -49,13 +54,17 @@ class TestEntityManager extends CoreTestEntityManager
         int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
         ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?Role $role = null): ResourceActionGrant
+        ?string $roleIdentifier = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource(
             $resourceClass, $resourceIdentifier, $resourceType);
 
         return $this->addResourceActionGrant($authorizationResource,
-            $action, $userIdentifier, $userGroup, $dynamicUserGroupIdentifier, $role
+            action: $action,
+            userIdentifier: $userIdentifier,
+            userGroup: $userGroup,
+            dynamicUserGroupIdentifier: $dynamicUserGroupIdentifier,
+            roleIdentifier: $roleIdentifier
         );
     }
 
@@ -119,11 +128,17 @@ class TestEntityManager extends CoreTestEntityManager
     public function getRoleByIdentifier(string $identifier): ?Role
     {
         try {
-            return $this->entityManager->getRepository(Role::class)
+            $role = $this->entityManager->getRepository(Role::class)
                 ->findOneBy(['identifier' => $identifier]);
         } catch (\Exception $exception) {
             throw new \RuntimeException('failed to get role: '.$exception->getMessage());
         }
+
+        if (null === $role) {
+            throw new \RuntimeException("role with identifier {$identifier} not found");
+        }
+
+        return $role;
     }
 
     public function getResourceActionGrantByIdentifier(string $identifier): ?ResourceActionGrant
@@ -307,7 +322,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, ?string $action,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?Role $role = null): ResourceActionGrant
+        ?string $roleIdentifier = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
@@ -326,7 +341,9 @@ class TestEntityManager extends CoreTestEntityManager
                 throw new \RuntimeException("action {$action} not defined for resource class {$resourceActionGrant->getResourceClass()}");
             }
         }
-        $resourceActionGrant->setRole($role);
+        if (null !== $roleIdentifier) {
+            $resourceActionGrant->setRole($this->getRoleByIdentifier($roleIdentifier));
+        }
         $resourceActionGrant->setUserIdentifier($userIdentifier);
         $resourceActionGrant->setUserGroup($userGroup);
         $resourceActionGrant->setDynamicUserGroupIdentifier($dynamicUserGroupIdentifier);
