@@ -13,4 +13,9 @@ abstract class EntityManagerMigration extends AbstractEntityManagerMigration
     {
         return DbpRelayAuthorizationExtension::AUTHORIZATION_ENTITY_MANAGER_ID;
     }
+
+    public function isTransactional(): bool
+    {
+        return false;
+    }
 }

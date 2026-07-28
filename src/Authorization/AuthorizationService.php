@@ -189,10 +189,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier,
+    public function addResourceActionGrant(string $resourceClass,
+        string $resourceIdentifier,
         int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $action = null, ?string $roleIdentifier = null,
-        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicUserGroupIdentifier = null): ResourceActionGrant
+        ?string $action = null,
+        ?string $roleIdentifier = null,
+        ?string $userIdentifier = null,
+        ?string $groupIdentifier = null,
+        ?string $dynamicUserGroupIdentifier = null,
+        ?bool $shareable = null): ResourceActionGrant
     {
         $this->assertResourceClassNotReserved($resourceClass);
 
@@ -201,7 +206,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $action, $roleIdentifier,
             $userIdentifier,
             $groupIdentifier !== null ? $this->groupService->getUserGroup($groupIdentifier) : null,
-            $dynamicUserGroupIdentifier);
+            $dynamicUserGroupIdentifier,
+            shareable: $shareable);
     }
 
     /**
@@ -511,18 +517,36 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool
     {
-        $isAuthorized = false;
         $resourceClass = $resourceActionGrant->getResourceClass();
         $resourceIdentifier = $resourceActionGrant->getResourceIdentifier();
         $resourceType = $resourceActionGrant->getResourceType();
+
+        $isAuthorized = false;
         if (null !== $resourceClass && null !== $resourceIdentifier) {
-            foreach ($this->getResourceActionGrantsCurrentUserHolds(
-                $resourceClass, $resourceIdentifier, $resourceType) as $currentUsersResourceActionGrant) {
-                if ($currentUsersResourceActionGrant->getAction() === self::MANAGE_ACTION
-                    || ($currentUsersResourceActionGrant === $resourceActionGrant->getShareOf()
-                        && $currentUsersResourceActionGrant->getShareable()
-                        && $currentUsersResourceActionGrant->getAction() === $resourceActionGrant->getAction())) {
+            $currentUsersResourceActionGrants = $this->getResourceActionGrantsCurrentUserHolds(
+                $resourceClass, $resourceIdentifier, $resourceType);
+            if ([] !== array_filter($currentUsersResourceActionGrants,
+                function (ResourceActionGrant $currentUsersResourceActionGrant): bool {
+                    return $currentUsersResourceActionGrant->getAction() === self::MANAGE_ACTION
+                        || $currentUsersResourceActionGrant->getRole()?->getIdentifier() === self::MANAGER_ROLE_IDENTIFIER;
+                })) { // new grant (no share)
+                // resource managers can add any grant for the resource (without sharing a grant)
+                $isAuthorized = true;
+            } elseif (null !== $resourceActionGrant->getShareOf()) { // explicit share
+                /** @var ResourceActionGrant|null $grantToShare */
+                $grantToShare = array_filter($currentUsersResourceActionGrants,
+                    fn ($currentUsersResourceActionGrant) => $currentUsersResourceActionGrant === $resourceActionGrant->getShareOf())[0] ?? null;
+                if ($grantToShare !== null
+                    && $this->isAllowedShare($grantToShare, $resourceActionGrant)) {
+                    // current user holds a shareable grant for the same action or a role with a superset or equal actions
                     $isAuthorized = true;
+                }
+            } else { // implicit share
+                foreach ($currentUsersResourceActionGrants as $currentUsersResourceActionGrant) {
+                    if ($this->isAllowedShare($currentUsersResourceActionGrant, $resourceActionGrant)) {
+                        $resourceActionGrant->setShareOf($currentUsersResourceActionGrant);
+                        $isAuthorized = true;
+                    }
                 }
             }
         }
@@ -835,6 +859,19 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                         && $this->groupService->isUserMemberOfUserGroup($userIdentifier, $resourceActionGrant->getUserGroup()->getIdentifier()))))
             || ($resourceActionGrant->getDynamicUserGroupIdentifier() !== null
                 && $this->isCurrentUserMemberOfDynamicGroup($resourceActionGrant->getDynamicUserGroupIdentifier()));
+    }
+
+    private function isAllowedShare(ResourceActionGrant $grantToShare, ResourceActionGrant $share): bool
+    {
+        return $grantToShare->getShareable()
+            && ((null !== $share->getAction() && $grantToShare->getAction() === $share->getAction())
+                || (null !== $share->getRole()
+                    && null !== $grantToShare->getRole()
+                    && in_array(
+                        $grantToShare->getRole(),
+                        $this->internalResourceActionGrantService->getRolesWhereActionsAreASupersetOrEqual(
+                            $share->getRole()->getIdentifier()),
+                        true)));
     }
 
     private function configure(): void

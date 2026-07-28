@@ -10,6 +10,7 @@ use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Service\UserAttributeProvider;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
@@ -3547,6 +3548,131 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         $this->login(null);
         $this->assertFalse($this->authorizationService->isCurrentUserAuthorizedToReadGroup($userGroup));
+    }
+
+    public function testGetSupersetRolesIncludeEqual(): void
+    {
+        [$roleRead, $roleReadWrite, $roleReadWriteDup, $roleReadWriteCreate] = $this->createSupersetTestRoles();
+
+        // Superset-or-equal of {READ, WRITE}: all roles containing at least READ and WRITE
+        $supersetRoles = $this->internalResourceActionGrantService->getRolesWhereActionsAreASupersetOrEqual(
+            $roleReadWrite->getIdentifier());
+
+        $this->assertCount(3, $supersetRoles);
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWrite));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteDup));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteCreate));
+        $this->assertFalse($this->containsResource($supersetRoles, $roleRead));
+    }
+
+    public function testGetSupersetRolesStrict(): void
+    {
+        [$roleRead, $roleReadWrite, $roleReadWriteDup, $roleReadWriteCreate] = $this->createSupersetTestRoles();
+
+        // Strict superset of {READ, WRITE}: only roles with more actions than {READ, WRITE}
+        $supersetRoles = $this->internalResourceActionGrantService->getRolesWhereActionsAreASupersetOrEqual(
+            $roleReadWrite->getIdentifier());
+
+        $this->assertCount(3, $supersetRoles);
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteCreate));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWrite));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteDup));
+        $this->assertFalse($this->containsResource($supersetRoles, $roleRead));
+    }
+
+    public function testGetSupersetRolesSingleActionRole(): void
+    {
+        [$roleRead, $roleReadWrite, $roleReadWriteDup, $roleReadWriteCreate] = $this->createSupersetTestRoles();
+
+        // Superset-or-equal of {READ}: all roles containing at least READ
+        $supersetRoles = $this->internalResourceActionGrantService->getRolesWhereActionsAreASupersetOrEqual(
+            $roleRead->getIdentifier());
+
+        $this->assertCount(4, $supersetRoles);
+        $this->assertTrue($this->containsResource($supersetRoles, $roleRead));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWrite));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteDup));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteCreate));
+
+        // Strict superset of {READ}: excludes the given role itself
+        $strictSupersetRoles = $this->internalResourceActionGrantService->getRolesWhereActionsAreASupersetOrEqual(
+            $roleRead->getIdentifier());
+
+        $this->assertCount(4, $strictSupersetRoles);
+        $this->assertTrue($this->containsResource($strictSupersetRoles, $roleRead));
+        $this->assertTrue($this->containsResource($strictSupersetRoles, $roleReadWrite));
+        $this->assertTrue($this->containsResource($strictSupersetRoles, $roleReadWriteDup));
+        $this->assertTrue($this->containsResource($strictSupersetRoles, $roleReadWriteCreate));
+    }
+
+    public function testGetSupersetRolesOfEmptyRoleReturnsAll(): void
+    {
+        [$roleRead, $roleReadWrite, $roleReadWriteDup, $roleReadWriteCreate] = $this->createSupersetTestRoles();
+
+        // A role with no actions: every role (that has actions) is a superset of the empty set
+        $roleEmpty = $this->internalResourceActionGrantService->addOrUpdateRole([], []);
+
+        $supersetRoles = $this->internalResourceActionGrantService->getRolesWhereActionsAreASupersetOrEqual(
+            $roleEmpty->getIdentifier());
+
+        $this->assertTrue($this->containsResource($supersetRoles, $roleRead));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWrite));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteDup));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleReadWriteCreate));
+        $this->assertTrue($this->containsResource($supersetRoles, $roleEmpty));
+    }
+
+    public function testGetSupersetRolesNonExistentRoleThrowsNotFound(): void
+    {
+        try {
+            $this->internalResourceActionGrantService->getRolesWhereActionsAreASupersetOrEqual('non-existent-role-identifier');
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+        }
+    }
+
+    /**
+     * Creates a set of roles for the superset tests:
+     * - roleRead: {READ (item)}
+     * - roleReadWrite: {READ, WRITE (item)}
+     * - roleReadWriteDup: {READ, WRITE (item)} (same actions as roleReadWrite, different role)
+     * - roleReadWriteCreate: {READ, WRITE (item), CREATE (collection)}.
+     *
+     * @return Role[]
+     */
+    private function createSupersetTestRoles(): array
+    {
+        $roleRead = $this->internalResourceActionGrantService->addOrUpdateRole([],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+            ]);
+        $roleReadWrite = $this->internalResourceActionGrantService->addOrUpdateRole([],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+            ]);
+        $roleReadWriteDup = $this->internalResourceActionGrantService->addOrUpdateRole([],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+            ]);
+        $roleReadWriteCreate = $this->internalResourceActionGrantService->addOrUpdateRole([],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::WRITE_ACTION, AvailableResourceClassAction::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    TestResources::TEST_RESOURCE_CLASS, TestResources::CREATE_ACTION, AvailableResourceClassAction::COLLECTION_ACTION_TYPE),
+            ]);
+
+        return [$roleRead, $roleReadWrite, $roleReadWriteDup, $roleReadWriteCreate];
     }
 
     protected function getTestConfig(): array

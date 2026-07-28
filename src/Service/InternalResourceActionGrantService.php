@@ -20,7 +20,6 @@ use Dbp\Relay\AuthorizationBundle\Event\ResourceActionGrantAddedEvent;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
@@ -113,54 +112,69 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     public static function addOrUpdateAvailableResourceClassActionsStatic(EntityManagerInterface $entityManager,
-        string $resourceClass, array $itemActions, array $collectionActions, ?LoggerInterface $logger = null): array
+        ?string $resourceClass, array $itemActions, array $collectionActions, ?LoggerInterface $logger = null): array
     {
+        $availableItemActions = [];
+        foreach ($itemActions as $action => $actionNames) {
+            $availableItemActions[] = self::addOrUpdateAvailableResourceClassActionInternal(
+                $entityManager, $resourceClass, $action,
+                AvailableResourceClassAction::ITEM_ACTION_TYPE,
+                $actionNames,
+                logger: $logger);
+        }
+        $availableCollectionActions = [];
+        foreach ($collectionActions as $collectionAction => $actionNames) {
+            $availableCollectionActions[] = self::addOrUpdateAvailableResourceClassActionInternal(
+                $entityManager, $resourceClass, $collectionAction,
+                AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
+                $actionNames,
+                logger: $logger);
+        }
+
         return [
-            AvailableResourceClassAction::ITEM_ACTION_TYPE => self::addOrUpdateAvailableResourceClassActionsInternal(
-                $entityManager, $resourceClass, $itemActions,
-                AvailableResourceClassAction::ITEM_ACTION_TYPE, $logger),
-            AvailableResourceClassAction::COLLECTION_ACTION_TYPE => self::addOrUpdateAvailableResourceClassActionsInternal(
-                $entityManager, $resourceClass, $collectionActions,
-                AvailableResourceClassAction::COLLECTION_ACTION_TYPE, $logger),
+            AvailableResourceClassAction::ITEM_ACTION_TYPE => $availableItemActions,
+            AvailableResourceClassAction::COLLECTION_ACTION_TYPE => $availableCollectionActions,
         ];
     }
 
-    public static function ensureManageActionsAndRoleAreAvailable(EntityManagerInterface $entityManager): void
+    public static function ensureManageActionsAndRoleAreAvailable(EntityManagerInterface $entityManager, ?LoggerInterface $logger = null): void
     {
-        if (null === $entityManager->getRepository(AvailableResourceClassAction::class)
-                ->find(self::MANAGE_ITEM_ACTION_UUID)) {
-            $manageItemAction = new AvailableResourceClassAction();
-            $manageItemAction->setIdentifier(self::MANAGE_ITEM_ACTION_UUID);
-            $manageItemAction->setAction(AuthorizationService::MANAGE_ACTION);
-            $manageItemAction->setActionType(AvailableResourceClassAction::ITEM_ACTION_TYPE);
-            $entityManager->persist($manageItemAction);
-            $entityManager->flush();
-        }
-        if (null === $entityManager->getRepository(AvailableResourceClassAction::class)
-                ->find(self::MANAGE_COLLECTION_ACTION_UUID)) {
-            $manageCollectionAction = new AvailableResourceClassAction();
-            $manageCollectionAction->setIdentifier(self::MANAGE_COLLECTION_ACTION_UUID);
-            $manageCollectionAction->setAction(AuthorizationService::MANAGE_ACTION);
-            $manageCollectionAction->setActionType(AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
-            $entityManager->persist($manageCollectionAction);
-            $entityManager->flush();
-        }
-        if (null === $entityManager->getRepository(Role::class)->find(self::MANAGER_ROLE_IDENTIFIER)) {
-            self::addOrUpdateRoleStatic($entityManager,
-                [
-                    'en' => 'Manager',
-                    'de' => 'Verwalter',
-                ],
-                [
-                    // works for both item and collection resources:
-                    ResourceActionGrantService::createRoleAction(
-                        null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
-                    ResourceActionGrantService::createRoleAction(
-                        null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
-                ],
-                identifier: ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
-            );
-        }
+        $manageActionNames = [
+            'en' => 'Manage',
+            'de' => 'Verwalten',
+        ];
+        self::addOrUpdateAvailableResourceClassActionInternal(
+            $entityManager,
+            null,
+            AuthorizationService::MANAGE_ACTION,
+            AvailableResourceClassAction::ITEM_ACTION_TYPE,
+            $manageActionNames,
+            identifier: self::MANAGE_ITEM_ACTION_UUID,
+            logger: $logger
+        );
+        self::addOrUpdateAvailableResourceClassActionInternal(
+            $entityManager,
+            null,
+            AuthorizationService::MANAGE_ACTION,
+            AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
+            $manageActionNames,
+            identifier: self::MANAGE_COLLECTION_ACTION_UUID,
+            logger: $logger
+        );
+        self::addOrUpdateRoleStatic($entityManager,
+            [
+                'en' => 'Manager',
+                'de' => 'Verwalter',
+            ],
+            [
+                // works for both item and collection resources:
+                ResourceActionGrantService::createRoleAction(
+                    null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
+            ],
+            identifier: ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
+        );
     }
 
     /**
@@ -174,6 +188,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         if (null !== $role) {
             $role->getRoleNames()->clear();
             $role->getRoleActions()->clear();
+            $entityManager->persist($role);
+            $entityManager->flush();
         } else {
             $role = new Role();
             $role->setIdentifier($identifier ?? Uuid::v7()->toRfc4122());
@@ -222,52 +238,63 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     /**
-     * @return AvailableResourceClassAction[]
-     *
      * @throw ApiError
      */
-    private static function addOrUpdateAvailableResourceClassActionsInternal(EntityManagerInterface $entityManager,
-        string $resourceClass, array $availableActions, int $actionType, ?LoggerInterface $logger): array
+    private static function addOrUpdateAvailableResourceClassActionInternal(
+        EntityManagerInterface $entityManager,
+        ?string $resourceClass, string $action, int $actionType, array $actionNames,
+        ?string $identifier = null, ?LoggerInterface $logger = null): AvailableResourceClassAction
     {
-        $availableResourceClassActions = [];
         try {
-            foreach ($availableActions as $action => $actionNames) {
-                $availableResourceClassAction =
-                    $entityManager->getRepository(AvailableResourceClassAction::class)
-                        ->findOneBy([
-                            'resourceClass' => $resourceClass,
-                            'action' => $action,
-                            'actionType' => $actionType,
-                        ]);
-                if (null === $availableResourceClassAction) {
-                    $availableResourceClassAction = new AvailableResourceClassAction();
-                    $availableResourceClassAction->setIdentifier(Uuid::v7()->toRfc4122());
-                    $availableResourceClassAction->setResourceClass($resourceClass);
-                    $availableResourceClassAction->setAction($action);
-                    $availableResourceClassAction->setActionType($actionType);
-                } else {
-                    $availableResourceClassAction->getNames()->clear();
-                }
-                $availableResourceClassActions[] = $availableResourceClassAction;
-
-                $names = [];
-                foreach ($actionNames as $languageTag => $name) {
-                    $availableGroupResourceActionName = $entityManager->getRepository(AvailableResourceClassActionName::class)
-                        ->findOneBy([
-                            'availableResourceClassAction' => $availableResourceClassAction,
-                            'languageTag' => $languageTag,
-                        ]);
-                    if (null === $availableGroupResourceActionName) {
-                        $availableGroupResourceActionName = new AvailableResourceClassActionName();
-                        $availableGroupResourceActionName->setAvailableResourceClassAction($availableResourceClassAction);
-                        $availableGroupResourceActionName->setLanguageTag($languageTag);
-                    }
-                    $availableGroupResourceActionName->setName($name);
-                    $names[] = $availableGroupResourceActionName;
-                }
-                $availableResourceClassAction->setNames(new ArrayCollection($names));
+            $availableResourceClassAction = $identifier !== null ?
+                $entityManager->getRepository(AvailableResourceClassAction::class)
+                    ->find($identifier) :
+                $entityManager->getRepository(AvailableResourceClassAction::class)
+                    ->findOneBy([
+                        'resourceClass' => $resourceClass,
+                        'action' => $action,
+                        'actionType' => $actionType,
+                    ]);
+            if (null === $availableResourceClassAction) {
+                $availableResourceClassAction = new AvailableResourceClassAction();
+                $availableResourceClassAction->setIdentifier(
+                    $identifier ?? Uuid::v7()->toRfc4122());
+                $availableResourceClassAction->setResourceClass($resourceClass);
+                $availableResourceClassAction->setAction($action);
+                $availableResourceClassAction->setActionType($actionType);
                 $entityManager->persist($availableResourceClassAction);
             }
+
+            $existingByLanguageTag = [];
+            foreach ($availableResourceClassAction->getNames() as $existingName) {
+                $existingByLanguageTag[$existingName->getLanguageTag()] = $existingName;
+            }
+
+            // Update or create names for the provided language tags
+            foreach ($actionNames as $languageTag => $name) {
+                if (isset($existingByLanguageTag[$languageTag])) {
+                    $existingByLanguageTag[$languageTag]->setName($name);
+                // no need to persist if it's already managed (it is, because it's attached via the collection)
+                } else {
+                    $newChild = new AvailableResourceClassActionName();
+                    $newChild->setAvailableResourceClassAction($availableResourceClassAction);
+                    $newChild->setLanguageTag($languageTag);
+                    $newChild->setName($name);
+
+                    $availableResourceClassAction->getNames()->add($newChild);
+                    $entityManager->persist($newChild);
+                }
+            }
+
+            // Optional: remove children that are no longer present in $actionNames
+            // (keeps DB clean if you sometimes pass a smaller set of languages)
+            $wantedLangs = array_keys($actionNames);
+            foreach ($availableResourceClassAction->getNames() as $existingName) {
+                if (!in_array($existingName->getLanguageTag(), $wantedLangs, true)) {
+                    $entityManager->remove($existingName);
+                }
+            }
+
             $entityManager->flush();
         } catch (\Throwable $throwable) {
             $logger?->error('Failed to add/update available resource class actions: '.$throwable->getMessage(), [
@@ -276,11 +303,12 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 'actionType' => $actionType,
             ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Available resource class actions could not be added!',
+                // 'Available resource class actions could not be added!',
+                sprintf('Failed to add/update available resource class %s action %s: %s', $resourceClass, $action, $throwable->getMessage()),
                 self::ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID);
         }
 
-        return $availableResourceClassActions;
+        return $availableResourceClassAction;
     }
 
     private array $isAvailableResourceClassActionsRequestCache = [];
@@ -330,11 +358,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $role = UuidV7::isValid($identifier) ?
                 $this->entityManager->getRepository(Role::class)->find($identifier) :
                 null;
-            if (null === $role) {
-                throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'Role not found', self::GETTING_ROLE_ITEM_FAILED_ERROR_ID);
-            }
-
-            return $role;
         } catch (\Throwable $throwable) {
             $this->logger->error('Failed to get role by identifier: '.$throwable->getMessage(), [
                 'identifier' => $identifier,
@@ -342,6 +365,73 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get role',
                 self::GETTING_ROLE_ITEM_FAILED_ERROR_ID);
+        }
+
+        if (null === $role) {
+            throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'Role not found', self::GETTING_ROLE_ITEM_FAILED_ERROR_ID);
+        }
+
+        return $role;
+    }
+
+    /**
+     * Returns all roles whose set of actions is a superset of / equal to
+     * the actions of the role identified by $roleIdentifier.
+     *
+     * @return Role[]
+     *
+     * @throws ApiError
+     */
+    public function getRolesWhereActionsAreASupersetOrEqual(string $roleIdentifier,
+        int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
+    {
+        // Validate that the given role exists (throws HTTP_NOT_FOUND if it doesn't)
+        $this->getRoleByIdentifier($roleIdentifier);
+
+        $ROLE_ALIAS = self::ROLE_ALIAS;
+        $ROLE_ACTION_GIVEN_ALIAS = self::ROLE_ACTION_ALIAS.'_given';
+        $ROLE_ACTION_CANIDATE_ALIAS = self::ROLE_ACTION_ALIAS.'_candidate';
+
+        try {
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+
+            return $queryBuilder->select($ROLE_ALIAS)
+                ->from(Role::class, $ROLE_ALIAS)
+                ->where(
+                    $queryBuilder->expr()->not(
+                        $queryBuilder->expr()->exists(
+                            $this->entityManager->createQueryBuilder()
+                                ->select('1')
+                                ->from(RoleAction::class, $ROLE_ACTION_GIVEN_ALIAS)
+                                ->where("$ROLE_ACTION_GIVEN_ALIAS.role = :givenRole")
+                                ->andWhere(
+                                    $queryBuilder->expr()->not(
+                                        $queryBuilder->expr()->exists(
+                                            $this->entityManager->createQueryBuilder()
+                                                ->select('1')
+                                                ->from(RoleAction::class, $ROLE_ACTION_CANIDATE_ALIAS)
+                                                ->where("$ROLE_ACTION_CANIDATE_ALIAS.role = $ROLE_ALIAS.identifier")
+                                                ->andWhere("$ROLE_ACTION_CANIDATE_ALIAS.availableResourceClassAction = $ROLE_ACTION_GIVEN_ALIAS.availableResourceClassAction")
+                                                ->getDQL()
+                                        )
+                                    )
+                                )
+                                ->getDQL()
+                        )
+                    )
+                )
+                ->setParameter(':givenRole', $roleIdentifier, AuthorizationUuidBinaryType::NAME)
+                ->getQuery()
+                ->setFirstResult($firstItemIndex)
+                ->setMaxResults($maxNumItemsPerPage)
+                ->getResult();
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get superset roles: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+                'roleIdentifier' => $roleIdentifier,
+            ]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get roles',
+                self::GETTING_ROLE_COLLECTION_FAILED_ERROR_ID);
         }
     }
 
@@ -559,7 +649,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
         ?string $action = null, ?string $roleIdentifier = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        bool $shareable = false, ?string $currentUserIdentifier = null): ResourceActionGrant
+        ?bool $shareable = null, ?string $currentUserIdentifier = null): ResourceActionGrant
     {
         $providedIdentifiers = array_filter([
             $userIdentifier !== null,
@@ -587,7 +677,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $resourceActionGrant->setUserIdentifier($userIdentifier);
             $resourceActionGrant->setUserGroup($userGroup);
             $resourceActionGrant->setDynamicUserGroupIdentifier($dynamicUserGroupIdentifier);
-            $resourceActionGrant->setShareable($shareable);
+            if (null !== $shareable) {
+                $resourceActionGrant->setShareable($shareable);
+            }
 
             $this->addResourceActionGrantInternal($resourceActionGrant, $currentUserIdentifier);
 

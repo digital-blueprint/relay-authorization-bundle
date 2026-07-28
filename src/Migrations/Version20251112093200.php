@@ -23,10 +23,10 @@ final class Version20251112093200 extends EntityManagerMigration
     public function up(Schema $schema): void
     {
         $availableResourceClassActionsTable = AvailableResourceClassAction::TABLE_NAME;
-        $identifierColumn = AvailableResourceClassAction::IDENTIFIER_COLUMN_NAME;
-        $resourceClassColumn = AvailableResourceClassAction::RESOURCE_CLASS_COLUMN_NAME;
-        $actionColumn = AvailableResourceClassAction::ACTION_COLUMN_NAME;
-        $actionTypeColumn = AvailableResourceClassAction::ACTION_TYPE_COLUMN_NAME;
+        $identifierColumn = AvailableResourceClassAction::IDENTIFIER_COLUMN;
+        $resourceClassColumn = AvailableResourceClassAction::RESOURCE_CLASS_COLUMN;
+        $actionColumn = AvailableResourceClassAction::ACTION_COLUMN;
+        $actionTypeColumn = AvailableResourceClassAction::ACTION_TYPE_COLUMN;
 
         $this->addSql("CREATE TABLE $availableResourceClassActionsTable ($identifierColumn BINARY(16) NOT NULL, $resourceClassColumn varchar(40) NOT NULL, $actionColumn varchar(40) NOT NULL, $actionTypeColumn tinyint(1), PRIMARY KEY (identifier)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB");
         $this->addSql("ALTER TABLE $availableResourceClassActionsTable ADD CONSTRAINT unique_resource_class_action UNIQUE ($resourceClassColumn, $actionColumn, $actionTypeColumn)");

@@ -141,6 +141,9 @@ class ResourceActionGrant
     public const USER_IDENTIFIER_COLUMN = 'user_identifier';
     public const USER_GROUP_IDENTIFIER_COLUMN = 'user_group_identifier';
     public const DYNAMIC_USER_GROUP_IDENTIFIER_COLUMN = 'dynamic_user_group_identifier';
+    public const DATE_CREATED_COLUMN = 'date_created';
+    public const CREATOR_ID_COLUMN = 'creator_id';
+    public const SHARE_OF_IDENTIFIER_COLUMN = 'share_of_identifier';
 
     #[ORM\Id]
     #[ORM\Column(name: self::IDENTIFIER_COLUMN, type: 'relay_authorization_uuid_binary', unique: true)]
@@ -151,7 +154,7 @@ class ResourceActionGrant
     #[ORM\ManyToOne(targetEntity: AuthorizationResource::class, inversedBy: 'resourceActionGrants')]
     private ?AuthorizationResource $authorizationResource = null;
 
-    #[ORM\JoinColumn(name: self::AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN, referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: self::AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN, referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'resourceActionGrants')]
     private ?AvailableResourceClassAction $availableResourceClassAction = null;
 
@@ -199,22 +202,22 @@ class ResourceActionGrant
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $dynamicUserGroupIdentifier = null;
 
-    // #[ORM\Column(name: 'shareable', type: 'boolean', nullable: false, options: ['default' => false])]
-    // #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    #[ORM\Column(name: 'shareable', type: 'boolean', nullable: false, options: ['default' => false])]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private bool $shareable = false;
 
     /**
      * If set, $this was/is requested to be created as a share of $shareOf.
      */
-    // #[ORM\JoinColumn(name: 'share_of_identifier', referencedColumnName: 'identifier', nullable: true, onDelete: 'CASCADE')]
-    // #[ORM\ManyToOne(targetEntity: self::class)]
-    // #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
+    #[ORM\JoinColumn(name: self::SHARE_OF_IDENTIFIER_COLUMN, referencedColumnName: 'identifier', nullable: true, onDelete: 'CASCADE')]
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?ResourceActionGrant $shareOf = null;
 
-    // #[ORM\Column(name: 'creator_id', type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: self::CREATOR_ID_COLUMN, type: 'string', length: 40, nullable: true)]
     private ?string $creatorId = null;
 
-    // #[ORM\Column(name: 'date_created', type: 'datetime', nullable: true)]
+    #[ORM\Column(name: self::DATE_CREATED_COLUMN, type: 'datetime', nullable: true)]
     private ?\DateTime $dateCreated = null;
 
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
