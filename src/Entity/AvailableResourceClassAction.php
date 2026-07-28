@@ -54,31 +54,31 @@ use Symfony\Component\Serializer\Attribute\Groups;
 class AvailableResourceClassAction
 {
     public const TABLE_NAME = 'authorization_available_resource_class_actions';
-    public const IDENTIFIER_COLUMN_NAME = 'identifier';
-    public const RESOURCE_CLASS_COLUMN_NAME = 'resource_class';
-    public const ACTION_COLUMN_NAME = 'action';
-    public const ACTION_TYPE_COLUMN_NAME = 'action_type';
+    public const IDENTIFIER_COLUMN = 'identifier';
+    public const RESOURCE_CLASS_COLUMN = 'resource_class';
+    public const ACTION_COLUMN = 'action';
+    public const ACTION_TYPE_COLUMN = 'action_type';
 
     public const ITEM_ACTION_TYPE = 0;
     public const COLLECTION_ACTION_TYPE = 1;
 
     #[ORM\Id]
-    #[ORM\Column(name: self::IDENTIFIER_COLUMN_NAME, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
+    #[ORM\Column(name: self::IDENTIFIER_COLUMN, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
 
-    #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN_NAME, type: 'string', length: 40, nullable: true)]
+    #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN, type: 'string', length: 40, nullable: true)]
     #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?string $resourceClass = null;
 
-    #[ORM\Column(name: self::ACTION_COLUMN_NAME, type: 'string', length: 40, nullable: false)]
+    #[ORM\Column(name: self::ACTION_COLUMN, type: 'string', length: 40, nullable: false)]
     #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?string $action = null;
 
-    #[ORM\Column(name: self::ACTION_TYPE_COLUMN_NAME, type: 'smallint', nullable: true)]
+    #[ORM\Column(name: self::ACTION_TYPE_COLUMN, type: 'smallint', nullable: true)]
     #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     private ?int $actionType = null;
 
-    #[ORM\OneToMany(targetEntity: AvailableResourceClassActionName::class, mappedBy: 'availableResourceClassAction', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: AvailableResourceClassActionName::class, mappedBy: 'availableResourceClassAction')]
     #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
     #[ApiProperty(genId: false)]
     private Collection $names;
