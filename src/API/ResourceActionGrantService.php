@@ -115,15 +115,21 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function addResourceActionGrant(string $resourceClass, string $resourceIdentifier,
+    public function addResourceActionGrant(string $resourceClass,
+        string $resourceIdentifier,
         int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $action = null, ?string $roleIdentifier = null,
-        ?string $userIdentifier = null, ?string $groupIdentifier = null, ?string $dynamicGroupIdentifier = null): ResourceActionGrant
+        ?string $action = null,
+        ?string $roleIdentifier = null,
+        ?string $userIdentifier = null,
+        ?string $groupIdentifier = null,
+        ?string $dynamicGroupIdentifier = null,
+        ?bool $shareable = null): ResourceActionGrant
     {
         return $this->authorizationService->addResourceActionGrant(
             $resourceClass, $resourceIdentifier, $resourceType,
             $action, $roleIdentifier,
-            $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier);
+            $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier,
+            shareable: $shareable);
     }
 
     /**
