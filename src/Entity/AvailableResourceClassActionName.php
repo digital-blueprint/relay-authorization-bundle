@@ -22,7 +22,7 @@ class AvailableResourceClassActionName
     public const NAME_COLUMN_NAME = 'name';
 
     #[ORM\Id]
-    #[ORM\JoinColumn(name: self::AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN_NAME, referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(name: self::AVAILABLE_RESOURCE_CLASS_ACTION_IDENTIFIER_COLUMN_NAME, referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'names')]
     private ?AvailableResourceClassAction $availableResourceClassAction = null;
 
