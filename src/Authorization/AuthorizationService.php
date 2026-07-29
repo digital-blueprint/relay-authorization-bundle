@@ -369,6 +369,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         );
     }
 
+    /**
+     * @throws ApiError
+     */
+    public function getRoleByIdentifier(string $id): Role
+    {
+        return $this->internalResourceActionGrantService->getRoleByIdentifier($id);
+    }
+
     public function getRolesCurrentUserMayGrant(
         string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
@@ -515,6 +523,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->isCurrentUserAuthorizedToReadGroup($item->getUserGroup());
     }
 
+    /**
+     * @throws ApiError
+     */
     public function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         $resourceClass = $resourceActionGrant->getResourceClass();
@@ -525,6 +536,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         if (null !== $resourceClass && null !== $resourceIdentifier) {
             $currentUsersResourceActionGrants = $this->getResourceActionGrantsCurrentUserHolds(
                 $resourceClass, $resourceIdentifier, $resourceType);
+            if ([] === $currentUsersResourceActionGrants) {
+                // if the user does not hold any grant for the resource, we throw a 404 to avoid information disclosure
+                $this->internalResourceActionGrantService->throwResourceNotFound();
+            }
             if ([] !== array_filter($currentUsersResourceActionGrants,
                 function (ResourceActionGrant $currentUsersResourceActionGrant): bool {
                     return $currentUsersResourceActionGrant->getAction() === self::MANAGE_ACTION
@@ -544,7 +559,13 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             } else { // implicit share
                 foreach ($currentUsersResourceActionGrants as $currentUsersResourceActionGrant) {
                     if ($this->isAllowedShare($currentUsersResourceActionGrant, $resourceActionGrant)) {
-                        $resourceActionGrant->setShareOf($currentUsersResourceActionGrant);
+                        // NOTE: since the grants array is 'self-hydrated' (doesn't come from the entity manager)
+                        // we get the source grant from the entity manager to get the association right
+                        $resourceActionGrant->setShareOf(
+                            $this->internalResourceActionGrantService->getResourceActionGrantByIdentifier(
+                                $currentUsersResourceActionGrant->getIdentifier()
+                            )
+                        );
                         $isAuthorized = true;
                     }
                 }
@@ -556,18 +577,32 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     public function isCurrentUserAuthorizedToRemoveGrant(ResourceActionGrant $resourceActionGrant): bool
     {
-        $isAuthorized = false;
         $resourceClass = $resourceActionGrant->getResourceClass();
         $resourceIdentifier = $resourceActionGrant->getResourceIdentifier();
         $resourceType = $resourceActionGrant->getResourceType();
+
+        $isAuthorized = false;
         if (null !== $resourceClass && null !== $resourceIdentifier) {
-            foreach ($this->getResourceActionGrantsCurrentUserHolds(
-                $resourceClass, $resourceIdentifier, $resourceType) as $currentUsersResourceActionGrant) {
-                if ($currentUsersResourceActionGrant->getAction() === self::MANAGE_ACTION
-                    || ($currentUsersResourceActionGrant === $resourceActionGrant->getShareOf()
-                        && $currentUsersResourceActionGrant->getAction() === $resourceActionGrant->getAction())) {
-                    $isAuthorized = true;
-                }
+            $currentUsersResourceActionGrants = $this->getResourceActionGrantsCurrentUserHolds(
+                $resourceClass, $resourceIdentifier, $resourceType);
+            if ([] === $currentUsersResourceActionGrants) {
+                // if the user does not hold any grant for the resource, we throw a 404 to avoid information disclosure
+                $this->internalResourceActionGrantService->throwResourceNotFound();
+            }
+            if ([] !== array_filter($currentUsersResourceActionGrants,
+                function (ResourceActionGrant $currentUsersResourceActionGrant): bool {
+                    return $currentUsersResourceActionGrant->getAction() === self::MANAGE_ACTION
+                        || $currentUsersResourceActionGrant->getRole()?->getIdentifier() === self::MANAGER_ROLE_IDENTIFIER;
+                })) {
+                // resource managers can remove any grants
+                $isAuthorized = true;
+            } elseif (null !== $resourceActionGrant->getShareOf()) { // shared grant
+                // current user holds the original grant that the grant to remove is a share of
+                $isAuthorized = [] !== array_filter($currentUsersResourceActionGrants,
+                    function (ResourceActionGrant $currentUsersResourceActionGrant) use ($resourceActionGrant): bool {
+                        return $currentUsersResourceActionGrant->getIdentifier() ===
+                            $resourceActionGrant->getShareOf()->getIdentifier();
+                    });
             }
         }
 

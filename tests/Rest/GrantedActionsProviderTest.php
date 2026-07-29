@@ -37,7 +37,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $manageGrant = $this->addResourceAndManageGrant();
+        $manageGrant = $this->addResourceAndManageGrantToTestDB();
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             action: TestResources::READ_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER);
@@ -340,7 +340,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $manageGrant = $this->addResourceAndManageGrant(
+        $manageGrant = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER);
@@ -486,22 +486,22 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $res1_manage = $this->addResourceAndManageGrant(
+        $res1_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER
         );
-        $res2_manage = $this->addResourceAndManageGrant(
+        $res2_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_2',
             self::ANOTHER_USER_IDENTIFIER
         );
-        $res3_manage = $this->addResourceAndManageGrant(
+        $res3_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_3',
             self::ANOTHER_USER_IDENTIFIER.'_2'
         );
-        $resColl_manage = $this->addResourceAndManageGrant(
+        $resColl_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER
@@ -881,22 +881,22 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $res1_manage = $this->addResourceAndManageGrant(
+        $res1_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER
         );
-        $res2_manage = $this->addResourceAndManageGrant(
+        $res2_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_2',
             self::ANOTHER_USER_IDENTIFIER
         );
-        $res3_manage = $this->addResourceAndManageGrant(
+        $res3_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_3',
             self::ANOTHER_USER_IDENTIFIER.'_2'
         );
-        $resColl_manage = $this->addResourceAndManageGrant(
+        $resColl_manage = $this->addResourceAndManageGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER

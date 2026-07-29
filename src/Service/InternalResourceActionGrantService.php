@@ -79,8 +79,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     private const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
-    public const RESOURCE_ACTION_GRANT_INVALID_ACTION_AND_ROLE_MISSING_ERROR_ID = 'authorization:resource-action-grant-invalid-action-and-role-missing';
-    public const RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID = 'authorization:resource_action_grant-invalid-action-undefined';
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
     private const ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID = 'authorization:adding-available-resource-class-actions-failed';
@@ -89,8 +87,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     private const REMOVING_RESOURCE_FROM_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-from-group-resource-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
     private const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:authorization-resource-not-found';
-    public const RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING_ERROR_ID =
-        'authorization:resource-action-grant-invalid-authorization-resource-missing';
+    public const RESOURCE_ACTION_GRANT_INVALID_ERROR_ID = 'authorization:resource-action-grant-invalid';
     private const ADDING_ROLE_FAILED_ERROR_ID = 'authorization:adding-role-failed';
     private const GETTING_ROLE_ITEM_FAILED_ERROR_ID = 'authorization:getting-role-item-failed';
     private const GETTING_ROLE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-role-collection-failed';
@@ -587,34 +584,18 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * @throws ApiError
      */
-    public function addResourceActionGrant(ResourceActionGrant $resourceActionGrant,
-        ?string $currentUserIdentifier): ResourceActionGrant
+    public function addResourceActionGrant(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
     {
-        return $this->addResourceActionGrantInternal($resourceActionGrant, $currentUserIdentifier);
+        return $this->addResourceActionGrantInternal($resourceActionGrant);
     }
 
     /**
      * @throws ApiError
      */
-    public function ensureAuthorizationResource(ResourceActionGrant $resourceActionGrant): void
+    public function throwResourceNotFound(): void
     {
-        if ($resourceActionGrant->getAuthorizationResource() === null) {
-            if ($resourceActionGrant->getResourceClass() === null) {
-                throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                    'Either authorization resource IRI or resource class/identifier must be provided',
-                    self::RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING_ERROR_ID);
-            }
-            $authorizationResource = $this->getAuthorizationResourceByResourceClassAndIdentifier(
-                $resourceActionGrant->getResourceClass(),
-                $resourceActionGrant->getResourceIdentifier(),
-                $resourceActionGrant->getResourceType()
-            );
-            if ($authorizationResource === null) {
-                throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
-                    'authorization resource with given resource class and identifier not found', self::AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID);
-            }
-            $resourceActionGrant->setAuthorizationResource($authorizationResource);
-        }
+        throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
+            'authorization resource not found', self::AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID);
     }
 
     /**
@@ -651,17 +632,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         ?bool $shareable = null, ?string $currentUserIdentifier = null): ResourceActionGrant
     {
-        $providedIdentifiers = array_filter([
-            $userIdentifier !== null,
-            $userGroup !== null,
-            $dynamicUserGroupIdentifier !== null,
-        ]);
-        if (1 !== count($providedIdentifiers)) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'Exactly one of userIdentifier, userGroup or dynamicUserGroupIdentifier must be provided',
-                self::RESOURCE_ACTION_GRANT_INVALID_AUTHORIZATION_RESOURCE_MISSING_ERROR_ID);
-        }
-
         $connection = $this->entityManager->getConnection();
         try {
             $connection->beginTransaction();
@@ -680,8 +650,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             if (null !== $shareable) {
                 $resourceActionGrant->setShareable($shareable);
             }
+            $resourceActionGrant->setCreatorId($currentUserIdentifier);
 
-            $this->addResourceActionGrantInternal($resourceActionGrant, $currentUserIdentifier);
+            $this->addResourceActionGrantInternal($resourceActionGrant);
 
             $connection->commit();
         } catch (\Throwable $throwable) {
@@ -1123,6 +1094,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $RESOURCE_ACTION_GRANT_ALIAS.user_group_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.dynamic_user_group_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.role_identifier,
+                    $RESOURCE_ACTION_GRANT_ALIAS.creator_id,
+                    $RESOURCE_ACTION_GRANT_ALIAS.date_created,
+                    $RESOURCE_ACTION_GRANT_ALIAS.shareable,
+                    $RESOURCE_ACTION_GRANT_ALIAS.share_of_identifier,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.resource_class as action_resource_class,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type,
@@ -1239,18 +1214,32 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      */
     private function validateResourceActionGrant(ResourceActionGrant $resourceActionGrant): void
     {
+        $providedGrantHolderIdentifiers = array_filter([
+            $resourceActionGrant->getUserIdentifier() !== null,
+            $resourceActionGrant->getUserGroup() !== null,
+            $resourceActionGrant->getDynamicUserGroupIdentifier() !== null,
+        ]);
+        if (1 !== count($providedGrantHolderIdentifiers)) {
+            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                'Exactly one of userIdentifier, userGroup or dynamicUserGroupIdentifier must be provided',
+                self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
+        }
+
         if ($resourceActionGrant->getAuthorizationResource() === null) {
             throw new \RuntimeException('resource action grant is invalid: authorization resource must not be null');
         }
 
-        $action = $resourceActionGrant->getAction();
-        if (!$action && null === $resourceActionGrant->getRole()) {
+        $providedAllowedActionsIdentifiers = array_filter([
+            $resourceActionGrant->getAction() !== null,
+            $resourceActionGrant->getRole() !== null,
+        ]);
+        if (1 !== count($providedAllowedActionsIdentifiers)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'resource action grant is invalid: either \'action\' or \'role\' are required',
-                self::RESOURCE_ACTION_GRANT_INVALID_ACTION_AND_ROLE_MISSING_ERROR_ID);
+                'Exactly one of \'action\' or \'role\' must be provided',
+                self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
         }
 
-        if ($action) {
+        if ($action = $resourceActionGrant->getAction()) {
             $availableResourceClassAction = $this->getAvailableResourceClassAction(
                 $resourceActionGrant->getResourceClass(),
                 $action,
@@ -1261,7 +1250,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                     "resource action is invalid: action '$action' is not defined for resource class '".
                     $resourceActionGrant->getResourceClass()."'",
-                    self::RESOURCE_ACTION_GRANT_INVALID_ACTION_UNDEFINED_ERROR_ID, [
+                    self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID, [
                         $action,
                         $resourceActionGrant->getResourceClass(),
                     ]
@@ -1398,18 +1387,17 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * @throws ApiError
      */
-    private function addResourceActionGrantInternal(ResourceActionGrant $resourceActionGrant,
-        ?string $currentUserIdentifier): ResourceActionGrant
+    private function addResourceActionGrantInternal(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
     {
         $this->validateResourceActionGrant($resourceActionGrant);
 
         $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
-        $resourceActionGrant->setCreatorId($currentUserIdentifier);
-        $resourceActionGrant->setDateCreated(new \DateTime());
+        $resourceActionGrant->setDateCreated(new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
         try {
             $this->entityManager->persist($resourceActionGrant);
             $this->entityManager->flush();
         } catch (\Throwable $throwable) {
+            dump($throwable->getMessage());
             $this->logger->error('Failed to add resource action grant: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
                 self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);
@@ -1569,9 +1557,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         $resourceActionGrant->setResourceType((int) $row['effective_resource_type']);
         $resourceActionGrant->setAuthorizationResourceIdentifier(
             UuidUtils::toStringUuid($row['effective_authorization_resource_identifier']));
-        if (($role_identifier = $row['role_identifier']) !== null) {
+        if ($roleIdentifier = $row['role_identifier']) {
             $resourceActionGrant->setRole(
-                $this->entityManager->getRepository(Role::class)->find(UuidUtils::toStringUuid($role_identifier))
+                $this->entityManager->getRepository(Role::class)->find(UuidUtils::toStringUuid($roleIdentifier))
             );
         } else {
             $resourceActionGrant->setAction($row['action']);
@@ -1581,6 +1569,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $this->entityManager->getRepository(UserGroup::class)->find(
                 UuidUtils::toStringUuid($groupIdentifier)) : null);
         $resourceActionGrant->setDynamicUserGroupIdentifier($row['dynamic_user_group_identifier']);
+        $resourceActionGrant->setCreatorId($row['creator_id']);
+        $resourceActionGrant->setDateCreated(new \DateTimeImmutable($row['date_created'], new \DateTimeZone('UTC')));
+        $resourceActionGrant->setShareable((bool) $row['shareable']);
+        if ($shareOfIdentifier = $row['share_of_identifier']) {
+            $resourceActionGrant->setShareOf(
+                $this->entityManager->getRepository(ResourceActionGrant::class)->find(UuidUtils::toStringUuid($shareOfIdentifier))
+            );
+        }
 
         return $resourceActionGrant;
     }

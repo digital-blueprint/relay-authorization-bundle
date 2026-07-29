@@ -6,6 +6,7 @@ namespace Dbp\Relay\AuthorizationBundle\DependencyInjection;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
+use Dbp\Relay\CoreBundle\Doctrine\DateTimeImmutableUtcType;
 use Dbp\Relay\CoreBundle\Doctrine\DoctrineConfiguration;
 use Dbp\Relay\CoreBundle\Extension\ExtensionTrait;
 use DoctrineExtensions\Query\Mysql\Replace;
@@ -37,6 +38,10 @@ class DbpRelayAuthorizationExtension extends ConfigurableExtension implements Pr
 
         $definition = $container->getDefinition(AuthorizationService::class);
         $definition->addMethodCall('setConfig', [$mergedConfig]);
+
+        $typeDefinition = $container->getParameter('doctrine.dbal.connection_factory.types');
+        $typeDefinition['relay_authorization_datetime_immutable_utc'] = ['class' => DateTimeImmutableUtcType::class];
+        $container->setParameter('doctrine.dbal.connection_factory.types', $typeDefinition);
 
         $this->addResourceClassDirectory($container, __DIR__.'/../Entity');
     }
