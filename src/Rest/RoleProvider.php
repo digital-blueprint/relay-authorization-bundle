@@ -24,7 +24,7 @@ class RoleProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        throw new \RuntimeException('Get item operation is not available');
+        return $this->authorizationService->getRoleByIdentifier($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array

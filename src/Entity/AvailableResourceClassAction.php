@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionProvider;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -37,6 +38,19 @@ use Symfony\Component\Serializer\Attribute\Groups;
                         description: 'The resource identifier to get available actions for',
                         required: false,
                         schema: ['type' => 'string'],
+                    ),
+                    new Parameter(
+                        name: 'resourceType',
+                        in: 'query',
+                        description: 'The resource type to get available actions for: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
+                        required: false,
+                        schema: [
+                            'type' => 'integer',
+                            'enum' => [
+                                AuthorizationService::RESOURCE_RESOURCE_TYPE,
+                                AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                            ],
+                        ],
                     ),
                 ],
             ),
