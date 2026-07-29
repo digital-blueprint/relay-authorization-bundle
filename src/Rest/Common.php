@@ -42,7 +42,9 @@ class Common
     public static function getResourceTypeQueryParameter(array $filters, bool $required = false): ?int
     {
         $resourceType = $filters[Common::RESOURCE_TYPE_QUERY_PARAMETER] ?? null;
-        if ($required && null === $resourceType) {
+        if (null !== $resourceType) {
+            $resourceType = (int) $resourceType;
+        } elseif ($required) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST, 'filter '.
                 Common::RESOURCE_TYPE_QUERY_PARAMETER.' is required', self::REQUIRED_PARAMETER_MISSION_ERROR_ID);
         }

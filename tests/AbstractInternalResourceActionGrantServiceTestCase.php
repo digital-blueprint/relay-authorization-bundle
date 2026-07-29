@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
+use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestResourceActionGrantAddedEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
@@ -19,7 +21,6 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
     protected const ANOTHER_USER_IDENTIFIER = 'anotherUserIdentifier';
 
     protected const TEST_RESOURCE_CLASS = TestResources::TEST_RESOURCE_CLASS;
-    protected const TEST_RESOURCE_GROUP_CLASS = TestResources::TEST_COLLECTION_RESOURCE_CLASS;
     protected const TEST_RESOURCE_CLASS_2 = TestResources::TEST_RESOURCE_CLASS_2;
     protected const TEST_RESOURCE_CLASS_3 = TestResources::TEST_RESOURCE_CLASS_3;
 
@@ -53,9 +54,43 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
         $this->testEntityManager = null;
     }
 
+    protected function addRoleReader(
+        string $resourceClass = TestResources::TEST_RESOURCE_CLASS,
+    ): Role {
+        return $this->internalResourceActionGrantService->addOrUpdateRole(
+            ['en' => 'Reader', 'de' => 'Leser'],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    $resourceClass,
+                    TestResources::READ_ACTION,
+                ),
+            ]
+        );
+    }
+
+    protected function addRoleEditor(
+        string $resourceClass = TestResources::TEST_RESOURCE_CLASS,
+    ): Role {
+        return $this->internalResourceActionGrantService->addOrUpdateRole(
+            ['en' => 'Editor', 'de' => 'Editor'],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    $resourceClass,
+                    TestResources::READ_ACTION,
+                ),
+                ResourceActionGrantService::createRoleAction(
+                    $resourceClass,
+                    TestResources::UPDATE_ACTION,
+                ),
+            ]
+        );
+    }
+
     protected function selectWhere(array $results, callable $where, bool $passInKeyToo = false): array
     {
-        return array_filter($results, $where, $passInKeyToo ? ARRAY_FILTER_USE_BOTH : 0);
+        return array_values(
+            array_filter($results, $where, $passInKeyToo ? ARRAY_FILTER_USE_BOTH : 0)
+        );
     }
 
     protected function containsResource(array $resources, mixed $resource): bool
@@ -143,5 +178,15 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
                     && $rag->getDynamicUserGroupIdentifier() === $sourceRag->getDynamicUserGroupIdentifier()
                     && ($rag->getGrantedActions() ?? []) === [];
             }), (string) $sourceRag);
+    }
+
+    protected function assertIsValidUtcDateTimeString(string $dateTimeString): void
+    {
+        // we require ISO 8601 with the UTC “Zulu” designator (Z) and milliseconds,
+        // e.g., 2026-07-29T08:22:24.000Z
+        self::assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/',
+            $dateTimeString
+        );
     }
 }

@@ -2892,9 +2892,6 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_res_group_1_manage, $resource1);
         $this->assertContainsInheritedResourceActionGrant($rags, $rag_res_group_2_read, $resource1);
 
-        $rags = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(self::TEST_RESOURCE_GROUP_CLASS);
-        $this->assertCount(0, $rags);
-
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $rags = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead();
         $this->assertCount(3, $rags);

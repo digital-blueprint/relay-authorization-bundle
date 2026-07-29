@@ -6,8 +6,10 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @extends AbstractDataProvider<ResourceActionGrant>
@@ -41,6 +43,11 @@ class ResourceActionGrantProvider extends AbstractDataProvider
     {
         assert($item instanceof ResourceActionGrant);
 
-        return $this->authorizationService->isCurrentUserAuthorizedToReadGrant($item);
+        // throw 404 instead of 403 to avoid leaking information about the existence of the resource action grant
+        if (false === $this->authorizationService->isCurrentUserAuthorizedToReadGrant($item)) {
+            throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'resource action grant not found');
+        }
+
+        return true;
     }
 }

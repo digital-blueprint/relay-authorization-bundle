@@ -13,7 +13,7 @@ use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 
 abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase extends AbstractAuthorizationServiceTestCase
 {
-    protected function getResourceActionGrant(string $identifier): ?ResourceActionGrant
+    protected function getResourceActionGrantFromDB(string $identifier): ?ResourceActionGrant
     {
         return $this->testEntityManager->getResourceActionGrantByIdentifier($identifier);
     }
@@ -27,7 +27,7 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
             $resourceClass, $resourceIdentifier, $resourceType);
     }
 
-    protected function addResourceAndManageGrant(string $resourceClass = self::TEST_RESOURCE_CLASS,
+    protected function addResourceAndManageGrantToTestDB(string $resourceClass = self::TEST_RESOURCE_CLASS,
         string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER,
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
@@ -45,23 +45,33 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
         return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
     }
 
-    protected function addResourceActionGrant(AuthorizationResource $resource, string $action,
+    protected function addResourceActionGrantToTestDB(AuthorizationResource $resource, string $action,
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER,
-        ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null): ResourceActionGrant
+        ?UserGroup $userGroup = null,
+        ?string $dynamicUserGroupIdentifier = null,
+        ?bool $shareable = null,
+        ?ResourceActionGrant $shareOf = null): ResourceActionGrant
     {
         return $this->testEntityManager->addResourceActionGrant(
-            $resource, $action, $userIdentifier, $userGroup, $dynamicUserGroupIdentifier);
+            $resource, $action,
+            userIdentifier: $userIdentifier,
+            userGroup: $userGroup,
+            dynamicUserGroupIdentifier: $dynamicUserGroupIdentifier,
+            shareable: $shareable,
+            shareOf: $shareOf);
     }
 
     protected function addGrant(AuthorizationResource $resource,
         ?string $action = null,
         ?string $userIdentifier = self::CURRENT_USER_IDENTIFIER,
-        ?string $roleIdentifier = null): ResourceActionGrant
-    {
+        ?string $roleIdentifier = null,
+        ?bool $shareable = null
+    ): ResourceActionGrant {
         return $this->testEntityManager->addResourceActionGrant($resource,
             action: $action,
             userIdentifier: $userIdentifier,
-            roleIdentifier: $roleIdentifier
+            roleIdentifier: $roleIdentifier,
+            shareable: $shareable
         );
     }
 

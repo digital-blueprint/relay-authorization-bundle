@@ -37,7 +37,8 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addResourceActionGrant(AuthorizationResource $resource, ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?string $roleIdentifier = null): ResourceActionGrant
+        ?string $roleIdentifier = null, ?string $creatorId = null, ?bool $shareable = null,
+        ?ResourceActionGrant $shareOf = null): ResourceActionGrant
     {
         return $this->addResourceActionGrantInternal(
             $resource,
@@ -45,7 +46,10 @@ class TestEntityManager extends CoreTestEntityManager
             userIdentifier: $userIdentifier,
             userGroup: $userGroup,
             dynamicUserGroupIdentifier: $dynamicUserGroupIdentifier,
-            roleIdentifier: $roleIdentifier
+            roleIdentifier: $roleIdentifier,
+            creatorId: $creatorId,
+            shareable: $shareable,
+            shareOf: $shareOf
         );
     }
 
@@ -54,7 +58,8 @@ class TestEntityManager extends CoreTestEntityManager
         int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
         ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?string $roleIdentifier = null): ResourceActionGrant
+        ?string $roleIdentifier = null,
+        ?string $creatorId = null): ResourceActionGrant
     {
         $authorizationResource = $this->addAuthorizationResource(
             $resourceClass, $resourceIdentifier, $resourceType);
@@ -64,7 +69,8 @@ class TestEntityManager extends CoreTestEntityManager
             userIdentifier: $userIdentifier,
             userGroup: $userGroup,
             dynamicUserGroupIdentifier: $dynamicUserGroupIdentifier,
-            roleIdentifier: $roleIdentifier
+            roleIdentifier: $roleIdentifier,
+            creatorId: $creatorId
         );
     }
 
@@ -322,7 +328,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     private function addResourceActionGrantInternal(AuthorizationResource $authorizationResource, ?string $action,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?string $roleIdentifier = null): ResourceActionGrant
+        ?string $roleIdentifier = null, ?string $creatorId = null, ?bool $shareable = null, ?ResourceActionGrant $shareOf = null): ResourceActionGrant
     {
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
@@ -347,6 +353,14 @@ class TestEntityManager extends CoreTestEntityManager
         $resourceActionGrant->setUserIdentifier($userIdentifier);
         $resourceActionGrant->setUserGroup($userGroup);
         $resourceActionGrant->setDynamicUserGroupIdentifier($dynamicUserGroupIdentifier);
+        $resourceActionGrant->setCreatorId($creatorId);
+        if ($shareable !== null) {
+            $resourceActionGrant->setShareable($shareable);
+        }
+        if ($shareOf !== null) {
+            $resourceActionGrant->setShareOf($shareOf);
+        }
+        $resourceActionGrant->setDateCreated(new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
 
         try {
             $this->entityManager->persist($resourceActionGrant);

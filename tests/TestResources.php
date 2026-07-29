@@ -7,9 +7,6 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 class TestResources
 {
     public const TEST_RESOURCE_CLASS = 'resourceClass';
-
-    public const TEST_COLLECTION_RESOURCE_CLASS = 'resourceClassCollection';
-
     public const TEST_RESOURCE_CLASS_2 = 'resourceClass_2';
     public const TEST_RESOURCE_CLASS_3 = 'resourceClass_3';
 
@@ -77,4 +74,22 @@ class TestResources
         'en' => 'Delete All',
         'de' => 'Alle löschen',
     ];
+
+    public static function getAvailableResourceClassActions(): array
+    {
+        return [
+            self::TEST_RESOURCE_CLASS => [
+                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS,
+            ],
+            self::TEST_RESOURCE_CLASS_2 => [
+                TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS,
+            ],
+            self::TEST_RESOURCE_CLASS_3 => [
+                TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
+                TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS,
+            ],
+        ];
+    }
 }
