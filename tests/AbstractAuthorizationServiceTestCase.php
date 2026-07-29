@@ -18,29 +18,12 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
     {
         parent::setUp();
 
-        $availableResourceClassActions = [
-            self::TEST_RESOURCE_CLASS => [
-                TestResources::TEST_RESOURCE_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_COLLECTION_ACTIONS,
-            ],
-            self::TEST_RESOURCE_GROUP_CLASS => [
-            ],
-            self::TEST_RESOURCE_CLASS_2 => [
-                TestResources::TEST_RESOURCE_2_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS,
-            ],
-            self::TEST_RESOURCE_CLASS_3 => [
-                TestResources::TEST_RESOURCE_3_ITEM_ACTIONS,
-                TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS,
-            ],
-        ];
-
         $this->authorizationService = TestResourceActionGrantServiceFactory::createTestAuthorizationService(
             $this->testEntityManager->getEntityManager(),
             $this->eventDispatcher,
             $this->internalResourceActionGrantService,
             $this->getTestConfig(),
-            $availableResourceClassActions,
+            TestResources::getAvailableResourceClassActions(),
             self::CURRENT_USER_IDENTIFIER,
             $this->getDefaultUserAttributes());
     }
