@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Entity;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Model\Operation;
@@ -15,12 +16,22 @@ use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\CoreBundle\Serializer\DateTimeUtcNormalizer;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ApiResource(
     shortName: 'AuthorizationResourceActionGrant',
     operations: [
+        new Get(
+            uriTemplate: '/authorization/resource-action-grants/{identifier}',
+            openapi: new Operation(
+                tags: ['Authorization'],
+            ),
+            provider: ResourceActionGrantProvider::class,
+        ),
         new GetCollection(
             uriTemplate: '/authorization/resource-action-grants',
             openapi: new Operation(
@@ -82,10 +93,15 @@ use Symfony\Component\Serializer\Attribute\Groups;
                                         'description' => 'The action to grant',
                                         'example' => 'read',
                                     ],
+                                    'role' => [
+                                        'type' => 'string',
+                                        'description' => 'The role to grant the action to',
+                                        'example' => '/authorization/roles/0193cf2d-89a8-7a9c-b317-2e5201afdd8d',
+                                    ],
                                     'userIdentifier' => [
                                         'type' => 'string',
                                         'description' => 'The identifier of the user (person) type grant holder',
-                                        'example' => '811EC3ACC0ADCA70', // woody007
+                                        'example' => '811EC3ACC0ADCA70',
                                     ],
                                     'group' => [
                                         'type' => 'string',
@@ -98,13 +114,16 @@ use Symfony\Component\Serializer\Attribute\Groups;
                                         'example' => 'everybody',
                                     ],
                                 ],
-                                'required' => ['action'],
+                                'required' => [
+                                    'resourceClass',
+                                    'resourceIdentifier',
+                                ],
                             ],
                             'example' => [
                                 'resourceClass' => 'VendorBundleNameResourceName',
                                 'resourceIdentifier' => '01963da9-548b-7ca1-88e1-032ef6c1d992',
                                 'action' => 'read',
-                                'userIdentifier' => '811EC3ACC0ADCA70', // woody007
+                                'userIdentifier' => '811EC3ACC0ADCA70',
                             ],
                         ],
                     ]),
@@ -158,8 +177,15 @@ class ResourceActionGrant
     #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'resourceActionGrants')]
     private ?AvailableResourceClassAction $availableResourceClassAction = null;
 
+    #[ApiProperty(
+        description: 'AuthorizationRole to grant',
+        openapiContext: [
+            'example' => '/authorization/roles/'.InternalResourceActionGrantService::MANAGER_ROLE_IDENTIFIER,
+        ]
+    )]
     #[ORM\JoinColumn(name: self::ROLE_IDENTIFIER_COLUMN, referencedColumnName: Role::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'resourceActionGrants')]
+    #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?Role $role = null;
 
     /**
@@ -215,10 +241,17 @@ class ResourceActionGrant
     private ?ResourceActionGrant $shareOf = null;
 
     #[ORM\Column(name: self::CREATOR_ID_COLUMN, type: 'string', length: 40, nullable: true)]
+    #[Groups(['AuthorizationResourceActionGrant:output'])]
     private ?string $creatorId = null;
 
-    #[ORM\Column(name: self::DATE_CREATED_COLUMN, type: 'datetime', nullable: true)]
-    private ?\DateTime $dateCreated = null;
+    #[ORM\Column(name: self::DATE_CREATED_COLUMN, type: 'relay_authorization_datetime_immutable_utc', nullable: true)]
+    #[Groups(['AuthorizationResourceActionGrant:output'])]
+    #[Context(
+        normalizationContext: [
+            DateTimeUtcNormalizer::CONTEXT_KEY => true,
+        ]
+    )]
+    private ?\DateTimeInterface $dateCreated = null;
 
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $resourceClass = null;
@@ -412,14 +445,14 @@ class ResourceActionGrant
         $this->creatorId = $creatorId;
     }
 
-    public function getDateCreated(): ?\DateTime
+    public function getDateCreated(): ?\DateTimeInterface
     {
         return $this->dateCreated;
     }
 
-    public function setDateCreated(?\DateTime $dateCreated): void
+    public function setDateCreated(?\DateTimeInterface $dateCreated): void
     {
-        $this->dateCreated = $dateCreated;
+        $this->dateCreated = \DateTimeImmutable::createFromInterface($dateCreated);
     }
 
     public function isInherited(): bool

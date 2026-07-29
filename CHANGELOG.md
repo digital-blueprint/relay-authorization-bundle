@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- add logic for sharing resource actions grants
+- add logic for sharing resource actions grants and removing them
 - add share fields (shareable, shareOf, creatorId, dateCreated) to ResourceActionGrant entity
 - re-work add/update of available actions / roles
 - offer both removeGrantsForResource and removeResource via the PHP API

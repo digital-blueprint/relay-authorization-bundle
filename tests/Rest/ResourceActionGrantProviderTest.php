@@ -28,7 +28,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantItem(): void
     {
-        $resourceActionGrant = $this->addResourceAndManageGrant();
+        $resourceActionGrant = $this->addResourceAndManageGrantToTestDB();
         $resourceActionGrantItem = $this->resourceActionGrantProviderTester->getItem(
             $resourceActionGrant->getIdentifier());
 
@@ -41,8 +41,8 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantItemWithDynamicGroupEverybodyWithManageRights(): void
     {
-        $resourceActionGrant = $this->addResourceAndManageGrant();
-        $readGrant = $this->addResourceActionGrant($resourceActionGrant->getAuthorizationResource(),
+        $resourceActionGrant = $this->addResourceAndManageGrantToTestDB();
+        $readGrant = $this->addResourceActionGrantToTestDB($resourceActionGrant->getAuthorizationResource(),
             action: TestResources::READ_ACTION,
             dynamicUserGroupIdentifier: 'everybody'
         );
@@ -58,8 +58,8 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantItemWithDynamicGroupEverybodyWithoutManageRights(): void
     {
-        $resourceActionGrant = $this->addResourceAndManageGrant();
-        $readGrant = $this->addResourceActionGrant($resourceActionGrant->getAuthorizationResource(), TestResources::READ_ACTION, dynamicUserGroupIdentifier: 'everybody');
+        $resourceActionGrant = $this->addResourceAndManageGrantToTestDB();
+        $readGrant = $this->addResourceActionGrantToTestDB($resourceActionGrant->getAuthorizationResource(), TestResources::READ_ACTION, dynamicUserGroupIdentifier: 'everybody');
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $readGrantItem = $this->resourceActionGrantProviderTester->getItem(
@@ -76,22 +76,25 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         $this->assertNull($this->resourceActionGrantProviderTester->getItem(Uuid::v7()->toRfc4122()));
     }
 
-    public function testGetResourceActionGrantItemForbidden(): void
+    public function testGetResourceActionGrantItemForbiddenNotFound(): void
     {
-        $resourceActionGrant = $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier',
+        // user doesn't have any grants for the resource, so they are not allowed to see the grant
+        // throws 404 to avoid information disclosure about the existence of the grant
+        $resourceActionGrant = $this->addResourceAndManageGrantToTestDB(self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER.'_2');
         try {
             $this->resourceActionGrantProviderTester->getItem(
                 $resourceActionGrant->getIdentifier());
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
         }
     }
 
     public function testGetResourceActionGrantCollection(): void
     {
-        $resourceActionGrant = $this->addResourceAndManageGrant();
+        $resourceActionGrant = $this->addResourceAndManageGrantToTestDB();
         $this->authorizationService->setDebug(true);
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
         $this->authorizationService->setDebug(false);
@@ -108,8 +111,8 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantCollection2(): void
     {
-        $resourceActionGrant = $this->addResourceAndManageGrant();
-        $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
+        $resourceActionGrant = $this->addResourceAndManageGrantToTestDB();
+        $this->addResourceAndManageGrantToTestDB(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
             'userIdentifier_2');
         $resourceActionGrantCollection = $this->resourceActionGrantProviderTester->getCollection();
 
@@ -122,8 +125,8 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         // expecting:
         // * all grants of resources that the current user (self::CURRENT_USER_IDENTIFIER) is manager of and the
         // * grants of the user (self::CURRENT_USER_IDENTIFIER) of other resources
-        $resourceActionGrant1 = $this->addResourceAndManageGrant();
-        $resourceActionGrant2 = $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
+        $resourceActionGrant1 = $this->addResourceAndManageGrantToTestDB();
+        $resourceActionGrant2 = $this->addResourceAndManageGrantToTestDB(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
             'userIdentifier_2');
         $resourceActionGrant3 = $this->addGrant($resourceActionGrant2->getAuthorizationResource(),
             TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -148,10 +151,10 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
         // expecting:
         // * all grants of resources that the current user (self::CURRENT_USER_IDENTIFIER) is manager of and the
         // * grants of the user (self::CURRENT_USER_IDENTIFIER) of other resources
-        $resource1Manage = $this->addResourceAndManageGrant();
+        $resource1Manage = $this->addResourceAndManageGrantToTestDB();
         $resource1Read = $this->addGrant($resource1Manage->getAuthorizationResource(),
             TestResources::READ_ACTION, 'userIdentifier_2');
-        $resource2Manage = $this->addResourceAndManageGrant(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
+        $resource2Manage = $this->addResourceAndManageGrantToTestDB(self::TEST_RESOURCE_CLASS, 'resourceIdentifier_2',
             'userIdentifier_2');
         $resource2Read = $this->addGrant($resource2Manage->getAuthorizationResource(),
             TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -209,7 +212,7 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
 
     public function testGetResourceActionGrantCollectionWithFilters(): void
     {
-        $resource1Manage = $this->addResourceAndManageGrant(
+        $resource1Manage = $this->addResourceAndManageGrantToTestDB(
             self::TEST_RESOURCE_CLASS,
             'resourceIdentifier');
         $resource1Read = $this->addGrant(
@@ -217,14 +220,14 @@ class ResourceActionGrantProviderTest extends AbstractResourceActionGrantControl
             TestResources::READ_ACTION,
             'userIdentifier_2');
 
-        $resource2Manage = $this->addResourceAndManageGrant(
+        $resource2Manage = $this->addResourceAndManageGrantToTestDB(
             self::TEST_RESOURCE_CLASS_2,
             'resourceIdentifier_2',
             'userIdentifier_2');
         $resource2Update = $this->addGrant($resource2Manage->getAuthorizationResource(),
             TestResources::UPDATE_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $resourceCollection = $this->addResourceAndManageGrant(
+        $resourceCollection = $this->addResourceAndManageGrantToTestDB(
             self::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             'userIdentifier_3'

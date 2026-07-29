@@ -170,8 +170,8 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
         $manageGroupCollectionGrant->setAuthorizationResource($groupCollection);
         $manageGroupCollectionGrant->setAction(AuthorizationService::MANAGE_ACTION);
         $manageGroupCollectionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+        $manageGroupCollectionGrant->setCreatorId(self::CURRENT_USER_IDENTIFIER);
 
-        return $this->internalResourceActionGrantService->addResourceActionGrant(
-            $manageGroupCollectionGrant, self::CURRENT_USER_IDENTIFIER);
+        return $this->internalResourceActionGrantService->addResourceActionGrant($manageGroupCollectionGrant);
     }
 }
