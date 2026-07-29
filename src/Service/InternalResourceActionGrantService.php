@@ -1318,7 +1318,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
             $queryBuilder->getQuery()->execute();
         } catch (\Throwable $throwable) {
-            dump($throwable);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
                 ['message' => $throwable->getMessage()]);
@@ -1397,7 +1396,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $this->entityManager->persist($resourceActionGrant);
             $this->entityManager->flush();
         } catch (\Throwable $throwable) {
-            dump($throwable->getMessage());
             $this->logger->error('Failed to add resource action grant: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
                 self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);
