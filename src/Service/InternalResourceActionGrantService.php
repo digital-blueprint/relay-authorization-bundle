@@ -1101,6 +1101,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.resource_class as action_resource_class,
                     $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action_type,
+                    $EXPANDED_RESOURCE_ALIAS.resource_class,
+                    $EXPANDED_RESOURCE_ALIAS.resource_identifier,
+                    $EXPANDED_RESOURCE_ALIAS.resource_type,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_class,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_type,
@@ -1112,8 +1115,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     $RESOURCE_ACTION_GRANT_ALIAS.user_group_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.dynamic_user_group_identifier,
                     $RESOURCE_ACTION_GRANT_ALIAS.role_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier,
-                    $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
+                    $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier";
 
                 $orderByStatement = "ORDER BY
                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier,
@@ -1165,6 +1167,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 INNER JOIN (
                     WITH RECURSIVE cte AS (
                         SELECT $AUTHORIZATION_RESOURCE_ALIAS.identifier as authorization_resource_identifier,
+                               $AUTHORIZATION_RESOURCE_ALIAS.resource_class, 
+                               $AUTHORIZATION_RESOURCE_ALIAS.resource_identifier,
+                               $AUTHORIZATION_RESOURCE_ALIAS.resource_type,
                                $AUTHORIZATION_RESOURCE_ALIAS.identifier AS effective_authorization_resource_identifier,
                                $AUTHORIZATION_RESOURCE_ALIAS.resource_class AS effective_resource_class,
                                $AUTHORIZATION_RESOURCE_ALIAS.resource_identifier AS effective_resource_identifier,
@@ -1173,15 +1178,23 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         WHERE $authorizationResourceCriteria
                         UNION ALL
                         SELECT ar_rgm_n.group_authorization_resource_identifier as authorization_resource_identifier,
+                               ar_2.resource_class, 
+                               ar_2.resource_identifier,
+                               ar_2.resource_type,
                                cte.effective_authorization_resource_identifier,
                                cte.effective_resource_class,
                                cte.effective_resource_identifier,
                                cte.effective_resource_type
                         FROM authorization_resource_group_members ar_rgm_n
+                        INNER JOIN authorization_resources ar_2
+                            ON ar_2.identifier = ar_rgm_n.group_authorization_resource_identifier
                         INNER JOIN cte
                             ON ar_rgm_n.member_authorization_resource_identifier = cte.authorization_resource_identifier
                     )
                     SELECT cte.authorization_resource_identifier,
+                           cte.resource_class,
+                           cte.resource_identifier,
+                           cte.resource_type,
                            cte.effective_authorization_resource_identifier,
                            cte.effective_resource_class,
                            cte.effective_resource_identifier,
@@ -1550,11 +1563,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         $resourceActionGrant->setIsInherited(
             $row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier']);
         // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
-        $resourceActionGrant->setResourceClass($row['effective_resource_class']);
-        $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
-        $resourceActionGrant->setResourceType((int) $row['effective_resource_type']);
+        $resourceActionGrant->setResourceClass($row['resource_class']);
+        $resourceActionGrant->setResourceIdentifier($row['resource_identifier']);
+        $resourceActionGrant->setResourceType((int) $row['resource_type']);
         $resourceActionGrant->setAuthorizationResourceIdentifier(
-            UuidUtils::toStringUuid($row['effective_authorization_resource_identifier']));
+            UuidUtils::toStringUuid($row['authorization_resource_identifier']));
         if ($roleIdentifier = $row['role_identifier']) {
             $resourceActionGrant->setRole(
                 $this->entityManager->getRepository(Role::class)->find(UuidUtils::toStringUuid($roleIdentifier))

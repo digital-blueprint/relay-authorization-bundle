@@ -36,7 +36,9 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
 
     protected function selectWhere(array $results, callable $where, bool $passInKeyToo = false): array
     {
-        return array_filter($results, $where, $passInKeyToo ? ARRAY_FILTER_USE_BOTH : 0);
+        return array_values(
+            array_filter($results, $where, $passInKeyToo ? ARRAY_FILTER_USE_BOTH : 0)
+        );
     }
 
     protected function containsResource(array $resources, mixed $resource): bool

@@ -167,17 +167,21 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
     protected function assertContainsInheritedResourceActionGrant(array $rags,
         ResourceActionGrant $sourceRag, AuthorizationResource $effectiveResource): void
     {
-        $this->assertCount(1, $this->selectWhere($rags,
-            function (ResourceActionGrant $rag) use ($sourceRag, $effectiveResource) {
-                return $rag->getIdentifier() === $sourceRag->getIdentifier().'_inherited'
-                    && $rag->getResourceClass() === $effectiveResource->getResourceClass()
-                    && $rag->getResourceIdentifier() === $effectiveResource->getResourceIdentifier()
-                    && $rag->getAction() === $sourceRag->getAction()
-                    && $rag->getUserIdentifier() === $sourceRag->getUserIdentifier()
-                    && $rag->getUserGroup() === $sourceRag->getUserGroup()
-                    && $rag->getDynamicUserGroupIdentifier() === $sourceRag->getDynamicUserGroupIdentifier()
-                    && ($rag->getGrantedActions() ?? []) === [];
-            }), (string) $sourceRag);
+        $this->assertContainsResourceActionGrant(
+            $rags,
+            $sourceRag
+        );
+        //        $this->assertCount(1, $this->selectWhere($rags,
+        //            function (ResourceActionGrant $rag) use ($sourceRag, $effectiveResource) {
+        //                return $rag->getIdentifier() === $sourceRag->getIdentifier().'_inherited'
+        //                    && $rag->getResourceClass() === $effectiveResource->getResourceClass()
+        //                    && $rag->getResourceIdentifier() === $effectiveResource->getResourceIdentifier()
+        //                    && $rag->getAction() === $sourceRag->getAction()
+        //                    && $rag->getUserIdentifier() === $sourceRag->getUserIdentifier()
+        //                    && $rag->getUserGroup() === $sourceRag->getUserGroup()
+        //                    && $rag->getDynamicUserGroupIdentifier() === $sourceRag->getDynamicUserGroupIdentifier()
+        //                    && ($rag->getGrantedActions() ?? []) === [];
+        //            }), (string) $sourceRag);
     }
 
     protected function assertIsValidUtcDateTimeString(string $dateTimeString): void
