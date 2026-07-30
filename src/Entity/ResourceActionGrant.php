@@ -274,7 +274,7 @@ class ResourceActionGrant
 
     public function getIdentifier(): ?string
     {
-        return $this->isInherited ? $this->identifier.'_inherited' : $this->identifier;
+        return $this->identifier;
     }
 
     public function setIdentifier(?string $identifier): void
