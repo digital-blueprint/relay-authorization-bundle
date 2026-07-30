@@ -825,6 +825,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                     /** @var ResourceActionGrant $resourceActionGrant */
                     foreach ($results as $resourceActionGrant) {
                         // if the current user manages the grant's resource and the grant is not inherited, they may delete it
+                        // TODO: add logic for shared grants (i.e. if the current user holds the original grant that the grant is a share of)
                         $resourceActionGrant->setGrantedActions(
                             isset($managedAuthorizationResourceIdentifiers[$resourceActionGrant->getAuthorizationResourceIdentifier()])
                             && false === $resourceActionGrant->isInherited() ? ['delete'] : []);
