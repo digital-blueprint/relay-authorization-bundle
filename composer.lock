@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4372759fbfefc917909607ef59834398",
+    "content-hash": "106ef9253fe71bb68be203e9dbfe0c51",
     "packages": [
         {
             "name": "api-platform/documentation",
@@ -1046,16 +1046,16 @@
         },
         {
             "name": "dbp/relay-core-bundle",
-            "version": "v0.1.245",
+            "version": "v0.1.247",
             "source": {
                 "type": "git",
                 "url": "https://github.com/digital-blueprint/relay-core-bundle.git",
-                "reference": "8106bd50dfbd0e16536b5c60834f438933dc3f6b"
+                "reference": "30b4eea93e2471b5478b969802740915682d7cfe"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/8106bd50dfbd0e16536b5c60834f438933dc3f6b",
-                "reference": "8106bd50dfbd0e16536b5c60834f438933dc3f6b",
+                "url": "https://api.github.com/repos/digital-blueprint/relay-core-bundle/zipball/30b4eea93e2471b5478b969802740915682d7cfe",
+                "reference": "30b4eea93e2471b5478b969802740915682d7cfe",
                 "shasum": ""
             },
             "require": {
@@ -1153,9 +1153,9 @@
             "description": "The core bundle of the Relay API gateway",
             "support": {
                 "issues": "https://github.com/digital-blueprint/relay-core-bundle/issues",
-                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/v0.1.245"
+                "source": "https://github.com/digital-blueprint/relay-core-bundle/tree/v0.1.247"
             },
-            "time": "2026-06-10T09:38:42+00:00"
+            "time": "2026-07-21T07:17:53+00:00"
         },
         {
             "name": "doctrine/collections",
@@ -12508,6 +12508,7 @@
     "prefer-lowest": false,
     "platform": {
         "php": ">=8.2",
+        "ext-filter": "*",
         "ext-json": "*"
     },
     "platform-dev": {},
