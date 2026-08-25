@@ -1581,7 +1581,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 UuidUtils::toStringUuid($groupIdentifier)) : null);
         $resourceActionGrant->setDynamicUserGroupIdentifier($row['dynamic_user_group_identifier']);
         $resourceActionGrant->setCreatorId($row['creator_id']);
-        $resourceActionGrant->setDateCreated(new \DateTimeImmutable($row['date_created'], new \DateTimeZone('UTC')));
+        $resourceActionGrant->setDateCreated(($dateCreated = $row['date_created']) ?
+            new \DateTimeImmutable($dateCreated, new \DateTimeZone('UTC')) : null);
         $resourceActionGrant->setShareable((bool) $row['shareable']);
         if ($shareOfIdentifier = $row['share_of_identifier']) {
             $resourceActionGrant->setShareOf(
