@@ -452,7 +452,8 @@ class ResourceActionGrant
 
     public function setDateCreated(?\DateTimeInterface $dateCreated): void
     {
-        $this->dateCreated = \DateTimeImmutable::createFromInterface($dateCreated);
+        $this->dateCreated = $dateCreated ?
+            \DateTimeImmutable::createFromInterface($dateCreated) : null;
     }
 
     public function isInherited(): bool
