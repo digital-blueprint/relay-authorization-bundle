@@ -59,13 +59,14 @@ use Symfony\Component\Serializer\Attribute\Groups;
                         name: 'resourceType',
                         in: 'query',
                         description: 'The resource type to get grants for: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
-                        required: false,
+                        required: true,
                         schema: [
                             'type' => 'integer',
                             'enum' => [
                                 AuthorizationService::RESOURCE_RESOURCE_TYPE,
                                 AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
                             ],
+                            'default' => AuthorizationService::RESOURCE_RESOURCE_TYPE,
                         ],
                     ),
                 ],
