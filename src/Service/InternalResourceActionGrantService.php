@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
+use Dbp\Relay\AuthorizationBundle\Doctrine\RetryFlushEntityManager;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassActionName;
@@ -19,6 +21,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
+use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -115,10 +118,15 @@ class InternalResourceActionGrantService implements LoggerAwareInterface
         }
     }
 
+    private EntityManagerInterface $entityManager;
+
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly EventDispatcherInterface $eventDispatcher)
+        EntityManagerInterface $entityManager,
+        private readonly EventDispatcherInterface $eventDispatcher,
+        ?ManagerRegistry $managerRegistry = null)
     {
+        $this->entityManager = new RetryFlushEntityManager($entityManager, $managerRegistry,
+            DbpRelayAuthorizationExtension::AUTHORIZATION_ENTITY_MANAGER_ID);
     }
 
     public function getEntityManager(): EntityManagerInterface

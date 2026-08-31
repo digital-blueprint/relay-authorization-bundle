@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Retry Doctrine flushes that have thrown a RetryableException (e.g. DeadlockException) 
+
 ## v0.5.15
 
 - Fix ResourceActionGrantService::getGrantedActionsPageForCurrentUser for resource pages with more than 1024 grants

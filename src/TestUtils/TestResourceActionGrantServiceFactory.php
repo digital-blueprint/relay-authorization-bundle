@@ -69,7 +69,8 @@ class TestResourceActionGrantServiceFactory
         ?string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER,
         array $currentUserAttributes = [], bool $isServiceAccount = false): AuthorizationService
     {
-        $internalResourceActionGrantService ??= new InternalResourceActionGrantService($entityManager, $eventDispatcher);
+        $internalResourceActionGrantService ??= new InternalResourceActionGrantService(
+            $entityManager, $eventDispatcher);
         $authorizationService = new AuthorizationService(
             $internalResourceActionGrantService, new GroupService($entityManager));
         TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier,
