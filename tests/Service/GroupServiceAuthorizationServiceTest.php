@@ -416,6 +416,7 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $subGroup1 = $this->testEntityManager->addGroup();
         $subGroup2 = $this->testEntityManager->addGroup();
         $subSubGroup1 = $this->testEntityManager->addGroup();
+        $groupEmpty = $this->testEntityManager->addGroup();
 
         $this->testEntityManager->addGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
 
@@ -466,6 +467,67 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $subSubGroup1->getIdentifier()));
         $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_5', $subSubGroup1->getIdentifier()));
         $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_6', $subSubGroup1->getIdentifier()));
+
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER, $groupEmpty->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_2', $groupEmpty->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_3', $groupEmpty->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_4', $groupEmpty->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_5', $groupEmpty->getIdentifier()));
+        $this->assertFalse($this->groupService->isUserMemberOfGroup(self::CURRENT_USER_IDENTIFIER.'_6', $groupEmpty->getIdentifier()));
+    }
+
+    public function testGetMembersOfGroup(): void
+    {
+        $group1 = $this->testEntityManager->addGroup();
+        $group2 = $this->testEntityManager->addGroup();
+        $subGroup1 = $this->testEntityManager->addGroup();
+        $subGroup2 = $this->testEntityManager->addGroup();
+        $subSubGroup1 = $this->testEntityManager->addGroup();
+        $groupEmpty = $this->testEntityManager->addGroup();
+
+        $this->testEntityManager->addGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
+
+        $this->testEntityManager->addGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addGroupMember($subGroup1, null, $subSubGroup1);
+
+        $this->testEntityManager->addGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
+
+        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addGroupMember($group1, null, $subGroup1);
+        $this->testEntityManager->addGroupMember($group1, null, $subGroup2);
+
+        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_5');
+        $this->testEntityManager->addGroupMember($group2, null, $subGroup1);
+
+        $this->assertEmpty($this->groupService->getMembersOfGroup($groupEmpty->getIdentifier()));
+
+        $this->assertIsPermutationOf([
+            self::CURRENT_USER_IDENTIFIER,
+            self::CURRENT_USER_IDENTIFIER.'_2',
+            self::CURRENT_USER_IDENTIFIER.'_3',
+            self::CURRENT_USER_IDENTIFIER.'_4',
+        ], $this->groupService->getMembersOfGroup($group1->getIdentifier()));
+
+        $this->assertIsPermutationOf([
+            self::CURRENT_USER_IDENTIFIER.'_2',
+            self::CURRENT_USER_IDENTIFIER.'_3',
+            self::CURRENT_USER_IDENTIFIER.'_4',
+            self::CURRENT_USER_IDENTIFIER.'_5',
+        ], $this->groupService->getMembersOfGroup($group2->getIdentifier()));
+
+        $this->assertIsPermutationOf([
+            self::CURRENT_USER_IDENTIFIER.'_2',
+            self::CURRENT_USER_IDENTIFIER.'_3',
+        ], $this->groupService->getMembersOfGroup($subGroup1->getIdentifier()));
+
+        $this->assertIsPermutationOf([
+            self::CURRENT_USER_IDENTIFIER.'_4',
+        ], $this->groupService->getMembersOfGroup($subGroup2->getIdentifier()));
+
+        $this->assertIsPermutationOf([
+            self::CURRENT_USER_IDENTIFIER.'_3',
+        ], $this->groupService->getMembersOfGroup($subSubGroup1->getIdentifier()));
     }
 
     public function testGetGroupsUserIsMemberOf(): void

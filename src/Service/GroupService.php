@@ -12,14 +12,18 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * @internal
  */
-class GroupService
+class GroupService implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-group-failed';
     private const UPDATING_GROUP_FAILED_ERROR_ID = 'authorization:updating-group-failed';
     private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-group-failed';
@@ -62,14 +66,17 @@ class GroupService
             $userIdentifiers = $sqlStatement->executeQuery()->fetchFirstColumn();
 
             return count($userIdentifiers) > 0;
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('getting user groups for user failed', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'getting groups for user failed: '.$exception->getMessage());
+                'getting user groups for user failed');
         }
     }
 
     /**
      * @return string[] The list of group identifiers
+     *
+     * @throws ApiError
      */
     public function getGroupsUserIsMemberOf(string $userIdentifier): array
     {
@@ -90,9 +97,41 @@ class GroupService
             $groupIdentifiersBinary = $sqlStatement->executeQuery()->fetchFirstColumn();
 
             return UuidUtils::toStringUuids($groupIdentifiersBinary);
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('getting user groups for user failed', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'getting groups for user failed: '.$exception->getMessage());
+                'getting user groups for user failed');
+        }
+    }
+
+    /**
+     * @return string[] The list of user identifiers
+     *
+     * @throws ApiError
+     */
+    public function getMembersOfGroup(string $groupIdentifier): array
+    {
+        $sql = 'with recursive cte as (
+             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+                 from       authorization_group_members agm_1
+                 where      agm_1.parent_group_identifier = :groupIdentifier
+                 union all
+                 select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+                 from       authorization_group_members agm_2
+                 inner join cte
+                 on agm_2.parent_group_identifier = cte.child_group_identifier)
+             select user_identifier from cte where user_identifier is not null;';
+
+        try {
+            $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
+            $sqlStatement->bindValue(':groupIdentifier',
+                UuidUtils::toBinaryUuid($groupIdentifier), ParameterType::BINARY);
+
+            return $sqlStatement->executeQuery()->fetchFirstColumn();
+        } catch (\Throwable $exception) {
+            $this->logger->error('getting members of group failed', ['exception' => $exception]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'getting members of group failed');
         }
     }
 
@@ -139,9 +178,10 @@ class GroupService
                 ->setFirstResult($firstResultIndex)
                 ->setMaxResults($maxNumResults)
                 ->getResult();
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to get group collection', ['exception' => $e]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group collection',
-                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
         }
     }
 
@@ -166,10 +206,11 @@ class GroupService
                 ->setFirstResult($firstResultIndex)
                 ->setMaxResults($maxNumResults)
                 ->getResult();
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to get group collection', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get group collection',
-                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID, ['message' => $exception->getMessage()]);
+                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
         }
     }
 
@@ -184,9 +225,10 @@ class GroupService
         try {
             $this->entityManager->persist($group);
             $this->entityManager->flush();
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to add group', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be added',
-                self::ADDING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::ADDING_GROUP_FAILED_ERROR_ID);
         }
 
         return $group;
@@ -202,9 +244,10 @@ class GroupService
         try {
             $this->entityManager->persist($group);
             $this->entityManager->flush();
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to update group', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be updated',
-                self::UPDATING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::UPDATING_GROUP_FAILED_ERROR_ID);
         }
 
         return $group;
@@ -218,9 +261,10 @@ class GroupService
         try {
             $this->entityManager->remove($group);
             $this->entityManager->flush();
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to remove group', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be removed',
-                self::REMOVING_GROUP_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::REMOVING_GROUP_FAILED_ERROR_ID);
         }
     }
 
@@ -235,9 +279,10 @@ class GroupService
         try {
             $this->entityManager->persist($groupMember);
             $this->entityManager->flush();
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to add group member', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be added',
-                self::ADDING_GROUP_MEMBER_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::ADDING_GROUP_MEMBER_FAILED_ERROR_ID);
         }
 
         return $groupMember;
@@ -251,9 +296,10 @@ class GroupService
         try {
             $this->entityManager->remove($groupMember);
             $this->entityManager->flush();
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to remove group member', ['exception' => $exception]);
             $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be removed',
-                self::REMOVING_GROUP_MEMBER_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::REMOVING_GROUP_MEMBER_FAILED_ERROR_ID);
             throw $apiError;
         }
     }
@@ -267,9 +313,10 @@ class GroupService
             return Uuid::isValid($identifier) ? $this->entityManager
                 ->getRepository(GroupMember::class)
                 ->find($identifier) : null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to get group member', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member',
-                self::GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID);
         }
     }
 
@@ -285,12 +332,16 @@ class GroupService
                 ->getRepository(GroupMember::class)
                 ->findBy(['group' => $groupIdentifier], null, $maxNumResults,
                     $firstResultIndex) : [];
-        } catch (\Exception $e) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to get group member collection', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection',
-                self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
+                self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID);
         }
     }
 
+    /**
+     * @throws ApiError
+     */
     private function tryGetGroupInternal(string $identifier): ?Group
     {
         try {
@@ -298,10 +349,10 @@ class GroupService
                 $this->entityManager
                     ->getRepository(Group::class)
                     ->find($identifier) : null;
-        } catch (\Exception $e) {
-            $apiError = ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group',
-                self::GETTING_GROUP_ITEM_FAILED_ERROR_ID, ['message' => $e->getMessage()]);
-            throw $apiError;
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to get group', ['exception' => $exception]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group',
+                self::GETTING_GROUP_ITEM_FAILED_ERROR_ID);
         }
     }
 
@@ -376,14 +427,20 @@ class GroupService
     {
         $GROUP_MEMBER_ALIAS = 'gm';
 
-        return $this->entityManager->createQueryBuilder()
-            ->select("IDENTITY($GROUP_MEMBER_ALIAS.childGroup)")
-            ->from(GroupMember::class, $GROUP_MEMBER_ALIAS)
-            ->where($this->entityManager->getExpressionBuilder()->eq("$GROUP_MEMBER_ALIAS.group", ':group'))
-            ->andWhere($this->entityManager->getExpressionBuilder()->isNotNull("$GROUP_MEMBER_ALIAS.childGroup"))
-            ->setParameter(':group', $group->getIdentifier(), AuthorizationUuidBinaryType::NAME)
-            ->getQuery()
-            ->getSingleColumnResult();
+        try {
+            return $this->entityManager->createQueryBuilder()
+                ->select("IDENTITY($GROUP_MEMBER_ALIAS.childGroup)")
+                ->from(GroupMember::class, $GROUP_MEMBER_ALIAS)
+                ->where($this->entityManager->getExpressionBuilder()->eq("$GROUP_MEMBER_ALIAS.group", ':group'))
+                ->andWhere($this->entityManager->getExpressionBuilder()->isNotNull("$GROUP_MEMBER_ALIAS.childGroup"))
+                ->setParameter(':group', $group->getIdentifier(), AuthorizationUuidBinaryType::NAME)
+                ->getQuery()
+                ->getSingleColumnResult();
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to get child group identifiers', ['exception' => $exception]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'getting child groups failed');
+        }
     }
 
     /**
@@ -408,9 +465,10 @@ class GroupService
                 UuidUtils::toBinaryUuid($group->getIdentifier()), ParameterType::BINARY);
 
             return $sqlStatement->executeQuery()->fetchFirstColumn();
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
+            $this->logger->error('Failed to get group ancestors', ['exception' => $exception]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'gettting group ancestors failed: '.$exception->getMessage());
+                'getting group ancestors failed');
         }
     }
 }

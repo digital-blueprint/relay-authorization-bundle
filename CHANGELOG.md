@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add getMembersOfGroup to GroupService
+
 ## v0.5.16
 
 - Retry Doctrine flushes that have thrown a RetryableException (e.g. DeadlockException) 
