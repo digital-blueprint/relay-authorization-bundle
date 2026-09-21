@@ -116,20 +116,20 @@ class UserGroupService implements LoggerAwareInterface
     public function getMembersOfUserGroup(string $userGroupIdentifier): array
     {
         $sql = 'with recursive cte as (
-             select      agm_1.parent_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
-                 from       authorization_group_members agm_1
-                 where      agm_1.parent_group_identifier = :groupIdentifier
-                 union all
-                 select     agm_2.parent_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
-                 from       authorization_group_members agm_2
-                 inner join cte
-                 on agm_2.parent_group_identifier = cte.child_group_identifier)
+            select      agm_1.user_group_identifier, agm_1.child_group_identifier, agm_1.user_identifier
+            from       authorization_user_group_members agm_1
+            where      agm_1.user_group_identifier = :user_group_identifier
+            union all
+            select     agm_2.user_group_identifier, agm_2.child_group_identifier, agm_2.user_identifier
+            from       authorization_user_group_members agm_2
+            inner join cte
+                  on agm_2.user_group_identifier = cte.child_group_identifier)
              select user_identifier from cte where user_identifier is not null;';
 
         try {
             $sqlStatement = $this->entityManager->getConnection()->prepare($sql);
-            $sqlStatement->bindValue(':groupIdentifier',
-                UuidUtils::toBinaryUuid($groupIdentifier), ParameterType::BINARY);
+            $sqlStatement->bindValue(':user_group_identifier',
+                UuidUtils::toBinaryUuid($userGroupIdentifier), ParameterType::BINARY);
 
             return $sqlStatement->executeQuery()->fetchFirstColumn();
         } catch (\Throwable $exception) {
@@ -203,8 +203,8 @@ class UserGroupService implements LoggerAwareInterface
             return $queryBuilder
                 ->select($GROUP_ENTITY_ALIAS)
                 ->from(UserGroup::class, $GROUP_ENTITY_ALIAS)
-                ->where($queryBuilder->expr()->in("$GROUP_ENTITY_ALIAS.identifier", ':groupIdentifiers'))
-                ->setParameter(':groupIdentifiers',
+                ->where($queryBuilder->expr()->in("$GROUP_ENTITY_ALIAS.identifier", ':userGroupIdentifiers'))
+                ->setParameter(':userGroupIdentifiers',
                     UuidUtils::toBinaryUuids($userGroupIdentifiers), ArrayParameterType::BINARY)
                 ->getQuery()
                 ->setFirstResult($firstResultIndex)
