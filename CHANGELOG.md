@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+## v0.5.17
+
 - Add getMembersOfGroup to GroupService
+- Port to ApiTestCase
 
 ## v0.5.16
 
