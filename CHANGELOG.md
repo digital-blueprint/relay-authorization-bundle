@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v0.5.18
+
+- Add support for api-platform 5.0
+- Drop support for api-platform 4.1
+
 ## v0.5.17
 
 - Add getMembersOfGroup to GroupService
