@@ -6,18 +6,18 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
-use Dbp\Relay\CoreBundle\TestUtils\AbstractApiTest;
+use Dbp\Relay\CoreBundle\TestUtils\ApiTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
-class ApiTest extends AbstractApiTest
+class ApiTest extends ApiTestCase
 {
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->createTestClient();
 
         $this->testClient->setUpUser(userAttributes: ['MAY_CREATE_GROUPS' => false]);
 
-        TestResourceActionGrantServiceFactory::createTestEntityManager($this->testClient->getContainer(),
+        TestResourceActionGrantServiceFactory::createTestEntityManager($this->getContainer(),
             availableResourceClassActions: [
                 AuthorizationService::GROUP_RESOURCE_CLASS => [
                     AuthorizationService::GROUP_ITEM_ACTIONS,
@@ -32,7 +32,7 @@ class ApiTest extends AbstractApiTest
 
     public function testContainer()
     {
-        $this->assertNotNull($this->testClient->getContainer());
+        $this->assertNotNull($this->getContainer());
     }
 
     public function testGetAvailableResourceClassActionsUnauthenticated(): void
