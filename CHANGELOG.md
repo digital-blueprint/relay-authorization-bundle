@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add parameter `$whereIsGrantedAction` to `ResourceActionGrantService::getResourceActionGrantsForResourceClassAndIdentifier`
+  to filter returned grants by the given action
 - add logic for sharing resource actions grants and removing them
 - add share fields (shareable, shareOf, creatorId, dateCreated) to ResourceActionGrant entity
 - re-work add/update of available actions / roles

@@ -850,11 +850,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      */
     public function getResourceActionGrantsForResource(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
+        ?string $whereIsGrantedAction = null,
         ?string $userIdentifier = null, mixed $groupIdentifiers = null, mixed $dynamicUserGroupIdentifiers = null,
         int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
     {
         return $this->getInternal(self::GET_RESOURCE_ACTION_GRANTS,
             $resourceClass, $resourceIdentifier, $resourceType,
+            whereActionIn: null !== $whereIsGrantedAction ? [$whereIsGrantedAction] : null,
             userIdentifier: $userIdentifier,
             groupIdentifiers: $groupIdentifiers,
             dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
@@ -996,7 +998,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         break;
 
                     case self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS:
-                        // NOTE: if actions (other than manage) are required to be granted for returned recources,
+                        // NOTE: if actions (other than manage) are required to be granted for returned resources,
                         // we check if those actions are even available for the resource class and type,
                         // and otherwise we filter them out.
                         // (note that we can ignore manage, since it is always available)
