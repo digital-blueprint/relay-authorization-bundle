@@ -143,15 +143,20 @@ class ResourceActionGrantService
     /**
      * Use self::COLLECTION_RESOURCE_IDENTIFIER as resourceIdentifier for collection actions.
      *
+     * @param string|null $whereIsGrantedAction If set, only grants are returned that grant the given action
+     *
      * @return ResourceActionGrant[]
      *
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): array
+        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ?string $whereIsGrantedAction = null): array
     {
         return $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier, $resourceType);
+            $resourceClass, $resourceIdentifier, $resourceType,
+            whereIsGrantedAction: $whereIsGrantedAction
+        );
     }
 
     /**
@@ -203,6 +208,10 @@ class ResourceActionGrantService
 
     /**
      * Only includes resources where the current user is granted at least one action.
+     *
+     * @param string|null $whereIsGrantedAction      If set, only those resources are returned where the current user
+     *                                               is granted the given action
+     * @param bool        $excludeCollectionResource If true, collection resources are excluded from the result
      *
      * @return GrantedActions[]
      *

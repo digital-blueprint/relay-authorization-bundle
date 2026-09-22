@@ -276,10 +276,13 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): array
+        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ?string $whereIsGrantedAction = null): array
     {
         return $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
-            $resourceClass, $resourceIdentifier, $resourceType);
+            $resourceClass, $resourceIdentifier, $resourceType,
+            whereIsGrantedAction: $whereIsGrantedAction
+        );
     }
 
     /**
