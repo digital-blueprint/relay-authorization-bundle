@@ -800,6 +800,16 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $rag2 = $this->testEntityManager->addResourceActionGrant($rag1->getAuthorizationResource(),
             array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[1], dynamicUserGroupIdentifier: 'everybody');
+        $rag3 = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE,
+            action: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0],
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
+        $rag4 = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE,
+            action: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[1],
+            userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -807,6 +817,32 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertContainsResourceActionGrant($rags, $rag1);
         $this->assertContainsResourceActionGrant($rags, $rag2);
 
+        $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE);
+        $this->assertCount(2, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag3);
+        $this->assertContainsResourceActionGrant($rags, $rag4);
+
+        $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            whereIsGrantedAction: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0]);
+
+        $this->assertCount(1, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag1);
+
+        $this->assertEmpty($this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            whereIsGrantedAction: 'foo'));
+
+        $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE,
+            whereIsGrantedAction: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[1]);
+        $this->assertCount(1, $rags);
+        $this->assertContainsResourceActionGrant($rags, $rag4);
+
+        // test if action availability is checked, i.e. if the action is not available for the resource class, it should not be returned
         $this->internalResourceActionGrantService->addOrUpdateAvailableResourceClassActions(
             TestResources::TEST_RESOURCE_CLASS, [], []);
 

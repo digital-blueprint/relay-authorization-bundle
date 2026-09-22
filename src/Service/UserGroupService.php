@@ -17,9 +17,6 @@ use Psr\Log\LoggerAwareTrait;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
 
-/**
- * @internal
- */
 class UserGroupService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
