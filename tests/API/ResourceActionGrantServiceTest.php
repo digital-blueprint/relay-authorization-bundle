@@ -24,6 +24,12 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
             $this->authorizationService);
     }
 
+    public function testGetEntityManager(): void
+    {
+        $entityManager = $this->resourceActionGrantService->getEntityManager();
+        $this->assertSame($this->internalResourceActionGrantService->getEntityManager(), $entityManager);
+    }
+
     public function testAddResourceActionGrantWithManageAction(): void
     {
         $this->resourceActionGrantService->addResourceActionGrant(
@@ -882,5 +888,65 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $roleIdentifier = Uuid::v7()->toRfc4122();
         $role = $this->resourceActionGrantService->addOrUpdateRole($localizedRoleNames, $roleActions, $roleIdentifier);
         $this->assertEquals($roleIdentifier, $role->getIdentifier());
+    }
+
+    public function testAddResourceToGroupResource(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resourceGroup = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_GROUP_IDENTIFIER,
+            ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE);
+
+        $this->assertFalse($this->testEntityManager->isMemberOfResourceGroup(
+            $resourceGroup->getResourceClass(),
+            $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier()
+        ));
+
+        $this->resourceActionGrantService->addResourceToGroupResource(
+            $resourceGroup->getResourceClass(),
+            $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier()
+        );
+
+        $this->assertTrue($this->testEntityManager->isMemberOfResourceGroup(
+            $resourceGroup->getResourceClass(),
+            $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier()
+        ));
+    }
+
+    public function testRemoveResourceFromGroupResource(): void
+    {
+        $resource = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
+        $resourceGroup = $this->testEntityManager->addAuthorizationResource(
+            TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_GROUP_IDENTIFIER,
+            ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE);
+
+        $this->resourceActionGrantService->addResourceToGroupResource(
+            $resourceGroup->getResourceClass(),
+            $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier()
+        );
+
+        $this->assertTrue($this->testEntityManager->isMemberOfResourceGroup(
+            $resourceGroup->getResourceClass(),
+            $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier()
+        ));
+
+        $this->resourceActionGrantService->removeResourceFromGroupResource(
+            $resourceGroup->getResourceClass(),
+            $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier()
+        );
+
+        $this->assertFalse($this->testEntityManager->isMemberOfResourceGroup(
+            $resourceGroup->getResourceClass(),
+            $resourceGroup->getResourceIdentifier(),
+            $resource->getResourceIdentifier()
+        ));
     }
 }

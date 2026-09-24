@@ -7,19 +7,17 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
-use Psr\Log\NullLogger;
 
 abstract class AbstractGroupControllerAuthorizationServiceTestCase extends AbstractAuthorizationServiceTestCase
 {
     protected const TEST_GROUP_NAME = 'test_group';
-    protected UserGroupService $groupService;
+    protected UserGroupService $userGroupService;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->groupService = new UserGroupService($this->testEntityManager->getEntityManager());
-        $this->groupService->setLogger(new NullLogger());
+        $this->userGroupService = $this->authorizationService->getUserGroupService();
     }
 
     protected function addTestGroupAndManageGroupGrantForCurrentUser(string $name): UserGroup

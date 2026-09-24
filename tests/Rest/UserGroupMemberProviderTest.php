@@ -12,7 +12,7 @@ use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Proxies\__CG__\Dbp\Relay\AuthorizationBundle\Entity\GroupMember;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServiceTestCase
+class UserGroupMemberProviderTest extends AbstractGroupControllerAuthorizationServiceTestCase
 {
     private DataProviderTester $groupMemberProviderTester;
 
@@ -21,14 +21,14 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
         parent::setUp();
 
         $groupMemberProcessor = new UserGroupMemberProvider(
-            $this->groupService, $this->authorizationService);
+            $this->userGroupService, $this->authorizationService);
         $this->groupMemberProviderTester = DataProviderTester::create($groupMemberProcessor, GroupMember::class);
     }
 
     public function testGetGroupMemberItemWithManageGroupGrant(): void
     {
         $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
 
         $groupMemberPersistence = $this->groupMemberProviderTester->getItem($groupMember->getIdentifier());
 
@@ -41,7 +41,7 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
     {
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
         $manageGrant = $this->authorizationService->addUserGroup($userGroup->getIdentifier());
-        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
 
@@ -56,7 +56,7 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
     public function testGetGroupMemberItemForbidden(): void
     {
         $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         try {
@@ -77,12 +77,12 @@ class GroupMemberProviderTest extends AbstractGroupControllerAuthorizationServic
             [UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $userGroup->getIdentifier()]);
         $this->assertCount(0, $groupMembers);
 
-        $groupMemberA = $this->testEntityManager->addGroupMember($userGroup, 'a');
-        $groupMemberB = $this->testEntityManager->addGroupMember($userGroup, 'b');
-        $groupMemberC = $this->testEntityManager->addGroupMember($userGroup, 'c');
+        $groupMemberA = $this->testEntityManager->addUserGroupMember($userGroup, 'a');
+        $groupMemberB = $this->testEntityManager->addUserGroupMember($userGroup, 'b');
+        $groupMemberC = $this->testEntityManager->addUserGroupMember($userGroup, 'c');
 
         // add some noise:
-        $this->testEntityManager->addGroupMember($group2, 'd');
+        $this->testEntityManager->addUserGroupMember($group2, 'd');
 
         $groupMembers = $this->groupMemberProviderTester->getCollection(
             [UserGroupMemberProvider::GROUP_IDENTIFIER_QUERY_PARAMETER => $userGroup->getIdentifier()]);

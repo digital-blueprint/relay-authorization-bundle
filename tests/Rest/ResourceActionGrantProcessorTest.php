@@ -188,7 +188,37 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($resourceActionGrant->getDynamicUserGroupIdentifier(), $resourceActionGrantItem->getDynamicUserGroupIdentifier());
     }
 
-    public function testAddResourceActionGrantShareAction(): void
+    public function testAddResourceActionGrantShareActionExplicit(): void
+    {
+        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+
+        $readGrant = $this->addGrant($manageGrant->getAuthorizationResource(),
+            action: TestResources::READ_ACTION,
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER,
+            shareable: true
+        );
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+
+        $sharedResourceActionGrant = new ResourceActionGrant();
+        $sharedResourceActionGrant->setResourceClass(TestResources::TEST_RESOURCE_CLASS);
+        $sharedResourceActionGrant->setResourceIdentifier(self::TEST_RESOURCE_IDENTIFIER);
+        $sharedResourceActionGrant->setAction(TestResources::READ_ACTION);
+        $sharedResourceActionGrant->setShareable(false);
+        $sharedResourceActionGrant->setShareOf($readGrant);
+        $sharedResourceActionGrant->setUserIdentifier(self::ANOTHER_USER_IDENTIFIER.'_2');
+
+        $sharedResourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($sharedResourceActionGrant);
+        $this->assertTrue(UuidV7::isValid($sharedResourceActionGrant->getIdentifier()));
+        $this->assertEquals($manageGrant->getResourceClass(), $sharedResourceActionGrant->getResourceClass());
+        $this->assertEquals($manageGrant->getResourceIdentifier(), $sharedResourceActionGrant->getResourceIdentifier());
+        $this->assertEquals(TestResources::READ_ACTION, $sharedResourceActionGrant->getAction());
+        $this->assertEquals(self::ANOTHER_USER_IDENTIFIER.'_2', $sharedResourceActionGrant->getUserIdentifier());
+        $this->assertEquals(false, $sharedResourceActionGrant->getShareable());
+        $this->assertEquals($readGrant->getIdentifier(), $sharedResourceActionGrant->getShareOf()->getIdentifier());
+    }
+
+    public function testAddResourceActionGrantShareActionImplicit(): void
     {
         $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
@@ -217,7 +247,40 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($readGrant->getIdentifier(), $sharedResourceActionGrant->getShareOf()->getIdentifier());
     }
 
-    public function testAddResourceActionGrantShareRole(): void
+    public function testAddResourceActionGrantShareRoleExplicit(): void
+    {
+        // creating a share of a role where the actions are equal to the actions of the original role is allowed
+        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+
+        $roleEditor = $this->addRoleEditor();
+
+        $roleGrant = $this->addGrant($manageGrant->getAuthorizationResource(),
+            roleIdentifier: $roleEditor->getIdentifier(),
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER,
+            shareable: true
+        );
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+
+        $sharedResourceActionGrant = new ResourceActionGrant();
+        $sharedResourceActionGrant->setResourceClass(TestResources::TEST_RESOURCE_CLASS);
+        $sharedResourceActionGrant->setResourceIdentifier(self::TEST_RESOURCE_IDENTIFIER);
+        $sharedResourceActionGrant->setRole($roleEditor);
+        $sharedResourceActionGrant->setShareable(false);
+        $sharedResourceActionGrant->setShareOf($roleGrant);
+        $sharedResourceActionGrant->setUserIdentifier(self::ANOTHER_USER_IDENTIFIER.'_2');
+
+        $sharedResourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($sharedResourceActionGrant);
+        $this->assertTrue(UuidV7::isValid($sharedResourceActionGrant->getIdentifier()));
+        $this->assertEquals($manageGrant->getResourceClass(), $sharedResourceActionGrant->getResourceClass());
+        $this->assertEquals($manageGrant->getResourceIdentifier(), $sharedResourceActionGrant->getResourceIdentifier());
+        $this->assertEquals($roleEditor, $sharedResourceActionGrant->getRole());
+        $this->assertEquals(self::ANOTHER_USER_IDENTIFIER.'_2', $sharedResourceActionGrant->getUserIdentifier());
+        $this->assertEquals(false, $sharedResourceActionGrant->getShareable());
+        $this->assertEquals($roleGrant->getIdentifier(), $sharedResourceActionGrant->getShareOf()->getIdentifier());
+    }
+
+    public function testAddResourceActionGrantShareRoleImplicit(): void
     {
         // creating a share of a role where the actions are equal to the actions of the original role is allowed
         $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
