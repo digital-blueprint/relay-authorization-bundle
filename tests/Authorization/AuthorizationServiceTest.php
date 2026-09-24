@@ -136,6 +136,30 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('everybody'));
         $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('students'));
         $this->assertTrue($this->authorizationService->isCurrentUserMemberOfDynamicGroup('employees'));
+
+        try {
+            $this->authorizationService->isCurrentUserMemberOfDynamicGroup('undefined_group');
+            $this->fail('Expected RuntimeException to be thrown');
+        } catch (\RuntimeException $runtimeException) {
+            $this->assertEquals('Dynamic user group is undefined: undefined_group', $runtimeException->getMessage());
+        }
+
+        $this->testConfig = [
+            Configuration::DYNAMIC_GROUPS => [
+                [
+                    Configuration::IDENTIFIER => 'invalid_expression',
+                    Configuration::IS_CURRENT_USER_GROUP_MEMBER_EXPRESSION => 'user.oops("IS_STUDENT")',
+                ],
+            ],
+        ];
+        $this->setUp();
+
+        try {
+            $this->authorizationService->isCurrentUserMemberOfDynamicGroup('invalid_expression');
+            $this->fail('Expected RuntimeException to be thrown');
+        } catch (\RuntimeException $runtimeException) {
+            $this->assertEquals('Error checking if current user is member of dynamic group: invalid_expression', $runtimeException->getMessage());
+        }
     }
 
     public function testGetDynamicGroupsCurrentUserIsMemberOf(): void
@@ -185,13 +209,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $resource = $this->testEntityManager->addAuthorizationResource();
 
         $group1 = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER.'_3');
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER.'_5');
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER.'_7');
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER.'_5');
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER.'_7');
 
         $group2 = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_6');
-        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_7');
+        $this->testEntityManager->addUserGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_6');
+        $this->testEntityManager->addUserGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_7');
 
         $this->testEntityManager->addResourceActionGrant($resource,
             AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
@@ -319,8 +343,8 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         // user 4: delete (as member of dynamic group 'employees')
         // user 5: read, delete, write (as member of 'Testgroup'), delete (as member of dynamic group 'employees')
         $testGroup = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
-        $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_5');
+        $this->testEntityManager->addUserGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_5');
 
         $resourceCollection1 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
@@ -460,7 +484,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetGrantedResourceActionsForCurrentUserWithRoles(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
 
         $roleEditor = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
@@ -586,8 +610,8 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         $group1 = $this->testEntityManager->addUserGroup();
         $group2 = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addUserGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
 
         $this->testEntityManager->addResourceActionGrant($resource,
             action: AuthorizationService::MANAGE_ACTION,
@@ -966,7 +990,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetGrantedResourceActionsPageForCurrentUser(): void
     {
         $testGroup = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
 
         $roleReader = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
@@ -1389,7 +1413,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetGrantedActionsCollectionForCurrentUserWithGroupResources(): void
     {
         $testGroup = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($testGroup, self::CURRENT_USER_IDENTIFIER.'_3');
 
         $roleReviewer = $this->internalResourceActionGrantService->addOrUpdateRole([],
             [
@@ -2478,7 +2502,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetGrantedResourceActionsForCurrentForGroupItemResource(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($userGroup, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($userGroup, self::ANOTHER_USER_IDENTIFIER);
 
         $groupItemResource = $this->testEntityManager->addAuthorizationResource(
             AuthorizationService::GROUP_RESOURCE_CLASS, $userGroup->getIdentifier());
@@ -2626,9 +2650,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $group1 = $this->testEntityManager->addUserGroup();
         $group2 = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
 
         $resource1 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -2782,7 +2806,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetResourceActionsGrantsUserIsAuthorizedToReadWithResourceGroups(): void
     {
         $group1 = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
 
         $resource1 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -3007,9 +3031,9 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $group1 = $this->testEntityManager->addUserGroup();
         $group2 = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group2, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group2, self::ANOTHER_USER_IDENTIFIER.'_2');
 
         $rc_1 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -3111,7 +3135,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     public function testGetResourceClassesCurrentUserIsAuthorizedToReadWithGroupResources(): void
     {
         $group1 = $this->testEntityManager->addUserGroup();
-        $this->testEntityManager->addGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group1, self::ANOTHER_USER_IDENTIFIER);
 
         $resource1 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);

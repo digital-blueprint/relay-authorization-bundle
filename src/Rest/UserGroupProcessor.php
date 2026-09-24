@@ -43,6 +43,9 @@ class UserGroupProcessor extends AbstractDataProcessor implements LoggerAwareInt
         };
     }
 
+    /**
+     * @throws \Throwable
+     */
     protected function addItem(mixed $data, array $filters): UserGroup
     {
         assert($data instanceof UserGroup);
@@ -52,10 +55,10 @@ class UserGroupProcessor extends AbstractDataProcessor implements LoggerAwareInt
 
         try {
             $this->authorizationService->addUserGroup($userGroup->getIdentifier());
-        } catch (\Exception $e) {
+        } catch (\Throwable $throwable) {
             // remove inaccessible user group
             $this->groupService->removeUserGroup($userGroup);
-            throw $e;
+            throw $throwable;
         }
 
         return $userGroup;
@@ -78,7 +81,7 @@ class UserGroupProcessor extends AbstractDataProcessor implements LoggerAwareInt
 
         try {
             $this->authorizationService->removeUserGroup($userGroup->getIdentifier());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->warning(sprintf('Failed to remove group resource \'%s\' from authorization: %s', $userGroup->getIdentifier(), $e->getMessage()));
         }
     }

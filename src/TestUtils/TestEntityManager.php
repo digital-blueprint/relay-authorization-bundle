@@ -76,7 +76,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addAuthorizationResource(string $resourceClass = self::DEFAULT_RESOURCE_CLASS,
         string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER,
-        int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
+        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
     {
         $authorizationResource = $this->entityManager->getRepository(AuthorizationResource::class)->findOneBy([
             'resourceClass' => $resourceClass,
@@ -218,7 +218,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function getAuthorizationResourceByResourceClassAndIdentifier(
         string $resourceClass, string $resourceIdentifier,
-        int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ?AuthorizationResource
+        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ?AuthorizationResource
     {
         $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
         $expressionBuilder = $this->entityManager->getExpressionBuilder();
@@ -258,7 +258,7 @@ class TestEntityManager extends CoreTestEntityManager
         return $userGroup;
     }
 
-    public function deleteGroup(string $identifier): void
+    public function deleteUserGroup(string $identifier): void
     {
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder();
@@ -273,7 +273,7 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function getUserGroup(string $identifier)
+    public function getUserGroup(string $identifier): ?UserGroup
     {
         try {
             return $this->entityManager->getRepository(UserGroup::class)
@@ -283,7 +283,7 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function addGroupMember(UserGroup $userGroup, ?string $userIdentifier = null, ?UserGroup $childGroup = null): UserGroupMember
+    public function addUserGroupMember(UserGroup $userGroup, ?string $userIdentifier = null, ?UserGroup $childGroup = null): UserGroupMember
     {
         $userGroupMember = new UserGroupMember();
         $userGroupMember->setIdentifier(Uuid::v7()->toRfc4122());
@@ -301,7 +301,7 @@ class TestEntityManager extends CoreTestEntityManager
         return $userGroupMember;
     }
 
-    public function deleteGroupMember(string $identifier): void
+    public function deleteUserGroupMember(string $identifier): void
     {
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder();
@@ -316,7 +316,7 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function getGroupMember(string $identifier): ?UserGroupMember
+    public function getUserGroupMember(string $identifier): ?UserGroupMember
     {
         try {
             return $this->entityManager->getRepository(UserGroupMember::class)
@@ -383,13 +383,13 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addResourceToResourceGroup(string $resourceClass, string $resourceGroupResourceIdentifier,
-        string $resourceIdentifier, int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ResourceGroupMember
+        string $resourceIdentifier, int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ResourceGroupMember
     {
         $groupAuthorizationResourceMember = new ResourceGroupMember();
         $groupAuthorizationResourceMember->setIdentifier(Uuid::v7()->toRfc4122());
         $groupAuthorizationResourceMember->setGroupAuthorizationResource(
             $this->getAuthorizationResourceByResourceClassAndIdentifier(
-                $resourceClass, $resourceGroupResourceIdentifier, InternalResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE)
+                $resourceClass, $resourceGroupResourceIdentifier, ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE)
         );
         $groupAuthorizationResourceMember->setMemberAuthorizationResource(
             $this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier, $resourceType)
@@ -405,6 +405,40 @@ class TestEntityManager extends CoreTestEntityManager
         }
 
         return $groupAuthorizationResourceMember;
+    }
+
+    public function isMemberOfResourceGroup(string $resourceClass,
+        string $resourceGroupResourceIdentifier,
+        string $resourceIdentifier,
+        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): bool
+    {
+        try {
+            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $queryBuilder
+                ->select('COUNT(rgm.identifier)')
+                ->from(ResourceGroupMember::class, 'rgm')
+                ->innerJoin(AuthorizationResource::class, 'gar',
+                    Join::WITH, 'rgm.groupAuthorizationResource = gar.identifier')
+                ->innerJoin(AuthorizationResource::class, 'mar',
+                    Join::WITH, 'rgm.memberAuthorizationResource = mar.identifier')
+                ->where($queryBuilder->expr()->eq('gar.resourceClass', ':resourceClass'))
+                ->setParameter(':resourceClass', $resourceClass)
+                ->andWhere($queryBuilder->expr()->eq('gar.resourceIdentifier', ':groupResourceIdentifier'))
+                ->setParameter(':groupResourceIdentifier', $resourceGroupResourceIdentifier)
+                ->andWhere($queryBuilder->expr()->eq('mar.resourceClass', ':resourceClass'))
+                ->setParameter(':resourceClass', $resourceClass)
+                ->andWhere($queryBuilder->expr()->eq('mar.resourceIdentifier', ':memberResourceIdentifier'))
+                ->setParameter(':memberResourceIdentifier', $resourceIdentifier)
+                ->andWhere($queryBuilder->expr()->eq('mar.resourceType', ':memberResourceType'))
+                ->setParameter(':memberResourceType', $resourceType)
+            ;
+
+            return (int) $queryBuilder
+                    ->getQuery()
+                    ->getSingleScalarResult() > 0;
+        } catch (\Exception $exception) {
+            throw new \RuntimeException($exception->getMessage());
+        }
     }
 
     private static function addAvailableGroupResourceClassActions(EntityManagerInterface $entityManager): void
@@ -437,6 +471,31 @@ class TestEntityManager extends CoreTestEntityManager
                 ->findBy($criteria);
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
+        }
+    }
+
+    /**
+     * Drops all tables in the database to simulate a database error.
+     */
+    public function prepareDBError(): void
+    {
+        $connection = $this->entityManager->getConnection();
+        try {
+            $this->entityManager->clear(); // Clear the entity manager to avoid finding cached entities
+            $connection->executeStatement('PRAGMA foreign_keys = OFF');
+            $schemaManager = $connection->createSchemaManager();
+            $tableNames = array_map(fn ($tableName) => $tableName->getUnqualifiedName()->getValue(), $schemaManager->introspectTableNames());
+            foreach ($tableNames as $tableName) {
+                $this->entityManager->getConnection()->executeStatement('DROP TABLE IF EXISTS `'.$tableName.'`');
+            }
+        } catch (\Throwable $throwable) {
+            throw new \RuntimeException('Failed to drop all tables in the database: '.$throwable->getMessage());
+        } finally {
+            try {
+                $connection->executeStatement('PRAGMA foreign_keys = ON');
+            } catch (\Throwable $throwable) {
+                throw new \RuntimeException('Failed to re-enable foreign key checks: '.$throwable->getMessage());
+            }
         }
     }
 }

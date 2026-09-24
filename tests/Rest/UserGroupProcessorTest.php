@@ -12,7 +12,7 @@ use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTestCase
+class UserGroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTestCase
 {
     private DataProcessorTester $groupProcessorTester;
 
@@ -21,7 +21,7 @@ class GroupProcessorTest extends AbstractGroupControllerAuthorizationServiceTest
         parent::setUp();
 
         $groupProcessor = new UserGroupProcessor(
-            $this->groupService, $this->authorizationService);
+            $this->userGroupService, $this->authorizationService);
         $this->groupProcessorTester = DataProcessorTester::create($groupProcessor, UserGroup::class);
     }
 

@@ -71,8 +71,10 @@ class TestResourceActionGrantServiceFactory
     {
         $internalResourceActionGrantService ??= new InternalResourceActionGrantService(
             $entityManager, $eventDispatcher);
+        $userGroupService = new UserGroupService($entityManager);
+        $userGroupService->setLogger(new NullLogger());
         $authorizationService = new AuthorizationService(
-            $internalResourceActionGrantService, new UserGroupService($entityManager));
+            $internalResourceActionGrantService, $userGroupService);
         TestAuthorizationService::setUp($authorizationService, $currentUserIdentifier,
             $currentUserAttributes, isServiceAccount: $isServiceAccount);
         $authorizationService->setConfig($testConfig ?? self::getTestConfig());

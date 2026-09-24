@@ -92,8 +92,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     private const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:authorization-resource-not-found';
     public const RESOURCE_ACTION_GRANT_INVALID_ERROR_ID = 'authorization:resource-action-grant-invalid';
     private const ADDING_ROLE_FAILED_ERROR_ID = 'authorization:adding-role-failed';
-    private const GETTING_ROLE_ITEM_FAILED_ERROR_ID = 'authorization:getting-role-item-failed';
-    private const GETTING_ROLE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-role-collection-failed';
+    public const GETTING_ROLE_ITEM_FAILED_ERROR_ID = 'authorization:getting-role-item-failed';
+    public const GETTING_ROLE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-role-collection-failed';
     private const GETTING_AVAILABLE_RESOURCE_CLASS_ACTION_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-available-resource-class-action-collection-failed';
 
     public static function getAvailableResourceClassActionStatic(EntityManagerInterface $entityManager,
