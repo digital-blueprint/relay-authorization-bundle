@@ -9,7 +9,6 @@ use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerAwareInterface;
@@ -21,18 +20,18 @@ class UserGroupService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    private const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-user-group-failed';
-    private const UPDATING_GROUP_FAILED_ERROR_ID = 'authorization:updating-user-group-failed';
-    private const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-user-group-failed';
-    private const GROUP_INVALID_ERROR_ID = 'authorization:user-group-invalid';
-    private const GROUP_NOT_FOUND_ERROR_ID = 'authorization:user-group-not-found';
-    private const GETTING_GROUP_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-collection-failed';
-    private const GETTING_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-item-failed';
-    private const REMOVING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-user-group-member-failed';
-    private const ADDING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:adding-user-group-member-failed';
+    public const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-user-group-failed';
     public const GROUP_MEMBER_INVALID_ERROR_ID = 'authorization:user-group-member-invalid';
-    private const GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-member-item-failed';
-    private const GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-member-collection-failed';
+    public const UPDATING_GROUP_FAILED_ERROR_ID = 'authorization:updating-user-group-failed';
+    public const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-user-group-failed';
+    public const GROUP_INVALID_ERROR_ID = 'authorization:user-group-invalid';
+    public const GROUP_NOT_FOUND_ERROR_ID = 'authorization:user-group-not-found';
+    public const GETTING_GROUP_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-collection-failed';
+    public const GETTING_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-item-failed';
+    public const REMOVING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-user-group-member-failed';
+    public const ADDING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:adding-user-group-member-failed';
+    public const GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-member-item-failed';
+    public const GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-member-collection-failed';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager)
@@ -156,65 +155,6 @@ class UserGroupService implements LoggerAwareInterface
         }
 
         return $userGroup;
-    }
-
-    /**
-     * @return UserGroup[]
-     *
-     * @throws ApiError
-     *
-     * @deprecated
-     */
-    public function getGroups(int $firstResultIndex, int $maxNumResults): array
-    {
-        $GROUP_ENTITY_ALIAS = 'g';
-
-        try {
-            $queryBuilder = $this->entityManager->createQueryBuilder()
-                ->select($GROUP_ENTITY_ALIAS)
-                ->from(UserGroup::class, $GROUP_ENTITY_ALIAS);
-
-            return $queryBuilder
-                ->getQuery()
-                ->setFirstResult($firstResultIndex)
-                ->setMaxResults($maxNumResults)
-                ->getResult();
-        } catch (\Throwable $throwable) {
-            $this->logger->error('Failed to get groups', ['exception' => $throwable]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group collection',
-                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
-        }
-    }
-
-    /**
-     * @return UserGroup[]
-     *
-     * @throws ApiError
-     */
-    public function getUserGroupsByIdentifiers(array $userGroupIdentifiers, int $firstResultIndex, int $maxNumResults): array
-    {
-        try {
-            $GROUP_ENTITY_ALIAS = 'g';
-            $queryBuilder = $this->entityManager->createQueryBuilder();
-
-            return $queryBuilder
-                ->select($GROUP_ENTITY_ALIAS)
-                ->from(UserGroup::class, $GROUP_ENTITY_ALIAS)
-                ->where($queryBuilder->expr()->in("$GROUP_ENTITY_ALIAS.identifier", ':userGroupIdentifiers'))
-                ->setParameter(':userGroupIdentifiers',
-                    UuidUtils::toBinaryUuids($userGroupIdentifiers), ArrayParameterType::BINARY)
-                ->getQuery()
-                ->setFirstResult($firstResultIndex)
-                ->setMaxResults($maxNumResults)
-                ->getResult();
-        } catch (\Throwable $throwable) {
-            $this->logger->error('Failed to get group collection by identifiers: '.$throwable->getMessage(), [
-                'exception' => $throwable,
-            ]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Failed to get group collection',
-                self::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID);
-        }
     }
 
     /**

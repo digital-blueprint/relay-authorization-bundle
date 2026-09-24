@@ -9,8 +9,11 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Rest\RoleProvider;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
+use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
+use Symfony\Component\HttpFoundation\Response;
 
 class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
 {
@@ -22,6 +25,58 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
 
         $resourceActionGrantProvider = new RoleProvider($this->authorizationService);
         $this->roleProviderTester = DataProviderTester::create($resourceActionGrantProvider, Role::class);
+    }
+
+    public function testGetRoleByIdentifier(): void
+    {
+        $roleActions = [];
+        $roleActions[] = ResourceActionGrantService::createRoleAction(
+            TestResources::TEST_RESOURCE_CLASS, TestResources::READ_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE);
+        $localizedRoleNames = [
+            'en' => 'Reader',
+            'de' => 'Leser',
+        ];
+        $role1 = $this->internalResourceActionGrantService->addOrUpdateRole(
+            $localizedRoleNames, $roleActions
+        );
+
+        $roleReturned = $this->roleProviderTester->getItem($role1->getIdentifier());
+        $this->assertEquals($role1->getIdentifier(), $roleReturned->getIdentifier());
+        $this->assertCount(1, $roleReturned->getRoleActions());
+        $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $roleReturned->getRoleActions()[0]->getAvailableResourceClassAction()->getResourceClass());
+        $this->assertEquals(TestResources::READ_ACTION, $roleReturned->getRoleActions()[0]->getAvailableResourceClassAction()->getAction());
+        $this->assertEquals(ResourceActionGrantService::ITEM_ACTION_TYPE, $roleReturned->getRoleActions()[0]->getAvailableResourceClassAction()->getActionType());
+        $this->assertCount(2, $roleReturned->getRoleNames());
+        $this->assertEquals('en', $roleReturned->getRoleNames()[0]->getLanguageTag());
+        $this->assertEquals('Reader', $roleReturned->getRoleNames()[0]->getName());
+        $this->assertEquals('de', $roleReturned->getRoleNames()[1]->getLanguageTag());
+        $this->assertEquals('Leser', $roleReturned->getRoleNames()[1]->getName());
+    }
+
+    public function testGetRoleByIdentifierNotFound(): void
+    {
+        try {
+            $this->roleProviderTester->getItem('non_existing_role_identifier');
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $exception) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $exception->getStatusCode());
+        }
+    }
+
+    public function testGetRoleByIdentifierInternalError(): void
+    {
+        $role = $this->internalResourceActionGrantService->addOrUpdateRole(
+            [], []
+        );
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->roleProviderTester->getItem($role->getIdentifier());
+            $this->fail('Expected ApiError to be thrown');
+        } catch (ApiError $exception) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $exception->getStatusCode());
+            $this->assertEquals(InternalResourceActionGrantService::GETTING_ROLE_ITEM_FAILED_ERROR_ID, $exception->getErrorId());
+        }
     }
 
     public function testGetRolesWithManageGrant(): void

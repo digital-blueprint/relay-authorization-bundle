@@ -7,11 +7,12 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Rest\UserGroupProvider;
+use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Symfony\Component\HttpFoundation\Response;
 
-class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestCase
+class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestCase
 {
     private DataProviderTester $groupProviderTester;
 
@@ -20,14 +21,14 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         parent::setUp();
 
         $groupProvider = new UserGroupProvider(
-            $this->groupService, $this->authorizationService);
+            $this->userGroupService, $this->authorizationService);
         $this->groupProviderTester = DataProviderTester::create($groupProvider, UserGroup::class);
     }
 
     public function testGetGroupItem(): void
     {
         $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
-        $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->clear(); // prevent re-use of cached group entity
         $groupPersistence = $this->groupProviderTester->getItem($userGroup->getIdentifier());
 
@@ -41,7 +42,7 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
     {
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
         $childGroup = $this->testEntityManager->addUserGroup('child group');
-        $this->testEntityManager->addGroupMember($userGroup, childGroup: $childGroup);
+        $this->testEntityManager->addUserGroupMember($userGroup, childGroup: $childGroup);
 
         $manageGrant = $this->authorizationService->addUserGroup($userGroup->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
@@ -84,8 +85,8 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
 
         $childGroup = $this->testEntityManager->addUserGroup('child group');
 
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group2, childGroup: $childGroup);
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group2, childGroup: $childGroup);
         $this->testEntityManager->clear(); // prevent re-use of cached group entity
 
         // another user has manage grants for groups 3, 4, and 5
@@ -225,10 +226,10 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser('Group 2');
         $group3 = $this->addTestGroupAndManageGroupGrantForCurrentUser('Group 3');
 
-        $this->testEntityManager->addGroupMember($group0, childGroup: $group2);
-        $this->testEntityManager->addGroupMember($group1, childGroup: $group2);
-        $this->testEntityManager->addGroupMember($group2, childGroup: $group3);
-        $this->testEntityManager->addGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group0, childGroup: $group2);
+        $this->testEntityManager->addUserGroupMember($group1, childGroup: $group2);
+        $this->testEntityManager->addUserGroupMember($group2, childGroup: $group3);
+        $this->testEntityManager->addUserGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
 
         $groups = $this->groupProviderTester->getCollection([
             AuthorizationService::GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER => $group0->getIdentifier(),
@@ -269,5 +270,24 @@ class GroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestC
         ]);
         // none allowed
         $this->assertCount(0, $groups);
+    }
+
+    public function testGetGroupCollectionInternalError(): void
+    {
+        $this->login(self::CURRENT_USER_IDENTIFIER);
+
+        // simulate an internal error by dropping the user group table
+        $this->testEntityManager->prepareDBError();
+
+        try {
+            $this->groupProviderTester->getCollection([
+                'page' => 1,
+                'perPage' => 10,
+            ]);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
     }
 }
