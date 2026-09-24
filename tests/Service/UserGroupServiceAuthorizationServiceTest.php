@@ -15,7 +15,7 @@ use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
 
-class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
+class UserGroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 {
     private const TEST_GROUP_NAME = 'test_group';
 
@@ -42,6 +42,63 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertEmpty($userGroup->getMembers());
     }
 
+    public function testAddGroupInvalid(): void
+    {
+        $userGroup = new UserGroup();
+        try {
+            $this->groupService->addUserGroup($userGroup);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::GROUP_INVALID_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
+    public function testAddGroupInternalError(): void
+    {
+        $userGroup = new UserGroup();
+        $userGroup->setName(self::TEST_GROUP_NAME);
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->addUserGroup($userGroup);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::ADDING_GROUP_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
+    public function testUpdateGroup(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $this->assertEquals($userGroup->getIdentifier(), $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getIdentifier());
+
+        $userGroup->setName(self::TEST_GROUP_NAME.'_updated');
+        $this->groupService->updateUserGroup($userGroup);
+
+        $groupPersistence = $this->testEntityManager->getUserGroup($userGroup->getIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $groupPersistence->getIdentifier());
+        $this->assertEquals(self::TEST_GROUP_NAME.'_updated', $groupPersistence->getName());
+    }
+
+    public function testUpdateGroupInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $this->assertEquals($userGroup->getIdentifier(), $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getIdentifier());
+
+        $userGroup->setName(self::TEST_GROUP_NAME.'_updated');
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->updateUserGroup($userGroup);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::UPDATING_GROUP_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
     public function testRemoveGroup(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
@@ -51,19 +108,34 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertNull($this->testEntityManager->getUserGroup($userGroup->getIdentifier()));
     }
 
+    public function testRemoveGroupInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $this->assertEquals($userGroup->getIdentifier(), $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getIdentifier());
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->removeUserGroup($userGroup);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::REMOVING_GROUP_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
     public function testRemoveParentGroup(): void
     {
         // test ON DELETE CASCADE for 'group' (parent group)
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
         $this->assertEquals($userGroup->getIdentifier(), $this->testEntityManager->getUserGroup($userGroup->getIdentifier())->getIdentifier());
 
-        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
         $this->assertEquals($groupMember->getIdentifier(),
-            $this->testEntityManager->getGroupMember($groupMember->getIdentifier())->getIdentifier());
+            $this->testEntityManager->getUserGroupMember($groupMember->getIdentifier())->getIdentifier());
 
         $this->groupService->removeUserGroup($userGroup);
         $this->assertNull($this->testEntityManager->getUserGroup($userGroup->getIdentifier()));
-        $this->assertNull($this->testEntityManager->getGroupMember($groupMember->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getUserGroupMember($groupMember->getIdentifier()));
     }
 
     public function testRemoveChildGroup(): void
@@ -74,13 +146,13 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $childGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_2');
         $this->assertEquals($childGroup->getIdentifier(), $this->testEntityManager->getUserGroup($childGroup->getIdentifier())->getIdentifier());
 
-        $groupMember = $this->testEntityManager->addGroupMember($userGroup, null, $childGroup);
-        $this->assertNotNull($this->testEntityManager->getGroupMember($groupMember->getIdentifier()));
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, null, $childGroup);
+        $this->assertNotNull($this->testEntityManager->getUserGroupMember($groupMember->getIdentifier()));
 
         $this->groupService->removeUserGroup($childGroup);
         $this->assertNotNull($this->testEntityManager->getUserGroup($userGroup->getIdentifier()));
         $this->assertNull($this->testEntityManager->getUserGroup($childGroup->getIdentifier()));
-        $this->assertNull($this->testEntityManager->getGroupMember($groupMember->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getUserGroupMember($groupMember->getIdentifier()));
     }
 
     public function testRemoveResourceActionGrantGroup(): void
@@ -103,7 +175,7 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertNull($this->testEntityManager->getResourceActionGrantByIdentifier($resourceActionGrant->getIdentifier()));
     }
 
-    public function testGetGroupItem(): void
+    public function testTryGetGroupItem(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
 
@@ -113,48 +185,60 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertEmpty($userGroup->getMembers());
     }
 
-    public function testGetGroupItemNotFound(): void
+    public function testTryGetGroupItemNotFound(): void
     {
         $this->assertNull($this->groupService->tryGetUserGroup(Uuid::v7()->toRfc4122()));
     }
 
-    public function testGetGroupItemNotFoundInvalidId(): void
+    public function testTryGetGroupItemNotFoundInvalidId(): void
     {
         $this->assertNull($this->groupService->tryGetUserGroup('404'));
     }
 
-    public function testGetGroupsByIdentifiers(): void
+    public function testGetGroupItem(): void
     {
-        $group1 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
-        $group2 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_2');
-        $group3 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_3');
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
 
-        $allGroupIdentifiers = [$group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()];
+        $groupPersistence = $this->groupService->getUserGroup($userGroup->getIdentifier());
+        $this->assertEquals($userGroup->getIdentifier(), $groupPersistence->getIdentifier());
+        $this->assertEquals(self::TEST_GROUP_NAME, $groupPersistence->getName());
+        $this->assertEmpty($userGroup->getMembers());
+    }
 
-        $groups = $this->groupService->getUserGroupsByIdentifiers($allGroupIdentifiers, 0, 10);
-        $this->assertCount(3, $groups);
-        $this->assertCount(1, $this->selectWhere($groups, function ($userGroup) use ($group1) { return $userGroup->getIdentifier() === $group1->getIdentifier(); }));
-        $this->assertCount(1, $this->selectWhere($groups, function ($userGroup) use ($group2) { return $userGroup->getIdentifier() === $group2->getIdentifier(); }));
-        $this->assertCount(1, $this->selectWhere($groups, function ($userGroup) use ($group3) { return $userGroup->getIdentifier() === $group3->getIdentifier(); }));
+    public function testGetGroupItemNotFound(): void
+    {
+        try {
+            $this->groupService->getUserGroup(Uuid::v7()->toRfc4122());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $e) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $e->getStatusCode());
+            $this->assertEquals(UserGroupService::GROUP_NOT_FOUND_ERROR_ID, $e->getErrorId());
+        }
+    }
 
-        $groups = $this->groupService->getUserGroupsByIdentifiers([$group2->getIdentifier()], 0, 10);
-        $this->assertCount(1, $groups);
-        $this->assertEquals($group2->getIdentifier(), $groups[0]->getIdentifier());
+    public function testGetGroupItemNotFoundInvalidId(): void
+    {
+        try {
+            $this->groupService->getUserGroup('404');
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $e) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $e->getStatusCode());
+            $this->assertEquals(UserGroupService::GROUP_NOT_FOUND_ERROR_ID, $e->getErrorId());
+        }
+    }
 
-        $groups = $this->groupService->getUserGroupsByIdentifiers([], 0, 10);
-        $this->assertCount(0, $groups);
+    public function testGetGroupItemInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
 
-        $groupPage1 = $this->groupService->getUserGroupsByIdentifiers($allGroupIdentifiers, 0, 2);
-        $this->assertCount(2, $groupPage1);
-
-        $groupPage2 = $this->groupService->getUserGroupsByIdentifiers($allGroupIdentifiers, 2, 2);
-        $this->assertCount(1, $groupPage2);
-
-        $groups = array_merge($groupPage1, $groupPage2);
-        $this->assertCount(3, $groups);
-        $this->assertCount(1, $this->selectWhere($groups, function ($userGroup) use ($group1) { return $userGroup->getIdentifier() === $group1->getIdentifier(); }));
-        $this->assertCount(1, $this->selectWhere($groups, function ($userGroup) use ($group2) { return $userGroup->getIdentifier() === $group2->getIdentifier(); }));
-        $this->assertCount(1, $this->selectWhere($groups, function ($userGroup) use ($group3) { return $userGroup->getIdentifier() === $group3->getIdentifier(); }));
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->getUserGroup($userGroup->getIdentifier());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::GETTING_GROUP_ITEM_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
     }
 
     public function testAddGroupMemberWithUserIdentifier(): void
@@ -165,7 +249,7 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $groupMember->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
         $groupMember = $this->groupService->addUserGroupMember($groupMember);
 
-        $groupMemberPersistence = $this->testEntityManager->getGroupMember($groupMember->getIdentifier());
+        $groupMemberPersistence = $this->testEntityManager->getUserGroupMember($groupMember->getIdentifier());
         $this->assertEquals($groupMember->getIdentifier(), $groupMemberPersistence->getIdentifier());
         $this->assertEquals($userGroup->getIdentifier(), $groupMemberPersistence->getUserGroup()->getIdentifier());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $groupMemberPersistence->getUserIdentifier());
@@ -180,7 +264,7 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $groupMember->setChildGroup($childGroup);
         $groupMember = $this->groupService->addUserGroupMember($groupMember);
 
-        $groupMemberPersistence = $this->testEntityManager->getGroupMember($groupMember->getIdentifier());
+        $groupMemberPersistence = $this->testEntityManager->getUserGroupMember($groupMember->getIdentifier());
         $this->assertEquals($groupMember->getIdentifier(), $groupMemberPersistence->getIdentifier());
         $this->assertEquals($userGroup->getIdentifier(), $groupMemberPersistence->getUserGroup()->getIdentifier());
         $this->assertEquals(null, $groupMemberPersistence->getUserIdentifier());
@@ -231,10 +315,10 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $group2 = $this->testEntityManager->addUserGroup();
         $group3 = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($group0, null, $group2);
-        $this->testEntityManager->addGroupMember($group1, null, $group2);
-        $this->testEntityManager->addGroupMember($group2, null, $group3);
-        $this->testEntityManager->addGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group0, null, $group2);
+        $this->testEntityManager->addUserGroupMember($group1, null, $group2);
+        $this->testEntityManager->addUserGroupMember($group2, null, $group3);
+        $this->testEntityManager->addUserGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
 
         $groupMember = new UserGroupMember();
 
@@ -302,7 +386,7 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $userGroup = $this->testEntityManager->addUserGroup();
         $childGroup = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($userGroup, null, $childGroup);
+        $this->testEntityManager->addUserGroupMember($userGroup, null, $childGroup);
 
         $groupMember = new UserGroupMember();
         $groupMember->setUserGroup($userGroup);
@@ -349,20 +433,54 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         }
     }
 
-    public function testDeleteGroupMember(): void
+    public function testAddGroupMemberInternalError(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
-        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $groupMember = new UserGroupMember();
+        $groupMember->setUserGroup($userGroup);
+        $groupMember->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->addUserGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::ADDING_GROUP_MEMBER_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
+    public function testRemoveGroupMember(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
         $this->assertEquals($groupMember->getIdentifier(),
-            $this->testEntityManager->getGroupMember($groupMember->getIdentifier())->getIdentifier());
+            $this->testEntityManager->getUserGroupMember($groupMember->getIdentifier())->getIdentifier());
         $this->groupService->removeUserGroupMember($groupMember);
-        $this->assertNull($this->testEntityManager->getGroupMember($groupMember->getIdentifier()));
+        $this->assertNull($this->testEntityManager->getUserGroupMember($groupMember->getIdentifier()));
+    }
+
+    public function testRemoveGroupMemberInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $this->assertEquals($groupMember->getIdentifier(),
+            $this->testEntityManager->getUserGroupMember($groupMember->getIdentifier())->getIdentifier());
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->removeUserGroupMember($groupMember);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::REMOVING_GROUP_MEMBER_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
     }
 
     public function testGetGroupMemberItem(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
-        $groupMember = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
 
         $groupMemberPersistence = $this->groupService->getUserGroupMember($groupMember->getIdentifier());
         $this->assertEquals($groupMember->getIdentifier(), $groupMemberPersistence->getIdentifier());
@@ -379,6 +497,21 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertNull($this->groupService->getUserGroupMember('404'));
     }
 
+    public function testGetGroupMemberItemInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        $groupMember = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->getUserGroupMember($groupMember->getIdentifier());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
     public function testGetGroupMemberCollection(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
@@ -386,10 +519,10 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $groupMembers = $this->groupService->getUserGroupMembers(1, 10, $userGroup->getIdentifier());
         $this->assertCount(0, $groupMembers);
 
-        $subgroupMember = $this->testEntityManager->addGroupMember($subGroup, self::CURRENT_USER_IDENTIFIER.'_2');
-        $groupMember1 = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
-        $groupMember2 = $this->testEntityManager->addGroupMember($userGroup, null, $subGroup);
-        $groupMember3 = $this->testEntityManager->addGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER.'_3');
+        $subgroupMember = $this->testEntityManager->addUserGroupMember($subGroup, self::CURRENT_USER_IDENTIFIER.'_2');
+        $groupMember1 = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+        $groupMember2 = $this->testEntityManager->addUserGroupMember($userGroup, null, $subGroup);
+        $groupMember3 = $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER.'_3');
 
         $groupMembers = $this->groupService->getUserGroupMembers(0, 10, $subGroup->getIdentifier());
         $this->assertCount(1, $groupMembers);
@@ -414,7 +547,21 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertCount(0, $groupMembers);
     }
 
-    public function testIsUserMemberOfGroup(): void
+    public function testGetGroupMemberCollectionInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->getUserGroupMembers(0, 10, $userGroup->getIdentifier());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+            $this->assertEquals(UserGroupService::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID, $apiError->getErrorId());
+        }
+    }
+
+    public function testIsUserMemberOfUserGroup(): void
     {
         $group1 = $this->testEntityManager->addUserGroup();
         $group2 = $this->testEntityManager->addUserGroup();
@@ -423,20 +570,20 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $subSubGroup1 = $this->testEntityManager->addUserGroup();
         $groupEmpty = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $this->testEntityManager->addGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->testEntityManager->addGroupMember($subGroup1, null, $subSubGroup1);
+        $this->testEntityManager->addUserGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addUserGroupMember($subGroup1, null, $subSubGroup1);
 
-        $this->testEntityManager->addGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->testEntityManager->addUserGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
 
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group1, null, $subGroup1);
-        $this->testEntityManager->addGroupMember($group1, null, $subGroup2);
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group1, null, $subGroup1);
+        $this->testEntityManager->addUserGroupMember($group1, null, $subGroup2);
 
-        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_4');
-        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_5');
-        $this->testEntityManager->addGroupMember($group2, null, $subGroup1);
+        $this->testEntityManager->addUserGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->testEntityManager->addUserGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_5');
+        $this->testEntityManager->addUserGroupMember($group2, null, $subGroup1);
 
         $this->assertTrue($this->groupService->isUserMemberOfUserGroup(self::CURRENT_USER_IDENTIFIER, $group1->getIdentifier()));
         $this->assertTrue($this->groupService->isUserMemberOfUserGroup(self::CURRENT_USER_IDENTIFIER.'_2', $group1->getIdentifier()));
@@ -481,7 +628,21 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertFalse($this->groupService->isUserMemberOfUserGroup(self::CURRENT_USER_IDENTIFIER.'_6', $groupEmpty->getIdentifier()));
     }
 
-    public function testGetMembersOfGroup(): void
+    public function testIsUserMemberOfUserGroupInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup();
+        $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->isUserMemberOfUserGroup(self::CURRENT_USER_IDENTIFIER, $userGroup->getIdentifier());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+        }
+    }
+
+    public function testGetMembersOfUserGroup(): void
     {
         $group1 = $this->testEntityManager->addUserGroup();
         $group2 = $this->testEntityManager->addUserGroup();
@@ -490,20 +651,20 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $subSubGroup1 = $this->testEntityManager->addUserGroup();
         $groupEmpty = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $this->testEntityManager->addGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->testEntityManager->addGroupMember($subGroup1, null, $subSubGroup1);
+        $this->testEntityManager->addUserGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addUserGroupMember($subGroup1, null, $subSubGroup1);
 
-        $this->testEntityManager->addGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->testEntityManager->addUserGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
 
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group1, null, $subGroup1);
-        $this->testEntityManager->addGroupMember($group1, null, $subGroup2);
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group1, null, $subGroup1);
+        $this->testEntityManager->addUserGroupMember($group1, null, $subGroup2);
 
-        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_4');
-        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_5');
-        $this->testEntityManager->addGroupMember($group2, null, $subGroup1);
+        $this->testEntityManager->addUserGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->testEntityManager->addUserGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_5');
+        $this->testEntityManager->addUserGroupMember($group2, null, $subGroup1);
 
         $this->assertEmpty($this->groupService->getMembersOfUserGroup($groupEmpty->getIdentifier()));
 
@@ -535,6 +696,20 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         ], $this->groupService->getMembersOfUserGroup($subSubGroup1->getIdentifier()));
     }
 
+    public function testGetMembersOfUserGroupInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup();
+        $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->getMembersOfUserGroup($userGroup->getIdentifier());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+        }
+    }
+
     public function testGetGroupsUserIsMemberOf(): void
     {
         $group1 = $this->testEntityManager->addUserGroup();
@@ -543,19 +718,19 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $subGroup2 = $this->testEntityManager->addUserGroup();
         $subSubGroup1 = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($subSubGroup1, self::CURRENT_USER_IDENTIFIER.'_3');
 
-        $this->testEntityManager->addGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
-        $this->testEntityManager->addGroupMember($subGroup1, null, $subSubGroup1);
+        $this->testEntityManager->addUserGroupMember($subGroup1, self::CURRENT_USER_IDENTIFIER.'_2');
+        $this->testEntityManager->addUserGroupMember($subGroup1, null, $subSubGroup1);
 
-        $this->testEntityManager->addGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
+        $this->testEntityManager->addUserGroupMember($subGroup2, self::CURRENT_USER_IDENTIFIER.'_4');
 
-        $this->testEntityManager->addGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
-        $this->testEntityManager->addGroupMember($group1, null, $subGroup1);
-        $this->testEntityManager->addGroupMember($group1, null, $subGroup2);
+        $this->testEntityManager->addUserGroupMember($group1, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group1, null, $subGroup1);
+        $this->testEntityManager->addUserGroupMember($group1, null, $subGroup2);
 
-        $this->testEntityManager->addGroupMember($group2, null, $subGroup1);
-        $this->testEntityManager->addGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_3');
+        $this->testEntityManager->addUserGroupMember($group2, null, $subGroup1);
+        $this->testEntityManager->addUserGroupMember($group2, self::CURRENT_USER_IDENTIFIER.'_3');
 
         $groups = $this->groupService->getUserGroupsUserIsMemberOf(self::CURRENT_USER_IDENTIFIER);
         $this->assertCount(1, $groups);
@@ -591,10 +766,10 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $group2 = $this->testEntityManager->addUserGroup();
         $group3 = $this->testEntityManager->addUserGroup();
 
-        $this->testEntityManager->addGroupMember($group0, null, $group2);
-        $this->testEntityManager->addGroupMember($group1, null, $group2);
-        $this->testEntityManager->addGroupMember($group2, null, $group3);
-        $this->testEntityManager->addGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
+        $this->testEntityManager->addUserGroupMember($group0, null, $group2);
+        $this->testEntityManager->addUserGroupMember($group1, null, $group2);
+        $this->testEntityManager->addUserGroupMember($group2, null, $group3);
+        $this->testEntityManager->addUserGroupMember($group3, self::CURRENT_USER_IDENTIFIER);
 
         $this->assertIsPermutationOf(UuidUtils::toBinaryUuids(
             [$group0->getIdentifier(), $group2->getIdentifier()]),
@@ -608,5 +783,19 @@ class GroupServiceAuthorizationServiceTest extends AbstractAuthorizationServiceT
         $this->assertIsPermutationOf(UuidUtils::toBinaryUuids(
             [$group0->getIdentifier(), $group1->getIdentifier(), $group2->getIdentifier(), $group3->getIdentifier()]),
             $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($group3->getIdentifier()));
+    }
+
+    public function testGetDisallowedChildGroupIdentifiersForInternalError(): void
+    {
+        $userGroup = $this->testEntityManager->addUserGroup();
+        $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
+
+        $this->testEntityManager->prepareDBError();
+        try {
+            $this->groupService->getDisallowedChildGroupIdentifiersBinaryFor($userGroup->getIdentifier());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+        }
     }
 }
