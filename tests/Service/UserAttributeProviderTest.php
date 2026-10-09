@@ -206,10 +206,10 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
     protected function getTestConfig(): array
     {
         $testConfig = parent::getTestConfig();
-        $testConfig[Configuration::RESOURCE_CLASSES] = [
+        $testConfig[Configuration::MANAGE_RESOURCE_COLLECTION_POLICIES] = [
             [
-                Configuration::IDENTIFIER => self::TEST_RESOURCE_CLASS,
-                Configuration::MANAGE_RESOURCE_COLLECTION_POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
+                Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS,
+                Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
             ],
         ];
 

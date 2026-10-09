@@ -13,6 +13,7 @@ use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalResourceActionGrantServiceTestCase
 {
     protected ?AuthorizationService $authorizationService = null;
+    protected ?array $testConfig = null;
 
     protected function setUp(): void
     {
@@ -54,9 +55,9 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
 
     protected function getTestConfig(): array
     {
-        return [
+        return array_merge([
             Configuration::CREATE_GROUPS_POLICY => 'user.get("MAY_CREATE_GROUPS")',
-        ];
+        ], $this->testConfig ?? []);
     }
 
     protected function getDefaultUserAttributes(): array

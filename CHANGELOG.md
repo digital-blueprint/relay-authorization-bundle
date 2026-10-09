@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Allow users to add new authorization over the HTTP API, if they are granted the "add_resource" permission for the respective
+  resource class (NOTE: the first grant always needs to be a "manage" grant)
 - Add parameter `$whereIsGrantedAction` to `ResourceActionGrantService::getResourceActionGrantsForResourceClassAndIdentifier`
   to filter returned grants by the given action
 - add logic for sharing resource actions grants and removing them
