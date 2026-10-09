@@ -121,14 +121,19 @@ class ResourceActionGrantService
         ?string $action = null,
         ?string $roleIdentifier = null,
         ?string $userIdentifier = null,
-        ?string $groupIdentifier = null,
+        ?string $userGroupIdentifier = null,
         ?string $dynamicGroupIdentifier = null,
         ?bool $shareable = null): ResourceActionGrant
     {
-        return $this->authorizationService->addResourceActionGrant(
-            $resourceClass, $resourceIdentifier, $resourceType,
-            $action, $roleIdentifier,
-            $userIdentifier, $groupIdentifier, $dynamicGroupIdentifier,
+        return $this->authorizationService->addResourceActionGrantByResourceClassAndIdentifier(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
+            $action,
+            $roleIdentifier,
+            $userIdentifier,
+            $userGroupIdentifier,
+            $dynamicGroupIdentifier,
             shareable: $shareable);
     }
 

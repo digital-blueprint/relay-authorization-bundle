@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Command;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,7 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class AddTestResourceCommand extends Command
 {
     public function __construct(
-        private readonly InternalResourceActionGrantService $resourceActionGrantService)
+        private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
     }
@@ -40,10 +39,12 @@ class AddTestResourceCommand extends Command
         $resourceIdentifier = $input->getArgument('resourceIdentifier');
         $userIdentifier = $input->getArgument('userIdentifier');
 
-        $this->resourceActionGrantService->addResourceActionGrantByResourceClassAndIdentifier(
-            $resourceClass, $resourceIdentifier,
+        $this->authorizationService->addResourceActionGrantByResourceClassAndIdentifier(
+            $resourceClass,
+            $resourceIdentifier,
             action: AuthorizationService::MANAGE_ACTION,
-            userIdentifier: $userIdentifier);
+            userIdentifier: $userIdentifier
+        );
 
         return 0;
     }

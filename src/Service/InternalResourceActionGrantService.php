@@ -80,16 +80,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     public const GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-collection-failed';
 
-    private const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
+    public const ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:adding-resource-action-grant-failed';
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
-    private const ADDING_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
+    public const ADDING_AUTHORIZATION_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
     private const ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID = 'authorization:adding-available-resource-class-actions-failed';
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
     public const ADDING_RESOURCE_TO_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-to-group-resource-failed';
     private const REMOVING_RESOURCE_FROM_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-from-group-resource-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
-    private const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:authorization-resource-not-found';
+    public const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:resource-not-found';
     public const RESOURCE_ACTION_GRANT_INVALID_ERROR_ID = 'authorization:resource-action-grant-invalid';
     private const ADDING_ROLE_FAILED_ERROR_ID = 'authorization:adding-role-failed';
     public const GETTING_ROLE_ITEM_FAILED_ERROR_ID = 'authorization:getting-role-item-failed';
@@ -256,6 +256,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         'actionType' => $actionType,
                     ]);
             if (null === $availableResourceClassAction) {
+                if (null !== $resourceClass
+                    && str_contains($resourceClass, UserAttributeProvider::SEPARATOR)) {
+                    throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                        sprintf("resource class must not contain the reserved character '%s'",
+                            UserAttributeProvider::SEPARATOR));
+                }
+
                 $availableResourceClassAction = new AvailableResourceClassAction();
                 $availableResourceClassAction->setIdentifier(
                     $identifier ?? Uuid::v7()->toRfc4122());
@@ -313,7 +320,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     private EntityManagerInterface $entityManager;
 
-    private array $isAvailableResourceClassActionsRequestCache = [];
+    private array $availableResourceClassActionsRequestCache = [];
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -331,7 +338,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     public function reset(): void
     {
-        $this->isAvailableResourceClassActionsRequestCache = [];
+        $this->availableResourceClassActionsRequestCache = [];
     }
 
     /**
@@ -515,44 +522,76 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     /**
+     * Returns all available resource class actions for the given resource class and action type.
+     * NOTE: The MANAGE_ACTION is included if any actions are defined for the given resource class and action type
+     * (unless it's filtered out by $whereActionsIn).
+     *
+     * @param string[]|null $whereActionsIn If provided, only return available resource class actions whose action is in this array
+     *
      * @return AvailableResourceClassAction[]
      */
     public function getAvailableResourceClassActions(string $resourceClass, int $actionType,
         ?array $whereActionsIn = null,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
+        if ([] === $whereActionsIn) {
+            return [];
+        }
 
-        $queryBuilder = $this->entityManager->createQueryBuilder();
-        $queryBuilder
-            ->select($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS)
-            ->from(AvailableResourceClassAction::class, $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS);
+        $outerAlias = self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
+        $outerQueryBuilder = $this->entityManager->createQueryBuilder();
 
-        // NOTE: currently, we don't check if the resource class actually exists and return the manage actions
-        // even if the resource class doesn't exist
-        $or = $queryBuilder->expr()->orX();
-        $or->add($queryBuilder->expr()->isNull($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass'));
-        $or->add($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.resourceClass', ':resourceClass'));
-        $queryBuilder
-            ->andWhere($or)
+        $outerResourceCriteria = $outerQueryBuilder->expr()->andX(
+            $outerQueryBuilder->expr()->eq($outerAlias.'.resourceClass', ':resourceClass'),
+            $outerQueryBuilder->expr()->eq($outerAlias.'.actionType', ':actionType')
+        );
+        if (null !== $whereActionsIn) {
+            $outerResourceCriteria
+                ->add($outerQueryBuilder->expr()->in($outerAlias.'.action', ':whereActionsIn'));
+        }
+
+        if (null === $whereActionsIn
+            || in_array(AuthorizationService::MANAGE_ACTION, $whereActionsIn, true)) {
+            $innerAlias = 'inner_'.self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
+
+            $innerQueryBuilder = $this->entityManager->createQueryBuilder();
+            $innerResourceCriteria = $innerQueryBuilder->expr()->andX(
+                $innerQueryBuilder->expr()->eq($innerAlias.'.resourceClass', ':resourceClass'),
+                $innerQueryBuilder->expr()->eq($innerAlias.'.actionType', ':actionType')
+            );
+
+            $innerQueryBuilder
+                ->select($innerAlias)
+                ->from(AvailableResourceClassAction::class, $innerAlias)
+                ->where($innerResourceCriteria)
+            ;
+
+            $criteria = $outerQueryBuilder->expr()->orX(
+                $outerResourceCriteria,
+                $outerQueryBuilder->expr()->andX(
+                    $outerQueryBuilder->expr()->isNull($outerAlias.'.resourceClass'),
+                    $outerQueryBuilder->expr()->eq($outerAlias.'.actionType', ':actionType'),
+                    $outerQueryBuilder->expr()->exists($innerQueryBuilder->getDQL())
+                )
+            );
+        } else {
+            $criteria = $outerResourceCriteria;
+        }
+
+        $outerQueryBuilder
+            ->select($outerAlias)
+            ->from(AvailableResourceClassAction::class, $outerAlias)
+            ->where($criteria)
             ->setParameter(':resourceClass', $resourceClass)
-            ->andWhere($queryBuilder->expr()->eq($AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.actionType', ':actionType'))
-            ->setParameter(':actionType', $actionType);
+            ->setParameter(':actionType', $actionType)
+        ;
 
         if (null !== $whereActionsIn) {
-            if ([] === $whereActionsIn) {
-                $queryBuilder
-                    ->andWhere('1 = 0'); // no actions will be returned
-            } else {
-                $queryBuilder
-                    ->andWhere($queryBuilder->expr()->in(
-                        $AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.'.action', ':whereActionsIn'))
-                    ->setParameter(':whereActionsIn', $whereActionsIn);
-            }
+            $outerQueryBuilder->setParameter(':whereActionsIn', $whereActionsIn);
         }
 
         try {
-            return $queryBuilder
+            return $outerQueryBuilder
                 ->setFirstResult($firstItemIndex)
                 ->setMaxResults($maxNumItemsPerPage)
                 ->getQuery()
@@ -565,28 +604,19 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         }
     }
 
+    public function isAvailableResourceClass(string $resourceClass): bool
+    {
+        return [] !== $this->getAvailableActionsCached($resourceClass);
+    }
+
     public function isAvailableResourceClassAction(
         string $resourceClass, string $action, string $resourceIdentifier): bool
     {
-        $criteria = [
-            'resourceClass' => $resourceClass,
-            'actionType' => AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
-        ];
+        $availableActions = $this->getAvailableActionsCached($resourceClass)[
+            AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier)] ?? [];
 
-        // DESIGN NOTE: we require at least one action to be defined for a resource class to be 'available'
-        if ($action !== AuthorizationService::MANAGE_ACTION) {
-            $criteria['action'] = $action;
-        }
-
-        $cacheKey = hash('sha256', json_encode($criteria));
-
-        if (null === ($isAvailable = $this->isAvailableResourceClassActionsRequestCache[$cacheKey] ?? null)) {
-            $isAvailable = [] !==
-                $this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy($criteria);
-            $this->isAvailableResourceClassActionsRequestCache[$cacheKey] = $isAvailable;
-        }
-
-        return $isAvailable;
+        return [] !== $availableActions
+            && ($action === AuthorizationService::MANAGE_ACTION || in_array($action, $availableActions, true));
     }
 
     /**
@@ -594,7 +624,49 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      */
     public function addResourceActionGrant(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
     {
-        return $this->addResourceActionGrantInternal($resourceActionGrant);
+        $connection = $this->entityManager->getConnection();
+        try {
+            $connection->beginTransaction();
+
+            $this->validateResourceActionGrant($resourceActionGrant);
+
+            if (null === $resourceActionGrant->getAuthorizationResource()) {
+                $resourceActionGrant->setAuthorizationResource(
+                    $this->getOrCreateAuthorizationResource(
+                        $resourceActionGrant->getResourceClass(),
+                        $resourceActionGrant->getResourceIdentifier(),
+                        $resourceActionGrant->getResourceType()
+                    )
+                );
+            }
+
+            $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
+            $resourceActionGrant->setDateCreated(new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
+
+            $this->entityManager->persist($resourceActionGrant);
+            $this->entityManager->flush();
+
+            $connection->commit();
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to add resource action grant: '.$throwable->getMessage(), ['exception' => $throwable]);
+            if ($connection->isTransactionActive()) {
+                try {
+                    $connection->rollBack();
+                } catch (\Throwable $rollbackThrowable) {
+                    $this->logger->error('Failed to roll back transaction: '.$rollbackThrowable->getMessage(),
+                        ['exception' => $rollbackThrowable]);
+                }
+            }
+            if ($throwable instanceof ApiError) {
+                throw $throwable;
+            }
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
+                self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);
+        }
+
+        $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent($resourceActionGrant));
+
+        return $resourceActionGrant;
     }
 
     /**
@@ -627,54 +699,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         if ($resourceActionGrant !== null) {
             $this->removeResourceActionGrant($resourceActionGrant);
         }
-    }
-
-    /**
-     * @parram string|null $resourceIdentifier null refers to the collection of the respective resource class.
-     *
-     * @throws ApiError
-     */
-    public function addResourceActionGrantByResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $action = null, ?string $roleIdentifier = null,
-        ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
-        ?bool $shareable = null, ?string $currentUserIdentifier = null): ResourceActionGrant
-    {
-        $connection = $this->entityManager->getConnection();
-        try {
-            $connection->beginTransaction();
-
-            $resourceActionGrant = new ResourceActionGrant();
-            $resourceActionGrant->setAuthorizationResource(
-                $this->getOrCreateAuthorizationResource($resourceClass, $resourceIdentifier, $resourceType)
-            );
-            $resourceActionGrant->setAction($action);
-            $resourceActionGrant->setRole($roleIdentifier !== null ?
-                $this->getRoleByIdentifier($roleIdentifier) :
-                null);
-            $resourceActionGrant->setUserIdentifier($userIdentifier);
-            $resourceActionGrant->setUserGroup($userGroup);
-            $resourceActionGrant->setDynamicUserGroupIdentifier($dynamicUserGroupIdentifier);
-            if (null !== $shareable) {
-                $resourceActionGrant->setShareable($shareable);
-            }
-            $resourceActionGrant->setCreatorId($currentUserIdentifier);
-
-            $this->addResourceActionGrantInternal($resourceActionGrant);
-
-            $connection->commit();
-        } catch (\Throwable $throwable) {
-            if ($connection->isTransactionActive()) {
-                $connection->rollback();
-            }
-            if ($throwable instanceof ApiError) {
-                throw $throwable;
-            }
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added! '.$throwable->getMessage(),
-                self::ADDING_RESOURCE_FAILED_ERROR_ID, ['message' => $throwable->getMessage()]);
-        }
-
-        return $resourceActionGrant;
     }
 
     /**
@@ -1248,10 +1272,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
         }
 
-        if ($resourceActionGrant->getAuthorizationResource() === null) {
-            throw new \RuntimeException('resource action grant is invalid: authorization resource must not be null');
-        }
-
         $providedAllowedActionsIdentifiers = array_filter([
             $resourceActionGrant->getAction() !== null,
             $resourceActionGrant->getRole() !== null,
@@ -1270,8 +1290,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             );
 
             if (null === $availableResourceClassAction) {
+                if (false === $this->isAvailableResourceClass($resourceActionGrant->getResourceClass())) {
+                    throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                        "resourceClass is invalid: resource class '".$resourceActionGrant->getResourceClass()."' is not defined",
+                        self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID, [
+                            $resourceActionGrant->getResourceClass(),
+                        ]
+                    );
+                }
                 throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                    "resource action is invalid: action '$action' is not defined for resource class '".
+                    "action is invalid: action '$action' is not defined for resource class '".
                     $resourceActionGrant->getResourceClass()."'",
                     self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID, [
                         $action,
@@ -1355,23 +1383,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     {
         if (null === ($authorizationResource =
                 $this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier, $resourceType))) {
-            $this->validateResourceClassAndIdentifier($resourceClass, $resourceIdentifier);
-            try {
-                $authorizationResource = new AuthorizationResource();
-                $authorizationResource->setIdentifier(Uuid::v7()->toRfc4122());
-                $authorizationResource->setResourceClass($resourceClass);
-                $authorizationResource->setResourceIdentifier($resourceIdentifier);
-                $authorizationResource->setResourceType($resourceType);
-
-                $this->entityManager->persist($authorizationResource);
-                $this->entityManager->flush();
-
-                return $authorizationResource;
-            } catch (\Throwable $throwable) {
-                $this->logger->error('Failed to add resource: '.$throwable->getMessage(), ['exception' => $throwable]);
-                throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added! '.$throwable->getMessage(),
-                    self::ADDING_RESOURCE_FAILED_ERROR_ID);
-            }
+            $authorizationResource = $this->addAuthorizationResourceInternal(
+                $resourceClass,
+                $resourceIdentifier,
+                $resourceType
+            );
         }
 
         return $authorizationResource;
@@ -1389,44 +1405,41 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $resourceClass, $action, $actionType);
     }
 
-    /**
-     * @throws ApiError
-     */
-    private function validateResourceClassAndIdentifier(string $resourceClass, string $resourceIdentifier): void
+    private function addAuthorizationResourceInternal(
+        string $resourceClass,
+        string $resourceIdentifier,
+        int $resourceType): AuthorizationResource
     {
-        if (str_contains($resourceClass, UserAttributeProvider::SEPARATOR)) {
+        if (false === $this->isAvailableResourceClass($resourceClass)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                sprintf("resource class must not contain the reserved character '%s'",
-                    UserAttributeProvider::SEPARATOR));
+                "resource class '".$resourceClass."' is not defined",
+                self::ADDING_AUTHORIZATION_RESOURCE_FAILED_ERROR_ID);
         }
+
         if (str_contains($resourceIdentifier, UserAttributeProvider::SEPARATOR)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 sprintf("resource identifier must not contain the reserved character '%s'",
-                    UserAttributeProvider::SEPARATOR));
+                    UserAttributeProvider::SEPARATOR),
+                self::ADDING_AUTHORIZATION_RESOURCE_FAILED_ERROR_ID
+            );
         }
-    }
 
-    /**
-     * @throws ApiError
-     */
-    private function addResourceActionGrantInternal(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
-    {
-        $this->validateResourceActionGrant($resourceActionGrant);
-
-        $resourceActionGrant->setIdentifier(Uuid::v7()->toRfc4122());
-        $resourceActionGrant->setDateCreated(new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
         try {
-            $this->entityManager->persist($resourceActionGrant);
+            $authorizationResource = new AuthorizationResource();
+            $authorizationResource->setIdentifier(Uuid::v7()->toRfc4122());
+            $authorizationResource->setResourceClass($resourceClass);
+            $authorizationResource->setResourceIdentifier($resourceIdentifier);
+            $authorizationResource->setResourceType($resourceType);
+
+            $this->entityManager->persist($authorizationResource);
             $this->entityManager->flush();
+
+            return $authorizationResource;
         } catch (\Throwable $throwable) {
-            $this->logger->error('Failed to add resource action grant: '.$throwable->getMessage(), ['exception' => $throwable]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource action grant could not be added!',
-                self::ADDING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID);
+            $this->logger->error('Failed to add resource: '.$throwable->getMessage(), ['exception' => $throwable]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Resource could not be added!',
+                self::ADDING_AUTHORIZATION_RESOURCE_FAILED_ERROR_ID);
         }
-
-        $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent($resourceActionGrant));
-
-        return $resourceActionGrant;
     }
 
     private function getAuthorizationResourceCriteria(string $authorizationResourceAlias,
@@ -1601,5 +1614,38 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         }
 
         return $resourceActionGrant;
+    }
+
+    /**
+     * @return array<int, array<string>>
+     */
+    private function getAvailableActionsCached(string $resourceClass): array
+    {
+        $criteria = [
+            'resourceClass' => $resourceClass,
+        ];
+
+        $availableActions = $this->availableResourceClassActionsRequestCache[$resourceClass] ?? null;
+        if (null === $availableActions) {
+            $availableActions = [];
+            $availableResourceClassActions = $this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy($criteria);
+            if ([] !== $availableResourceClassActions) {
+                $availableActions = [
+                    AvailableResourceClassAction::ITEM_ACTION_TYPE => array_map(
+                        static fn (AvailableResourceClassAction $action) => $action->getAction(),
+                        array_filter($availableResourceClassActions,
+                            static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::ITEM_ACTION_TYPE)
+                    ),
+                    AvailableResourceClassAction::COLLECTION_ACTION_TYPE => array_map(
+                        static fn (AvailableResourceClassAction $action) => $action->getAction(),
+                        array_filter($availableResourceClassActions,
+                            static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::COLLECTION_ACTION_TYPE)
+                    ),
+                ];
+            }
+            $this->availableResourceClassActionsRequestCache[$resourceClass] = $availableActions;
+        }
+
+        return $availableActions;
     }
 }
