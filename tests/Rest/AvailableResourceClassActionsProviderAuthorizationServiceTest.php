@@ -48,8 +48,8 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         );
         $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER_2,
-            roleIdentifier: $editorRole->getIdentifier(),
-            userIdentifier: self::CURRENT_USER_IDENTIFIER
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            roleIdentifier: $editorRole->getIdentifier()
         );
         $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             TestResources::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,

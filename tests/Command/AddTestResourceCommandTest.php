@@ -13,7 +13,7 @@ class AddTestResourceCommandTest extends AbstractAuthorizationServiceTestCase
 {
     public function testAddTestResourceCommand(): void
     {
-        $command = new AddTestResourceCommand($this->internalResourceActionGrantService);
+        $command = new AddTestResourceCommand($this->authorizationService);
         $commandTester = new CommandTester($command);
         $commandTester->execute([
             'resourceClass' => self::TEST_RESOURCE_CLASS,
