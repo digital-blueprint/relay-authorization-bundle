@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
@@ -17,16 +19,37 @@ use Symfony\Component\Uid\UuidV7;
 
 class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
 {
+    private const TEST_CONFIG = [
+        Configuration::ADD_RESOURCE_POLICIES => [
+            [
+                Configuration::RESOURCE_CLASS => TestResources::TEST_RESOURCE_CLASS,
+                Configuration::POLICY => 'resource.getResourceClass() in user.get("RESOURCE_CLASSES_MAY_ADD")',
+            ],
+        ],
+    ];
+
+    private const DEFAULT_USER_ATTRIBUTES = [
+        'RESOURCE_CLASSES_MAY_ADD' => [],
+    ];
+
+    private const ADMIN_USER_ATTRIBUTES = [
+        'RESOURCE_CLASSES_MAY_ADD' => [self::TEST_RESOURCE_CLASS],
+    ];
+
     private DataProcessorTester $resourceActionGrantProcessorTester;
 
     protected function setUp(): void
     {
+        $this->testConfig = self::TEST_CONFIG;
+
         parent::setUp();
 
         $resourceActionGrantProcessor = new ResourceActionGrantProcessor(
-            $this->internalResourceActionGrantService, $this->authorizationService);
+            $this->authorizationService);
         $this->resourceActionGrantProcessorTester = DataProcessorTester::create(
             $resourceActionGrantProcessor, ResourceActionGrant::class);
+
+        $this->login(self::CURRENT_USER_IDENTIFIER, self::DEFAULT_USER_ATTRIBUTES);
     }
 
     public function testAddResourceActionGrantWithAction(): void
@@ -255,8 +278,8 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $roleEditor = $this->addRoleEditor();
 
         $roleGrant = $this->addGrant($manageGrant->getAuthorizationResource(),
-            roleIdentifier: $roleEditor->getIdentifier(),
             userIdentifier: self::ANOTHER_USER_IDENTIFIER,
+            roleIdentifier: $roleEditor->getIdentifier(),
             shareable: true
         );
 
@@ -288,8 +311,8 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $roleEditor = $this->addRoleEditor();
 
         $roleGrant = $this->addGrant($manageGrant->getAuthorizationResource(),
-            roleIdentifier: $roleEditor->getIdentifier(),
             userIdentifier: self::ANOTHER_USER_IDENTIFIER,
+            roleIdentifier: $roleEditor->getIdentifier(),
             shareable: true
         );
 
@@ -495,6 +518,81 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         }
     }
 
+    public function testAddResourceActionGrantResourceNotFound(): void
+    {
+        // resource does not exist and user is not allowed to create it -> throw 404
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
+        $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+        $resourceActionGrant->setAction(TestResources::READ_ACTION);
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        try {
+            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+        }
+    }
+
+    public function testAddResourceActionGrantAddingNewResource(): void
+    {
+        $this->login(self::CURRENT_USER_IDENTIFIER, self::ADMIN_USER_ATTRIBUTES);
+
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
+        $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+        $resourceActionGrant->setAction(AuthorizationService::MANAGE_ACTION);
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        $resourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+        $this->assertTrue(UuidV7::isValid($resourceActionGrant->getIdentifier()));
+        $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $resourceActionGrant->getResourceClass());
+        $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, $resourceActionGrant->getResourceIdentifier());
+        $this->assertEquals(AuthorizationService::MANAGE_ACTION, $resourceActionGrant->getAction());
+        $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $resourceActionGrant->getUserIdentifier());
+        $this->assertEquals(null, $resourceActionGrant->getRole());
+        $this->assertEquals(null, $resourceActionGrant->getUserGroup());
+        $this->assertEquals(null, $resourceActionGrant->getDynamicUserGroupIdentifier());
+
+        $resourceActionGrantItem = $this->getResourceActionGrantFromDB($resourceActionGrant->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getIdentifier(), $resourceActionGrantItem->getIdentifier());
+        $this->assertEquals($resourceActionGrant->getResourceClass(), $resourceActionGrantItem->getResourceClass());
+        $this->assertEquals($resourceActionGrant->getResourceIdentifier(), $resourceActionGrantItem->getResourceIdentifier());
+        $this->assertEquals($resourceActionGrant->getResourceType(), $resourceActionGrantItem->getResourceType());
+        $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
+        $this->assertEquals($resourceActionGrant->getRole(), $resourceActionGrantItem->getRole());
+        $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
+        $this->assertEquals($resourceActionGrant->getUserGroup(), $resourceActionGrantItem->getUserGroup());
+        $this->assertEquals($resourceActionGrant->getDynamicUserGroupIdentifier(), $resourceActionGrantItem->getDynamicUserGroupIdentifier());
+
+        $authorizationResource = $this->testEntityManager->getAuthorizationResourceByIdentifier($resourceActionGrant->getAuthorizationResource()->getIdentifier());
+        $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $authorizationResource->getResourceClass());
+        $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, $authorizationResource->getResourceIdentifier());
+        $this->assertEquals(AuthorizationResource::RESOURCE_RESOURCE_TYPE, $authorizationResource->getResourceType());
+    }
+
+    public function testAddResourceActionGrantAddingNewResourceFailedMustBeManage(): void
+    {
+        $this->login(self::CURRENT_USER_IDENTIFIER, self::ADMIN_USER_ATTRIBUTES);
+
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
+        $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+        $resourceActionGrant->setAction(TestResources::READ_ACTION);
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        try {
+            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(
+                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID,
+                $apiError->getErrorId());
+        }
+    }
+
     public function testRemoveResourceActionGrantManage(): void
     {
         $manageResourceGrant = $this->addResourceAndManageGrantToTestDB();
@@ -570,5 +668,13 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
         }
+    }
+
+    protected function login(?string $userIdentifier, ?array $userAttributes = null): void
+    {
+        parent::login(
+            $userIdentifier,
+            array_merge($this->getDefaultUserAttributes(), $userAttributes ?? [])
+        );
     }
 }
