@@ -49,6 +49,61 @@ class ApiTest extends ApiTestCase
         $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
     }
 
+    public function testGetGrantedActionsCollectionUnauthenticated(): void
+    {
+        $response = $this->testClient->get('/authorization/granted-actions/DbpRelayAuthorizationGroup?perPage=9999', token: null);
+
+        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+    }
+
+    public function testGetGrantedActionsItemUnauthenticated(): void
+    {
+        $response = $this->testClient->get('/authorization/granted-actions/DbpRelayAuthorizationGroup/test-group', token: null);
+
+        $this->assertEquals(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+    }
+
+    public function testGetGrantedActionsItemWithoutGrants(): void
+    {
+        $response = $this->testClient->get('/authorization/granted-actions/'.AuthorizationService::GROUP_RESOURCE_CLASS.'/test-group');
+
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $grantedActions = json_decode($response->getContent(), true);
+        $this->assertEquals(AuthorizationService::GROUP_RESOURCE_CLASS, $grantedActions['resourceClass']);
+        $this->assertEquals('test-group', $grantedActions['resourceIdentifier']);
+        $this->assertEquals([], $grantedActions['actions']);
+    }
+
+    public function testGetGrantedActionsCollectionPagination(): void
+    {
+        $this->testClient->setUpUser('testuser', ['MAY_CREATE_GROUPS' => true]);
+        $groupIdentifiers = [];
+        foreach (['First Group', 'Second Group'] as $name) {
+            $response = $this->testClient->postJson('/authorization/groups', ['name' => $name]);
+            $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
+            $groupIdentifiers[] = json_decode($response->getContent(), true)['identifier'];
+        }
+
+        $response = $this->testClient->get('/authorization/granted-actions/'.AuthorizationService::GROUP_RESOURCE_CLASS.'?perPage=1');
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $firstPage = json_decode($response->getContent(), true);
+        $this->assertCount(1, $firstPage['hydra:member']);
+
+        $response = $this->testClient->get($firstPage['hydra:view']['hydra:next']);
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        $secondPage = json_decode($response->getContent(), true);
+        $this->assertCount(1, $secondPage['hydra:member']);
+
+        $grants = array_merge($firstPage['hydra:member'], $secondPage['hydra:member']);
+        $this->assertEqualsCanonicalizing($groupIdentifiers, array_column($grants, 'resourceIdentifier'));
+        foreach ($grants as $grant) {
+            $this->assertEquals(AuthorizationService::GROUP_RESOURCE_CLASS, $grant['resourceClass']);
+            $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grant['actions']);
+            $response = $this->testClient->get($grant['@id']);
+            $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+        }
+    }
+
     public function testPostGroupUnauthenticated(): void
     {
         $response = $this->testClient->postJson('/authorization/groups', [

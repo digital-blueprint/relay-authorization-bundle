@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Link;
 use ApiPlatform\OpenApi\Model\Operation;
 use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -17,6 +18,10 @@ use Symfony\Component\Serializer\Annotation\Groups;
     operations: [
         new Get(
             uriTemplate: '/authorization/granted-actions/{resourceClass}/{resourceIdentifier}',
+            uriVariables: [
+                'resourceClass' => new Link(fromClass: self::class, identifiers: ['resourceClass']),
+                'resourceIdentifier' => new Link(fromClass: self::class, identifiers: ['resourceIdentifier']),
+            ],
             openapi: new Operation(
                 tags: ['Authorization']
             ),
@@ -24,6 +29,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
         ),
         new GetCollection(
             uriTemplate: '/authorization/granted-actions/{resourceClass}',
+            uriVariables: [
+                'resourceClass' => new Link(fromClass: self::class, identifiers: ['resourceClass']),
+            ],
             openapi: new Operation(
                 tags: ['Authorization']
             ),
