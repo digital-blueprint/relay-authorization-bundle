@@ -7,7 +7,6 @@ namespace Dbp\Relay\AuthorizationBundle\Entity;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
-use ApiPlatform\Metadata\Link;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
