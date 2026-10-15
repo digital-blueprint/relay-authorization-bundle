@@ -17,11 +17,26 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class TestResourceActionGrantServiceFactory
 {
-    public static function createTestEntityManager(ContainerInterface $container,
-        ?array $testConfig = null, array $availableResourceClassActions = []): TestEntityManager
+    /**
+     * Sets up the in-memory database and returns a TestEntityManager to access it.
+     *
+     * Meant to be used with kernel tests and unit tests which need a database.
+     */
+    public static function createTestEntityManager(ContainerInterface $container): TestEntityManager
     {
-        $testEntityManager = new TestEntityManager($container);
+        return new TestEntityManager($container);
+    }
 
+    /**
+     * Sets up the container's ResourceActionsGrant service.
+     *
+     * Meant to be used with kernel tests.
+     */
+    public static function setUpResourceActionGrantService(
+        ContainerInterface $container,
+        ?array $testConfig = null,
+        array $availableResourceClassActions = []): void
+    {
         $resourceActionGrantService = $container->get(ResourceActionGrantService::class);
         assert($resourceActionGrantService instanceof ResourceActionGrantService);
         $authorizationService = $resourceActionGrantService->getAuthorizationService();
@@ -30,10 +45,13 @@ class TestResourceActionGrantServiceFactory
         }
 
         self::ensureActionsAndRoles($authorizationService, $availableResourceClassActions);
-
-        return $testEntityManager;
     }
 
+    /**
+     * Creates and sets up a ResourceActionGrantService for testing.
+     *
+     *  Meant to be used with unit tests which need a database.
+     */
     public static function createTestResourceActionGrantService(EntityManagerInterface $entityManager,
         ?array $testConfig = null, array $availableResourceClassActions = [],
         string $currentUserIdentifier = TestAuthorizationService::TEST_USER_IDENTIFIER, array $currentUserAttributes = [],
@@ -62,6 +80,9 @@ class TestResourceActionGrantServiceFactory
             null, $defaultUserAttributes, isAuthenticated: false);
     }
 
+    /**
+     * Creates and sets up an AuthorizationService for testing.
+     */
     public static function createTestAuthorizationService(
         EntityManagerInterface $entityManager, EventDispatcherInterface $eventDispatcher,
         ?InternalResourceActionGrantService $internalResourceActionGrantService = null, ?array $testConfig = null,
