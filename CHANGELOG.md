@@ -2,13 +2,8 @@
 
 ## Unreleased
 
-## v0.5.18
-
-- Add support for api-platform 5.0
-- Drop support for api-platform 4.1
-
-## v0.5.17
-
+- GrantedActions API: If the user has a manage grant for a resource, add all available actions of the respective resource class and
+  type (item or collection) to list of granted actions.
 - Allow users to add new authorization over the HTTP API, if they are granted the "add_resource" permission for the respective
   resource class (NOTE: the first grant always needs to be a "manage" grant)
 - Add parameter `$whereIsGrantedAction` to `ResourceActionGrantService::getResourceActionGrantsForResourceClassAndIdentifier`
@@ -18,7 +13,7 @@
 - re-work add/update of available actions / roles
 - offer both removeGrantsForResource and removeResource via the PHP API
 - allow removing grants for a resource without specifying a resource class, a resource identifier, or a resource type
-- get available resource class actions operations: remove item operation; provide (expanded) collection of AvailableResourceClassAction entities, 
+- get available resource class actions operations: remove item operation; provide (expanded) collection of AvailableResourceClassAction entities,
   as found int the db instead collecting actions per resource class
 - Remove ResourceActionGrant get item operation
 - Add 'resourceType' to AuthorizationResource entity, do distinguish between simple resource and resource group resource types
@@ -31,6 +26,14 @@
 - ResourceActionGrant::action: Replace string action by reference to AvailableResourceClassAction entity to be able to
   reference actions that are not available for the grant's resource, but might be for its children.
 - Add getMembersOfGroup to GroupService
+
+## v0.5.18
+
+- Add support for api-platform 5.0
+- Drop support for api-platform 4.1
+
+## v0.5.17
+
 - Port to ApiTestCase
 
 ## v0.5.16

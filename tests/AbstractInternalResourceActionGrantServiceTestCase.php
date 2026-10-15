@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
@@ -32,6 +34,38 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
     protected InternalResourceActionGrantService $internalResourceActionGrantService;
     protected EventDispatcher $eventDispatcher;
     protected ?TestResourceActionGrantAddedEventSubscriber $testResourceActionGrantAddedEventSubscriber = null;
+
+    protected static function getAvailableResourceClassActions(string $resourceClass, string $resourceIdentifier): array
+    {
+        $resourceClassActions = [];
+        $isResourceItem = AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier) === AvailableResourceClassAction::ITEM_ACTION_TYPE;
+
+        switch ($resourceClass) {
+            case AuthorizationService::GROUP_RESOURCE_CLASS:
+                $resourceClassActions = $isResourceItem ?
+                    AuthorizationService::GROUP_ITEM_ACTIONS : AuthorizationService::GROUP_COLLECTION_ACTIONS;
+                break;
+            case TestResources::TEST_RESOURCE_CLASS:
+                $resourceClassActions = $isResourceItem ?
+                    TestResources::TEST_RESOURCE_ITEM_ACTIONS : TestResources::TEST_RESOURCE_COLLECTION_ACTIONS;
+                break;
+            case TestResources::TEST_RESOURCE_CLASS_2:
+                $resourceClassActions = $isResourceItem ?
+                    TestResources::TEST_RESOURCE_2_ITEM_ACTIONS : TestResources::TEST_RESOURCE_2_COLLECTION_ACTIONS;
+                break;
+            case TestResources::TEST_RESOURCE_CLASS_3:
+                $resourceClassActions = $isResourceItem ?
+                    TestResources::TEST_RESOURCE_3_ITEM_ACTIONS : TestResources::TEST_RESOURCE_3_COLLECTION_ACTIONS;
+                break;
+        }
+
+        $resourceClassActions = array_keys($resourceClassActions);
+        if ([] !== $resourceClassActions) {
+            $resourceClassActions[] = ResourceActionGrantService::MANAGE_ACTION;
+        }
+
+        return $resourceClassActions;
+    }
 
     protected function setUp(): void
     {
