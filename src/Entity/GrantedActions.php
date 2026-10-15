@@ -113,6 +113,11 @@ class GrantedActions
         return $this->actions;
     }
 
+    public function setActions(array $actions): void
+    {
+        $this->actions = $actions;
+    }
+
     #[Ignore]
     public function addAction(string $action): void
     {

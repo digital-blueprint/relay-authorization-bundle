@@ -67,7 +67,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER),
+            $grantedActions->getActions()
+        );
 
         $availableResourceClasses = $this->authorizationService->getResourceClassesCurrentUserIsAuthorizedToRead();
         $this->assertEquals([self::TEST_RESOURCE_CLASS], $availableResourceClasses);
@@ -446,7 +450,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER),
+            $grantedActions->getActions());
 
         // ----------------------------------------------------------------
         // user 2:
@@ -590,7 +597,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
+            ),
+            $grantedActions->getActions()
+        );
 
         // any action:
         $grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser(
@@ -598,7 +610,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
+            ),
+            $grantedActions->getActions()
+        );
 
         // any action:
         $grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser(
@@ -606,7 +623,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS.'_2', $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS.'_2', AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
+            ),
+            $grantedActions->getActions()
+        );
 
         // ----------------------------------------------------------------
         // user 2:
@@ -853,7 +875,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertIsPermutationOf([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER
+            ),
+            $grantedActions->getActions()
+        );
         $grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser(
             self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
@@ -917,16 +944,24 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER
+            ),
+            $grantedActions->getActions()
+        );
         $grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser(
             self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_GROUP_IDENTIFIER,
             AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_GROUP_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertIsPermutationOf([
-            AuthorizationService::MANAGE_ACTION,
-        ], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_GROUP_IDENTIFIER
+            ),
+            $grantedActions->getActions()
+        );
 
         // ----------------------------------------------------------------
         $userAttributes = $this->getDefaultUserAttributes();
@@ -1090,7 +1125,12 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([ResourceActionGrantService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                self::TEST_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
+            ),
+            $grantedActions->getActions()
+        );
         $this->assertNull($this->authorizationService->getGrantedActionsForCurrentUser(
             self::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
@@ -1287,8 +1327,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) use ($resource) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier();
+                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier()
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
 
         // any action
@@ -1297,8 +1342,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) use ($resource) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier();
+                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier()
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) use ($resource_2) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1322,8 +1373,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_2'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
 
         // any action
@@ -1332,8 +1389,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_2'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1351,13 +1414,25 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_3'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_4'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
 
         // any action
@@ -1366,13 +1441,25 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(4, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_3'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_4'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1396,23 +1483,36 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3'
+                && self::isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_3'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_4'
+                    ),
+                    $grantedActions->getActions()
+                )
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
                 && $grantedActions->getActions() === [TestResources::READ_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER;
+            ;
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [TestResources::UPDATE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2'
+                && $grantedActions->getActions() === [TestResources::UPDATE_ACTION];
         }));
 
         // ----------------------------------------------------------------
@@ -1427,8 +1527,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_5'),
+                    $grantedActions->getActions()
+                );
         }));
 
         // any action
@@ -1437,8 +1540,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(4, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_5'),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1470,7 +1576,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_5'),
+                    $grantedActions->getActions()
+                )
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5';
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
@@ -1743,8 +1852,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) use ($resource) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier();
+                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier()
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, $resource->getResourceIdentifier()
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $usersResourceActions = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
             self::TEST_RESOURCE_CLASS,
@@ -1757,8 +1871,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) use ($resource) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier();
+                && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier()
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, $resource->getResourceIdentifier()
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) use ($resource_2) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1778,23 +1897,36 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $this->selectWhere($usersResourceActions,
             function (GrantedActions $grantedActions) use ($collectionResource) {
                 return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                    && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                    && $grantedActions->getResourceIdentifier() === $collectionResource->getResourceIdentifier();
+                    && $grantedActions->getResourceIdentifier() === $collectionResource->getResourceIdentifier()
+                    && $this->isPermutationOf(
+                        self::getAvailableResourceClassActions(
+                            self::TEST_RESOURCE_CLASS, $collectionResource->getResourceIdentifier()
+                        ),
+                        $grantedActions->getActions()
+                    );
             })
         );
         $this->assertCount(1, $this->selectWhere($usersResourceActions,
             function (GrantedActions $grantedActions) use ($resource) {
                 return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                    && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                     && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier()
-                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                    && $this->isPermutationOf(
+                        self::getAvailableResourceClassActions(
+                            self::TEST_RESOURCE_CLASS, $resource->getResourceIdentifier()
+                        ),
+                        $grantedActions->getActions()
+                    );
             }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions,
             function (GrantedActions $grantedActions) use ($resource_2) {
                 return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                    && $this->isPermutationOf([TestResources::READ_ACTION, TestResources::UPDATE_ACTION], $grantedActions->getActions())
                     && $grantedActions->getResourceIdentifier() === $resource_2->getResourceIdentifier()
-                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                    && $this->isPermutationOf(
+                        [TestResources::READ_ACTION, TestResources::UPDATE_ACTION],
+                        $grantedActions->getActions()
+                    );
             }));
         $usersResourceActions = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
             self::TEST_RESOURCE_CLASS,
@@ -1805,17 +1937,27 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $this->selectWhere($usersResourceActions,
             function (GrantedActions $grantedActions) use ($collectionResource) {
                 return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                    && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                     && $grantedActions->getResourceIdentifier() === $collectionResource->getResourceIdentifier()
-                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                    && $this->isPermutationOf(
+                        self::getAvailableResourceClassActions(
+                            self::TEST_RESOURCE_CLASS, $collectionResource->getResourceIdentifier()
+                        ),
+                        $grantedActions->getActions()
+                    );
             })
         );
         $this->assertCount(1, $this->selectWhere($usersResourceActions,
             function (GrantedActions $grantedActions) use ($resource) {
                 return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                    && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                     && $grantedActions->getResourceIdentifier() === $resource->getResourceIdentifier()
-                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                    && $this->isPermutationOf(
+                        self::getAvailableResourceClassActions(
+                            self::TEST_RESOURCE_CLASS, $resource->getResourceIdentifier()
+                        ),
+                        $grantedActions->getActions()
+                    );
             }));
 
         $usersResourceActions = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
@@ -1827,9 +1969,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $this->selectWhere($usersResourceActions,
             function (GrantedActions $grantedActions) use ($collectionResource) {
                 return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                    && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                     && $grantedActions->getResourceIdentifier() === $collectionResource->getResourceIdentifier()
-                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                    && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                    && $this->isPermutationOf(
+                        self::getAvailableResourceClassActions(
+                            self::TEST_RESOURCE_CLASS, $collectionResource->getResourceIdentifier()
+                        ),
+                        $grantedActions->getActions()
+                    );
             })
         );
 
@@ -1843,8 +1990,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2';
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_2'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $usersResourceActions = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
             self::TEST_RESOURCE_CLASS,
@@ -1859,8 +2012,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_2'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_2'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1883,13 +2041,23 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_3'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_4'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $usersResourceActions = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
             self::TEST_RESOURCE_CLASS,
@@ -1904,13 +2072,23 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(4, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_3'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_4'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1939,13 +2117,23 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_3'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_3'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_4'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_4'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -1970,8 +2158,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_5'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $usersResourceActions = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
             self::TEST_RESOURCE_CLASS,
@@ -1986,8 +2179,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(4, $usersResourceActions);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_5'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -2024,8 +2222,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $usersResourceActions = array_merge($userResourceActionPage1, $userResourceActionPage2);
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5';
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER.'_5'
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(
+                        self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER.'_5'
+                    ),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($usersResourceActions, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
@@ -2194,8 +2397,11 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $grantedActionsCollection);
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER;
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
 
         $grantedActionsCollection = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
@@ -2204,13 +2410,19 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $grantedActionsCollection);
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER;
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS_2
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER;
+                && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
 
         $grantedActionsCollection = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
@@ -2220,21 +2432,30 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(3, $grantedActionsCollection);
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
-                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS_2
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
-                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
-                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE;
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
 
         $grantedActionsCollection = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
@@ -2243,15 +2464,21 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $grantedActionsCollection);
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
-                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS_2
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
-                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE;
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_RESOURCE_TYPE
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
 
         $grantedActionsCollection = $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
@@ -2260,15 +2487,21 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(2, $grantedActionsCollection);
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
-                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE;
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER),
+                    $grantedActions->getActions()
+                );
         }));
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection, function (GrantedActions $grantedActions) {
             return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS_2
-                && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
                 && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER_2
-                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE;
+                && $grantedActions->getResourceType() === AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE
+                && $this->isPermutationOf(
+                    self::getAvailableResourceClassActions(self::TEST_RESOURCE_CLASS_2, self::TEST_RESOURCE_IDENTIFIER_2),
+                    $grantedActions->getActions()
+                );
         }));
     }
 
@@ -2322,8 +2555,13 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection,
             function (GrantedActions $grantedActions) {
                 return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
-                    && $grantedActions->getActions() === [AuthorizationService::MANAGE_ACTION]
-                    && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER;
+                    && $grantedActions->getResourceIdentifier() === self::TEST_RESOURCE_IDENTIFIER
+                    && $this->isPermutationOf(
+                        self::getAvailableResourceClassActions(
+                            self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER
+                        ),
+                        $grantedActions->getActions()
+                    );
             }
         ));
         $this->assertCount(1, $this->selectWhere($grantedActionsCollection,
@@ -2734,7 +2972,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::GROUP_RESOURCE_CLASS, $userGroup->getIdentifier());
         $this->assertEquals(AuthorizationService::GROUP_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals($userGroup->getIdentifier(), $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(
+                AuthorizationService::GROUP_RESOURCE_CLASS, $userGroup->getIdentifier()),
+            $grantedActions->getActions());
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
         $grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser(
@@ -2769,7 +3010,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(AuthorizationService::GROUP_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER),
+            $grantedActions->getActions()
+        );
 
         $groupCollectionResource = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
             AuthorizationService::GROUP_RESOURCE_CLASS,
@@ -2787,7 +3031,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(AuthorizationService::GROUP_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::MANAGE_ACTION], $grantedActions->getActions());
+        $this->assertIsPermutationOf(
+            self::getAvailableResourceClassActions(AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER),
+            $grantedActions->getActions()
+        );
 
         // ----------------------------------------------------------------
         // another user:
@@ -2797,7 +3044,10 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
         $this->assertEquals(AuthorizationService::GROUP_RESOURCE_CLASS, $grantedActions->getResourceClass());
         $this->assertEquals(AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER, $grantedActions->getResourceIdentifier());
-        $this->assertEquals([AuthorizationService::CREATE_GROUPS_ACTION], $grantedActions->getActions());
+        $this->assertEquals(
+            [AuthorizationService::CREATE_GROUPS_ACTION],
+            $grantedActions->getActions()
+        );
 
         // ----------------------------------------------------------------
         // user 3:
