@@ -612,11 +612,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     public function isAvailableResourceClassAction(
         string $resourceClass, string $action, string $resourceIdentifier): bool
     {
-        $availableActions = $this->getAvailableActionsCached($resourceClass)[
-            AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier)] ?? [];
-
-        return [] !== $availableActions
-            && ($action === AuthorizationService::MANAGE_ACTION || in_array($action, $availableActions, true));
+        return in_array(
+            $action,
+            $this->getAvailableActionsCached($resourceClass)[
+            AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier)] ?? [],
+            true);
     }
 
     /**
@@ -999,6 +999,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         $action = $row['action'];
                         $actionType = $row['action_type'];
 
+                        // NOTE: results are ordered by resource
                         if ($effectiveResourceClass !== $grantedActionsEntity?->getResourceClass()
                             || $effectiveResourceIdentifier !== $grantedActionsEntity?->getResourceIdentifier()
                             || $effectiveResourceType !== $grantedActionsEntity?->getResourceType()) {
@@ -1009,11 +1010,23 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                             $results[] = $grantedActionsEntity;
                         }
 
-                        if (($action === AuthorizationService::MANAGE_ACTION || $actionResourceClass === $effectiveResourceClass)
+                        // assure that the action is available for the resource class and type, and otherwise filter it out
+                        if (($actionResourceClass === $effectiveResourceClass || AuthorizationService::MANAGE_ACTION === $action)
                             && ($actionType ===
                                 AvailableResourceClassAction::getActionTypeForResourceIdentifier($effectiveResourceIdentifier))
                         ) {
-                            $grantedActionsEntity->addAction($action);
+                            // DESIGN NOTE: if the manage action is granted, we return all available actions for the resource class and type
+                            if (false === in_array(
+                                AuthorizationService::MANAGE_ACTION, $grantedActionsEntity->getActions(), true)) {
+                                if (AuthorizationService::MANAGE_ACTION === $action) {
+                                    $grantedActionsEntity->setActions(
+                                        $this->getAvailableActionsCached($effectiveResourceClass)[AvailableResourceClassAction::getActionTypeForResourceIdentifier(
+                                            $effectiveResourceIdentifier)] ?? []
+                                    );
+                                } else {
+                                    $grantedActionsEntity->addAction($action);
+                                }
+                            }
                         }
                         break;
 
@@ -1617,7 +1630,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     /**
-     * @return array<int, array<string>>
+     * Returns the available actions for a given resource class, caching the result.
+     *
+     * DESIGN NOTE: A resource class needs to have at least one action (other than manage) for the resource class to be considered defined.
+     * If there is an action defined for a resource class AND type (item or collection): the manage action is added to list of
+     * available actions.
+     *
+     * @return array<int, array<string>> array index AvailableResourceClassAction::ITEM_ACTION_TYPE contains items actions,
+     *                                   array index AvailableResourceClassAction::COLLECTION_ACTION_TYPE contains collection actions
      */
     private function getAvailableActionsCached(string $resourceClass): array
     {
@@ -1630,18 +1650,25 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $availableActions = [];
             $availableResourceClassActions = $this->entityManager->getRepository(AvailableResourceClassAction::class)->findBy($criteria);
             if ([] !== $availableResourceClassActions) {
-                $availableActions = [
-                    AvailableResourceClassAction::ITEM_ACTION_TYPE => array_map(
-                        static fn (AvailableResourceClassAction $action) => $action->getAction(),
-                        array_filter($availableResourceClassActions,
-                            static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::ITEM_ACTION_TYPE)
-                    ),
-                    AvailableResourceClassAction::COLLECTION_ACTION_TYPE => array_map(
-                        static fn (AvailableResourceClassAction $action) => $action->getAction(),
-                        array_filter($availableResourceClassActions,
-                            static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::COLLECTION_ACTION_TYPE)
-                    ),
-                ];
+                $itemActions = array_map(
+                    static fn (AvailableResourceClassAction $action) => $action->getAction(),
+                    array_filter($availableResourceClassActions,
+                        static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::ITEM_ACTION_TYPE)
+                );
+                if ([] !== $itemActions) {
+                    $itemActions[] = AuthorizationService::MANAGE_ACTION;
+                }
+                $availableActions[AvailableResourceClassAction::ITEM_ACTION_TYPE] = $itemActions;
+
+                $collectionActions = array_map(
+                    static fn (AvailableResourceClassAction $action) => $action->getAction(),
+                    array_filter($availableResourceClassActions,
+                        static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::COLLECTION_ACTION_TYPE)
+                );
+                if ([] !== $collectionActions) {
+                    $collectionActions[] = AuthorizationService::MANAGE_ACTION;
+                }
+                $availableActions[AvailableResourceClassAction::COLLECTION_ACTION_TYPE] = $collectionActions;
             }
             $this->availableResourceClassActionsRequestCache[$resourceClass] = $availableActions;
         }
