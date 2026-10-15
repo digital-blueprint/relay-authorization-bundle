@@ -26,8 +26,9 @@ class ApiTest extends ApiTestCase
 
         $this->testClient->setUpUser(userAttributes: ['MAY_CREATE_GROUPS' => false]);
 
-        $this->testEntityManager = TestResourceActionGrantServiceFactory::createTestEntityManager(
-            $this->getContainer(),
+        $container = $this->getContainer();
+        $this->testEntityManager = TestResourceActionGrantServiceFactory::createTestEntityManager($container);
+        TestResourceActionGrantServiceFactory::setUpResourceActionGrantService($container,
             availableResourceClassActions: TestResources::getAvailableResourceClassActions()
         );
     }
