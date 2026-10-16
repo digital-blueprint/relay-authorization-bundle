@@ -88,6 +88,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
                                         'description' => 'The resource identifier to grant the action on (to be used in combination with resourceClass, in case authorizationResource is not set)',
                                         'example' => '01963da9-548b-7ca1-88e1-032ef6c1d992',
                                     ],
+                                    'resourceType' => [
+                                        'type' => 'integer',
+                                        'description' => 'The resource type to grant the action on: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
+                                        'example' => 0,
+                                    ],
                                     'action' => [
                                         'type' => 'string',
                                         'description' => 'The action to grant',
