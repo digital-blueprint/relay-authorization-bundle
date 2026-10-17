@@ -898,7 +898,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             }
 
             $results = $this->internalResourceActionGrantService->get($get,
-                $resourceClass, $resourceIdentifier,
+                $resourceClass, $resourceIdentifier, $resourceType,
                 userIdentifier: $userIdentifier,
                 groupIdentifiers: $groupIdentifiers,
                 dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,

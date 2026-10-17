@@ -1158,11 +1158,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
                 $groupByStatement = "GROUP BY
                     $RESOURCE_ACTION_GRANT_ALIAS.identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.user_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.user_group_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.dynamic_user_group_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.role_identifier,
-                    $RESOURCE_ACTION_GRANT_ALIAS.available_resource_class_action_identifier";
+                    $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
 
                 $orderByStatement = "ORDER BY
                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier,
@@ -1170,10 +1166,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 break;
 
             case self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS:
-                $select = "DISTINCT
+                $select = "
                     $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_class,
                     $EXPANDED_RESOURCE_ALIAS.effective_resource_identifier";
+
+                $groupByStatement = "GROUP BY
+                    $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
 
                 $orderByStatement = "ORDER BY
                      $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier";
@@ -1474,6 +1473,20 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $parameterValues['resourceIdentifier'] = $resourceIdentifier;
         }
 
+        $resourceTypeCriteria = 'true';
+        if ($resourceType !== null) {
+            switch ($resourceType) {
+                case self::RESOURCE_RESOURCE_TYPE:
+                    $resourceTypeCriteria =
+                        $authorizationResourceAlias.'.'.AuthorizationResource::RESOURCE_TYPE_COLUMN.' = '.AuthorizationResource::RESOURCE_RESOURCE_TYPE;
+                    break;
+                case self::RESOURCE_GROUP_RESOURCE_TYPE:
+                    $resourceTypeCriteria =
+                        $authorizationResourceAlias.'.'.AuthorizationResource::RESOURCE_TYPE_COLUMN.' = '.AuthorizationResource::RESOURCE_GROUP_RESOURCE_TYPE;
+                    break;
+            }
+        }
+
         $excludeCollectionResourceIdentifierCriteria = 'true';
         if ($options[self::EXCLUDE_COLLECTION_RESOURCE_OPTION] ?? false) {
             $excludeCollectionResourceIdentifierCriteria =
@@ -1493,23 +1506,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             }
         }
 
-        $resourceTypeCriteria = 'true';
-        if ($resourceType !== null) {
-            switch ($resourceType) {
-                case self::RESOURCE_RESOURCE_TYPE:
-                    $resourceTypeCriteria =
-                        $authorizationResourceAlias.'.'.AuthorizationResource::RESOURCE_TYPE_COLUMN.' = '.AuthorizationResource::RESOURCE_RESOURCE_TYPE;
-                    break;
-                case self::RESOURCE_GROUP_RESOURCE_TYPE:
-                    $resourceTypeCriteria =
-                        $authorizationResourceAlias.'.'.AuthorizationResource::RESOURCE_TYPE_COLUMN.' = '.AuthorizationResource::RESOURCE_GROUP_RESOURCE_TYPE;
-                    break;
-            }
-        }
-
-        return "($resourceClassCriteria AND $resourceIdentifierCriteria
+        return "(
+            $resourceClassCriteria AND $resourceIdentifierCriteria AND $resourceTypeCriteria
             AND $excludeCollectionResourceIdentifierCriteria
-            AND $authorizationResourceIdentifierCriteria AND $resourceTypeCriteria)";
+            AND $authorizationResourceIdentifierCriteria
+            )";
     }
 
     private function getActionCriteria(string $alias,
@@ -1593,17 +1594,26 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     private function hydrateResourceActionGrant(array $row): ResourceActionGrant
     {
+        // inherited/implicit means that the grant is not explicitly granted for the effective resource,
+        // but for a group resource that the effective resource is a member of, i.e., it's not found
+        // in the grant table. That's why we generate a new identifier for it.
+        $isInherited =
+            $row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier'];
+
         $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setIsInherited($isInherited);
         $resourceActionGrant->setIdentifier(
-            UuidUtils::toStringUuid($row['identifier']));
-        $resourceActionGrant->setIsInherited(
-            $row['authorization_resource_identifier'] !== $row['effective_authorization_resource_identifier']);
+            $isInherited ?
+                Uuid::v7()->toRfc4122() :
+                UuidUtils::toStringUuid($row['identifier']));
+
         // NOTE: we don't hydrate the full authorization resource here, since we probably won't need it
-        $resourceActionGrant->setResourceClass($row['resource_class']);
-        $resourceActionGrant->setResourceIdentifier($row['resource_identifier']);
-        $resourceActionGrant->setResourceType((int) $row['resource_type']);
+        $resourceActionGrant->setResourceClass($row['effective_resource_class']);
+        $resourceActionGrant->setResourceIdentifier($row['effective_resource_identifier']);
+        $resourceActionGrant->setResourceType((int) $row['effective_resource_type']);
         $resourceActionGrant->setAuthorizationResourceIdentifier(
-            UuidUtils::toStringUuid($row['authorization_resource_identifier']));
+            UuidUtils::toStringUuid($row['effective_authorization_resource_identifier']));
+
         if ($roleIdentifier = $row['role_identifier']) {
             $resourceActionGrant->setRole(
                 $this->entityManager->getRepository(Role::class)->find(UuidUtils::toStringUuid($roleIdentifier))
