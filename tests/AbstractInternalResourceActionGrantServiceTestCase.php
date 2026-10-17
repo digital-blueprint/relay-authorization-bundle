@@ -16,6 +16,7 @@ use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\Uid\UuidV7;
 
 abstract class AbstractInternalResourceActionGrantServiceTestCase extends KernelTestCase
 {
@@ -185,37 +186,45 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
     {
         $this->assertCount(1, $this->selectWhere($rags,
             function (ResourceActionGrant $rag) use ($ragExpected, $grantedActionsExpected) {
-                return $rag->getIdentifier() === $ragExpected->getIdentifier()
+                return false === $rag->isInherited()
+                    && $rag->getIdentifier() === $ragExpected->getIdentifier()
                     && $rag->getResourceClass() === $ragExpected->getResourceClass()
                     && $rag->getResourceIdentifier() === $ragExpected->getResourceIdentifier()
                     && $rag->getResourceType() === $ragExpected->getResourceType()
                     && $rag->getAction() === $ragExpected->getAction()
+                    && $rag->getRole() === $ragExpected->getRole()
                     && $rag->getUserIdentifier() === $ragExpected->getUserIdentifier()
                     && $rag->getUserGroup() === $ragExpected->getUserGroup()
                     && $rag->getDynamicUserGroupIdentifier() === $ragExpected->getDynamicUserGroupIdentifier()
+                    && $rag->getCreatorId() === $ragExpected->getCreatorId()
+                    && $rag->getShareable() === $ragExpected->getShareable()
                     && ($grantedActionsExpected === null
                         || $this->isPermutationOf($rag->getGrantedActions(), $grantedActionsExpected));
             }), (string) $ragExpected);
     }
 
     protected function assertContainsInheritedResourceActionGrant(array $rags,
-        ResourceActionGrant $sourceRag, AuthorizationResource $effectiveResource): void
+        ResourceActionGrant $sourceRag, AuthorizationResource $effectiveResource,
+        ?array $grantedActionsExpected = null): void
     {
-        $this->assertContainsResourceActionGrant(
-            $rags,
-            $sourceRag
-        );
-        //        $this->assertCount(1, $this->selectWhere($rags,
-        //            function (ResourceActionGrant $rag) use ($sourceRag, $effectiveResource) {
-        //                return $rag->getIdentifier() === $sourceRag->getIdentifier().'_inherited'
-        //                    && $rag->getResourceClass() === $effectiveResource->getResourceClass()
-        //                    && $rag->getResourceIdentifier() === $effectiveResource->getResourceIdentifier()
-        //                    && $rag->getAction() === $sourceRag->getAction()
-        //                    && $rag->getUserIdentifier() === $sourceRag->getUserIdentifier()
-        //                    && $rag->getUserGroup() === $sourceRag->getUserGroup()
-        //                    && $rag->getDynamicUserGroupIdentifier() === $sourceRag->getDynamicUserGroupIdentifier()
-        //                    && ($rag->getGrantedActions() ?? []) === [];
-        //            }), (string) $sourceRag);
+        $this->assertCount(1, $this->selectWhere($rags,
+            function (ResourceActionGrant $rag) use ($sourceRag, $effectiveResource, $grantedActionsExpected) {
+                return $rag->isInherited()
+                    && UuidV7::isValid($rag->getIdentifier())
+                    && $rag->getIdentifier() !== $sourceRag->getIdentifier()
+                    && $rag->getResourceClass() === $effectiveResource->getResourceClass()
+                    && $rag->getResourceIdentifier() === $effectiveResource->getResourceIdentifier()
+                    && $rag->getResourceType() === $effectiveResource->getResourceType()
+                    && $rag->getAction() === $sourceRag->getAction()
+                    && $rag->getRole() === $sourceRag->getRole()
+                    && $rag->getUserIdentifier() === $sourceRag->getUserIdentifier()
+                    && $rag->getUserGroup() === $sourceRag->getUserGroup()
+                    && $rag->getDynamicUserGroupIdentifier() === $sourceRag->getDynamicUserGroupIdentifier()
+                    && $rag->getCreatorId() === $sourceRag->getCreatorId()
+                    && $rag->getShareable() === $sourceRag->getShareable()
+                    && ($grantedActionsExpected === null
+                        || $this->isPermutationOf($rag->getGrantedActions(), $grantedActionsExpected));
+            }), (string) $sourceRag);
     }
 
     protected function assertIsValidUtcDateTimeString(string $dateTimeString): void
