@@ -47,7 +47,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     public const MANAGE_ITEM_ACTION_UUID = '019ecac3-2eea-7297-ae1a-486de6fca628';
     public const MANAGE_COLLECTION_ACTION_UUID = '019ecac3-d095-7ae7-b10b-30bff78040a7';
 
-    public const MANAGER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
+    public const OWNER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
 
     public const COLLECTION_RESOURCE_IDENTIFIER = 'null';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
@@ -103,7 +103,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             return $entityManager->getRepository(AvailableResourceClassAction::class)
                 ->findOneBy([
                     'action' => $action,
-                    'resourceClass' => $action === AuthorizationService::MANAGE_ACTION ? null : $resourceClass,
+                    'resourceClass' => $action === AuthorizationService::OWN_ACTION ? null : $resourceClass,
                     'actionType' => $actionType,
                 ]);
         } catch (\Exception $exception) {
@@ -137,43 +137,46 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         ];
     }
 
-    public static function ensureManageActionsAndRoleAreAvailable(EntityManagerInterface $entityManager, ?LoggerInterface $logger = null): void
+    /**
+     * Adds or updates the 'own' actions and the 'owner' role.
+     */
+    public static function addOrUpdateOwnerActionsAndRoles(EntityManagerInterface $entityManager, ?LoggerInterface $logger = null): void
     {
-        $manageActionNames = [
-            'en' => 'Manage',
-            'de' => 'Verwalten',
+        $ownActionNames = [
+            'en' => 'Own',
+            'de' => 'Eigentümer sein',
         ];
         self::addOrUpdateAvailableResourceClassActionInternal(
             $entityManager,
             null,
-            AuthorizationService::MANAGE_ACTION,
+            AuthorizationService::OWN_ACTION,
             AvailableResourceClassAction::ITEM_ACTION_TYPE,
-            $manageActionNames,
+            $ownActionNames,
             identifier: self::MANAGE_ITEM_ACTION_UUID,
             logger: $logger
         );
         self::addOrUpdateAvailableResourceClassActionInternal(
             $entityManager,
             null,
-            AuthorizationService::MANAGE_ACTION,
+            AuthorizationService::OWN_ACTION,
             AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
-            $manageActionNames,
+            $ownActionNames,
             identifier: self::MANAGE_COLLECTION_ACTION_UUID,
             logger: $logger
         );
         self::addOrUpdateRoleStatic($entityManager,
             [
-                'en' => 'Manager',
-                'de' => 'Verwalter',
+                'en' => 'Owner',
+                'de' => 'Eigentümer',
             ],
             [
                 // works for both item and collection resources:
                 ResourceActionGrantService::createRoleAction(
-                    null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                    null, ResourceActionGrantService::OWN_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
                 ResourceActionGrantService::createRoleAction(
-                    null, ResourceActionGrantService::MANAGE_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
+                    null, ResourceActionGrantService::OWN_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
             ],
-            identifier: ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
+            identifier: ResourceActionGrantService::OWNER_ROLE_IDENTIFIER
         );
     }
 
@@ -208,7 +211,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $resourceClass = $roleActionData['resourceClass'] ?? null;
             $action = $roleActionData['action'] ?? null;
             $actionType = $roleActionData['actionType'] ?? null;
-            if (null === $action || null === $actionType || ($action !== AuthorizationService::MANAGE_ACTION && null === $resourceClass)) {
+            if (null === $action || null === $actionType || ($action !== AuthorizationService::OWN_ACTION && null === $resourceClass)) {
                 throw new \RuntimeException('adding role failed: resource action is invalid');
             }
 
@@ -551,7 +554,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         }
 
         if (null === $whereActionsIn
-            || in_array(AuthorizationService::MANAGE_ACTION, $whereActionsIn, true)) {
+            || in_array(AuthorizationService::OWN_ACTION, $whereActionsIn, true)) {
             $innerAlias = 'inner_'.self::AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS;
 
             $innerQueryBuilder = $this->entityManager->createQueryBuilder();
@@ -1011,14 +1014,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         }
 
                         // assure that the action is available for the resource class and type, and otherwise filter it out
-                        if (($actionResourceClass === $effectiveResourceClass || AuthorizationService::MANAGE_ACTION === $action)
+                        if (($actionResourceClass === $effectiveResourceClass || AuthorizationService::OWN_ACTION === $action)
                             && ($actionType ===
                                 AvailableResourceClassAction::getActionTypeForResourceIdentifier($effectiveResourceIdentifier))
                         ) {
-                            // DESIGN NOTE: if the manage action is granted, we return all available actions for the resource class and type
+                            // DESIGN NOTE: if the own action is granted, we return all available actions for the resource class and type
                             if (false === in_array(
-                                AuthorizationService::MANAGE_ACTION, $grantedActionsEntity->getActions(), true)) {
-                                if (AuthorizationService::MANAGE_ACTION === $action) {
+                                AuthorizationService::OWN_ACTION, $grantedActionsEntity->getActions(), true)) {
+                                if (AuthorizationService::OWN_ACTION === $action) {
                                     $grantedActionsEntity->setActions(
                                         $this->getAvailableActionsCached($effectiveResourceClass)[AvailableResourceClassAction::getActionTypeForResourceIdentifier(
                                             $effectiveResourceIdentifier)] ?? []
@@ -1035,11 +1038,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         break;
 
                     case self::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS:
-                        // NOTE: if actions (other than manage) are required to be granted for returned resources,
+                        // NOTE: if actions (other than own) are required to be granted for returned resources,
                         // we check if those actions are even available for the resource class and type,
                         // and otherwise we filter them out.
-                        // (note that we can ignore manage, since it is always available)
-                        $nonManageActions = array_filter($whereActionIn ?? [], fn ($action) => $action !== AuthorizationService::MANAGE_ACTION);
+                        // (note that we can ignore own, since it is always available)
+                        $nonManageActions = array_filter($whereActionIn ?? [], fn ($action) => $action !== AuthorizationService::OWN_ACTION);
                         if ([] === $nonManageActions) {
                             $acceptResource = true;
                         } else {
@@ -1406,7 +1409,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     /**
-     * @param string|null $resourceClass May be null for manage action
+     * @param string|null $resourceClass May be null for own action
      */
     private function getAvailableResourceClassAction(
         ?string $resourceClass,
@@ -1642,8 +1645,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * Returns the available actions for a given resource class, caching the result.
      *
-     * DESIGN NOTE: A resource class needs to have at least one action (other than manage) for the resource class to be considered defined.
-     * If there is an action defined for a resource class AND type (item or collection): the manage action is added to list of
+     * DESIGN NOTE: A resource class needs to have at least one action (other than own) for the resource class to be considered defined.
+     * If there is an action defined for a resource class AND type (item or collection): the own action is added to the list of
      * available actions.
      *
      * @return array<int, array<string>> array index AvailableResourceClassAction::ITEM_ACTION_TYPE contains items actions,
@@ -1666,7 +1669,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::ITEM_ACTION_TYPE)
                 );
                 if ([] !== $itemActions) {
-                    $itemActions[] = AuthorizationService::MANAGE_ACTION;
+                    $itemActions[] = AuthorizationService::OWN_ACTION;
                 }
                 $availableActions[AvailableResourceClassAction::ITEM_ACTION_TYPE] = $itemActions;
 
@@ -1676,7 +1679,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         static fn (AvailableResourceClassAction $action) => $action->getActionType() === AvailableResourceClassAction::COLLECTION_ACTION_TYPE)
                 );
                 if ([] !== $collectionActions) {
-                    $collectionActions[] = AuthorizationService::MANAGE_ACTION;
+                    $collectionActions[] = AuthorizationService::OWN_ACTION;
                 }
                 $availableActions[AvailableResourceClassAction::COLLECTION_ACTION_TYPE] = $collectionActions;
             }

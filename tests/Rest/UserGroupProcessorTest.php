@@ -168,7 +168,7 @@ class UserGroupProcessorTest extends AbstractGroupControllerAuthorizationService
 
         $manageGroupCollectionGrant = new ResourceActionGrant();
         $manageGroupCollectionGrant->setAuthorizationResource($groupCollection);
-        $manageGroupCollectionGrant->setAction(AuthorizationService::MANAGE_ACTION);
+        $manageGroupCollectionGrant->setAction(AuthorizationService::OWN_ACTION);
         $manageGroupCollectionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
         $manageGroupCollectionGrant->setCreatorId(self::CURRENT_USER_IDENTIFIER);
 

@@ -26,7 +26,7 @@ final class Version20260616114400 extends EntityManagerMigration
     {
         $MANAGE_ITEM_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::MANAGE_ITEM_ACTION_UUID)->toHex();
         $MANAGE_COLLECTION_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::MANAGE_COLLECTION_ACTION_UUID)->toHex();
-        $MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
+        $MANAGE_ACTION = AuthorizationService::OWN_ACTION;
         $COLLECTION_RESOURCE_IDENTIFIER = AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
         $ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
         $COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;

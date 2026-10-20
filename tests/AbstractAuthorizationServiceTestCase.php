@@ -72,7 +72,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         $userGroup = $this->testEntityManager->addUserGroup($groupName);
         $manageGroupGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             AuthorizationService::GROUP_RESOURCE_CLASS, $userGroup->getIdentifier(),
-            action: AuthorizationService::MANAGE_ACTION,
+            action: AuthorizationService::OWN_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER
         );
 
@@ -91,7 +91,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
             $matches = $this->selectWhere($collection,
                 function (AvailableResourceClassAction $item) use ($resourceClass, $action, $actionType) {
                     return ($item->getResourceClass() === $resourceClass
-                        || ($item->getResourceClass() === null && $item->getAction() === AuthorizationService::MANAGE_ACTION))
+                        || ($item->getResourceClass() === null && $item->getAction() === AuthorizationService::OWN_ACTION))
                         && $item->getAction() === $action
                         && $item->getActionType() === $actionType;
                 });

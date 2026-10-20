@@ -102,7 +102,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->addResourceAndGrant(
             TestResources::TEST_RESOURCE_CLASS,
             ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
-            ResourceActionGrantService::MANAGE_ACTION,
+            ResourceActionGrantService::OWN_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER
         );
 
@@ -116,18 +116,18 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->assertCount(1, $rolesReturned);
         $this->assertCount(1, $this->selectWhere($rolesReturned,
             function (Role $role): bool {
-                return $role->getIdentifier() === ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
+                return $role->getIdentifier() === ResourceActionGrantService::OWNER_ROLE_IDENTIFIER
                     && count($role->getRoleActions()) === 2
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::ITEM_ACTION_TYPE
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::COLLECTION_ACTION_TYPE
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
-                    && $role->getRoleNames()[0]->getName() === 'Manager'
+                    && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Verwalter';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
             }
         ));
 
@@ -143,7 +143,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->addResourceAndGrant(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
-            ResourceActionGrantService::MANAGE_ACTION,
+            ResourceActionGrantService::OWN_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER
         );
 
@@ -157,18 +157,18 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->assertCount(1, $rolesReturned);
         $this->assertCount(1, $this->selectWhere($rolesReturned,
             function (Role $role): bool {
-                return $role->getIdentifier() === ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
+                return $role->getIdentifier() === ResourceActionGrantService::OWNER_ROLE_IDENTIFIER
                     && count($role->getRoleActions()) === 2
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::ITEM_ACTION_TYPE
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::COLLECTION_ACTION_TYPE
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
-                    && $role->getRoleNames()[0]->getName() === 'Manager'
+                    && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Verwalter';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
             }
         ));
 
@@ -212,18 +212,18 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->assertCount(3, $rolesReturned);
         $this->assertCount(1, $this->selectWhere($rolesReturned,
             function (Role $role): bool {
-                return $role->getIdentifier() === ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
+                return $role->getIdentifier() === ResourceActionGrantService::OWNER_ROLE_IDENTIFIER
                     && count($role->getRoleActions()) === 2
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::ITEM_ACTION_TYPE
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::COLLECTION_ACTION_TYPE
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
-                    && $role->getRoleNames()[0]->getName() === 'Manager'
+                    && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Verwalter';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
             }
         ));
         $this->assertCount(1, $this->selectWhere($rolesReturned,
@@ -263,18 +263,18 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
         $this->assertCount(3, $rolesReturned);
         $this->assertCount(1, $this->selectWhere($rolesReturned,
             function (Role $role): bool {
-                return $role->getIdentifier() === ResourceActionGrantService::MANAGER_ROLE_IDENTIFIER
+                return $role->getIdentifier() === ResourceActionGrantService::OWNER_ROLE_IDENTIFIER
                     && count($role->getRoleActions()) === 2
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[0]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::ITEM_ACTION_TYPE
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getResourceClass() === null
-                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::MANAGE_ACTION
+                    && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getAction() === ResourceActionGrantService::OWN_ACTION
                     && $role->getRoleActions()[1]->getAvailableResourceClassAction()->getActionType() === ResourceActionGrantService::COLLECTION_ACTION_TYPE
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
-                    && $role->getRoleNames()[0]->getName() === 'Manager'
+                    && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Verwalter';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
             }
         ));
         $this->assertCount(1, $this->selectWhere($rolesReturned,

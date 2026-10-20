@@ -34,7 +34,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 {
     use LoggerAwareTrait;
 
-    public const MANAGE_ACTION = 'manage';
+    public const OWN_ACTION = 'own';
 
     public const GROUP_RESOURCE_CLASS = 'DbpRelayAuthorizationGroup';
 
@@ -87,7 +87,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const RESOURCE_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE;
     public const RESOURCE_GROUP_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE;
 
-    public const MANAGER_ROLE_IDENTIFIER = InternalResourceActionGrantService::MANAGER_ROLE_IDENTIFIER;
+    public const OWNER_ROLE_IDENTIFIER = InternalResourceActionGrantService::OWNER_ROLE_IDENTIFIER;
 
     private ?array $config = null;
 
@@ -266,10 +266,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 $this->internalResourceActionGrantService->throwResourceNotFound();
             }
 
-            // ensure that the first grant is a MANAGE grant
-            if (self::MANAGE_ACTION !== $resourceActionGrant->getAction()) {
+            // ensure that the first grant is a OWN grant
+            if (self::OWN_ACTION !== $resourceActionGrant->getAction()
+                && self::OWNER_ROLE_IDENTIFIER !== $resourceActionGrant->getRole()?->getIdentifier()) {
                 throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                    'first grant needs to be a manage grant',
+                    'first grant needs to be a own grant',
                     InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
             }
         }
@@ -388,10 +389,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         if ($whereIsGrantedAction === null) {
             $whereActionsContainAnyOf = null;
-        } elseif ($whereIsGrantedAction === self::MANAGE_ACTION) {
-            $whereActionsContainAnyOf = [self::MANAGE_ACTION];
+        } elseif ($whereIsGrantedAction === self::OWN_ACTION) {
+            $whereActionsContainAnyOf = [self::OWN_ACTION];
         } else {
-            $whereActionsContainAnyOf = [$whereIsGrantedAction, self::MANAGE_ACTION];
+            $whereActionsContainAnyOf = [$whereIsGrantedAction, self::OWN_ACTION];
         }
 
         return $this->internalResourceActionGrantService->getGrantedActionsForResourcePage(
@@ -416,8 +417,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
 
         return in_array($action, $grantedActions, true)
-            || (in_array(self::MANAGE_ACTION, $grantedActions, true)
-                && (self::MANAGE_ACTION === $action
+            || (in_array(self::OWN_ACTION, $grantedActions, true)
+                && (self::OWN_ACTION === $action
                     || $this->internalResourceActionGrantService->isAvailableResourceClassAction(
                         $resourceClass, $action, $resourceIdentifier)
                 )
@@ -437,7 +438,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->internalResourceActionGrantService->getAvailableResourceClassActions(
             $resourceClass,
             AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
-            whereActionsIn: in_array(AuthorizationService::MANAGE_ACTION, $grantedActions, true) ?
+            whereActionsIn: in_array(AuthorizationService::OWN_ACTION, $grantedActions, true) ?
                 null : $grantedActions,
             firstItemIndex: $firstItemIndex,
             maxNumItemsPerPage: $maxNumItemsPerPage
@@ -462,7 +463,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->internalResourceActionGrantService->getRoles(
             $resourceClass,
             AvailableResourceClassAction::getActionTypeForResourceIdentifier($resourceIdentifier),
-            whereActionsAreASubsetOrEqual: in_array(AuthorizationService::MANAGE_ACTION, $grantedActions, true) ?
+            whereActionsAreASubsetOrEqual: in_array(AuthorizationService::OWN_ACTION, $grantedActions, true) ?
                 null : $grantedActions,
             firstItemIndex: $firstItemIndex,
             maxNumItemsPerPage: $maxNumItemsPerPage
@@ -476,7 +477,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         return $this->addResourceActionGrantByResourceClassAndIdentifier(
             self::GROUP_RESOURCE_CLASS, $userGroupIdentifier,
-            action: self::MANAGE_ACTION,
+            action: self::OWN_ACTION,
             userIdentifier: $this->getUserIdentifier()
         );
     }
@@ -518,7 +519,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 ->andWhere("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier IS NOT NULL") // group items only
                 ->andWhere($queryBuilder->expr()->in(
                     "$AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS.action",
-                    [self::MANAGE_ACTION, self::READ_GROUP_ACTION]));
+                    [self::OWN_ACTION, self::READ_GROUP_ACTION]));
 
             if ($groupNameLike = $filters[self::GROUP_SEARCH_FILTER] ?? null) {
                 $queryBuilder
@@ -651,14 +652,14 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
-     * Updates the manage resource collection policy grants in the grants table according to the current bundle configuration.
-     * It ensures that there is one manage grant per resource class defined in the config, whose grant holders are
+     * Updates the resource collection owner policy grants in the grants table according to the current bundle configuration.
+     * It ensures that there is one owner grant per resource class defined in the config, whose grant holders are
      * defined by the Configuration::MANAGE_RESOURCE_COLLECTION_POLICY.
      */
-    public function updateManageResourceCollectionPolicyGrants(): void
+    public function updateResourceCollectionOwnerPolicyGrants(): void
     {
         $manageResourceCollectionPolicyNames = [];
-        foreach ($this->config[Configuration::MANAGE_RESOURCE_COLLECTION_POLICIES] ?? [] as $resourceClassConfig) {
+        foreach ($this->config[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES] ?? [] as $resourceClassConfig) {
             $manageResourceCollectionPolicyNames[] =
                 self::toManageResourceCollectionPolicyName($resourceClassConfig[Configuration::RESOURCE_CLASS]);
         }
@@ -693,9 +694,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             }
             /** @var ?ResourceActionGrant $policyGrant */
             if ($policyGrant = $resourceClassGrants['policy_grant'] ?? null) {
-                // the manage resource collection policy grant is present in the DB
+                // the resource collection owner policy grant is present in the DB
                 if (false === $isPolicyPresentInConfig) {
-                    // however, the manage resource collection policy is not present in config anymore
+                    // however, the resource collection owner policy is not present in config anymore
                     if (empty($resourceClassGrants['other_grants'])) {
                         // (A) no other grants -> delete the authorization resource from DB
                         $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
@@ -711,18 +712,18 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                         // (B) there are other (not auto-added) grants -> just remove the auto-added policy grant from DB
                         $this->internalResourceActionGrantService->removeResourceActionGrantByIdentifier($policyGrant->getIdentifier());
                     }
-                } // (C) otherwise we are done, since the manage resource collection policy is still present in config
+                } // (C) otherwise we are done, since the resource collection owner policy is still present in config
             } else {
                 // the policy grant is not present in DB (however, the authorization resource is)
                 if ($isPolicyPresentInConfig) {
-                    // (D) the manage resource collection policy is present in config -> auto-add the policy grant to DB
+                    // (D) the resource collection owner policy is present in config -> auto-add the policy grant to DB
                     $otherGrant = $resourceClassGrants['other_grants'][0];
                     $this->addResourceActionGrantByResourceClassAndIdentifier($otherGrant->getResourceClass(),
                         $otherGrant->getResourceIdentifier(),
-                        action: self::MANAGE_ACTION,
+                        action: self::OWN_ACTION,
                         dynamicUserGroupIdentifier: $manageResourceCollectionPolicyName
                     );
-                } // the manage resource collection policy is not present in config -> nothing to do
+                } // the resource collection owner policy is not present in config -> nothing to do
             }
         }
 
@@ -730,7 +731,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         foreach ($manageResourceCollectionPolicyNames as $manageResourceCollectionPolicyName) {
             $this->addResourceActionGrantByResourceClassAndIdentifier(
                 self::toResourceClass($manageResourceCollectionPolicyName), self::COLLECTION_RESOURCE_IDENTIFIER,
-                action: self::MANAGE_ACTION,
+                action: self::OWN_ACTION,
                 dynamicUserGroupIdentifier: $manageResourceCollectionPolicyName
             );
         }
@@ -755,8 +756,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             }
             if ([] !== array_filter($currentUsersResourceActionGrants,
                 function (ResourceActionGrant $currentUsersResourceActionGrant): bool {
-                    return $currentUsersResourceActionGrant->getAction() === self::MANAGE_ACTION
-                        || $currentUsersResourceActionGrant->getRole()?->getIdentifier() === self::MANAGER_ROLE_IDENTIFIER;
+                    return $currentUsersResourceActionGrant->getAction() === self::OWN_ACTION
+                        || $currentUsersResourceActionGrant->getRole()?->getIdentifier() === self::OWNER_ROLE_IDENTIFIER;
                 })) { // new grant (no share)
                 // resource managers can add any grant for the resource (without sharing a grant)
                 $isAuthorized = true;
@@ -811,8 +812,8 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             }
             if ([] !== array_filter($currentUsersResourceActionGrants,
                 function (ResourceActionGrant $currentUsersResourceActionGrant): bool {
-                    return $currentUsersResourceActionGrant->getAction() === self::MANAGE_ACTION
-                        || $currentUsersResourceActionGrant->getRole()?->getIdentifier() === self::MANAGER_ROLE_IDENTIFIER;
+                    return $currentUsersResourceActionGrant->getAction() === self::OWN_ACTION
+                        || $currentUsersResourceActionGrant->getRole()?->getIdentifier() === self::OWNER_ROLE_IDENTIFIER;
                 })) {
                 // resource managers can remove any grants
                 $isAuthorized = true;
@@ -880,7 +881,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $managedAuthorizationResourceIdentifiersBinary = $this->internalResourceActionGrantService->get(
                 InternalResourceActionGrantService::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS,
                 $resourceClass, $resourceIdentifier, $resourceType,
-                actions: [AuthorizationService::MANAGE_ACTION],
+                actions: [AuthorizationService::OWN_ACTION],
                 userIdentifier: $userIdentifier,
                 groupIdentifiers: $groupIdentifiers,
                 dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers);
@@ -938,7 +939,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
         string $resourceClass, string $resourceIdentifier): bool
     {
-        return in_array(AuthorizationService::MANAGE_ACTION,
+        return in_array(AuthorizationService::OWN_ACTION,
             $this->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier)?->getActions() ?? [],
             true);
     }
@@ -989,7 +990,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function configure(): void
     {
         $policies = [];
-        foreach ($this->config[Configuration::MANAGE_RESOURCE_COLLECTION_POLICIES] ?? [] as $resourceClassConfig) {
+        foreach ($this->config[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES] ?? [] as $resourceClassConfig) {
             $policies[self::toManageResourceCollectionPolicyName($resourceClassConfig[Configuration::RESOURCE_CLASS])] =
                 $resourceClassConfig[Configuration::POLICY];
         }

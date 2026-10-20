@@ -13,7 +13,7 @@ class Configuration implements ConfigurationInterface
 {
     public const DATABASE_URL = 'database_url';
     public const CREATE_GROUPS_POLICY = 'create_groups_policy';
-    public const MANAGE_RESOURCE_COLLECTION_POLICIES = 'manage_resource_collection_policies';
+    public const RESOURCE_COLLECTION_OWNER_POLICIES = 'resource_collection_owner_policies';
     public const ADD_RESOURCE_POLICIES = 'add_resource_policies';
     public const RESOURCE_CLASS = 'resource_class';
     public const POLICY = 'policy';
@@ -71,7 +71,7 @@ class Configuration implements ConfigurationInterface
                        ->end()
                     ->end()
                 ->end()
-                ->arrayNode(self::MANAGE_RESOURCE_COLLECTION_POLICIES)
+                ->arrayNode(self::RESOURCE_COLLECTION_OWNER_POLICIES)
                     ->arrayPrototype()
                         ->children()
                             ->scalarNode(self::RESOURCE_CLASS)
@@ -87,7 +87,7 @@ class Configuration implements ConfigurationInterface
                             ->end()
                             ->scalarNode(self::POLICY)
                                 ->cannotBeEmpty()
-                                ->info('The policy that determines whether the currently logger-in user is authorized to manage this resource class\' resource collection.')
+                                ->info('The policy that determines whether the currently logger-in user is an owner of this resource class\' resource collection.')
                                 ->defaultValue('false')
                             ->end()
                         ->end()

@@ -13,7 +13,7 @@ final class Version20240704105000 extends EntityManagerMigration
 {
     public function getDescription(): string
     {
-        return 'increase the length of dynamic group identifiers to fit the prefix for manage resource collection policies (resource class max length + 1)';
+        return 'increase the length of dynamic group identifiers to fit the prefix for resource collection owner policies (resource class max length + 1)';
     }
 
     public function up(Schema $schema): void

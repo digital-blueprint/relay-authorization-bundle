@@ -33,6 +33,6 @@ class AddTestResourceCommandTest extends AbstractAuthorizationServiceTestCase
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $resourceActionGrant->getUserIdentifier());
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $resourceActionGrant->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $resourceActionGrant->getResourceIdentifier());
-        $this->assertEquals(ResourceActionGrantService::MANAGE_ACTION, $resourceActionGrant->getAction());
+        $this->assertEquals(ResourceActionGrantService::OWN_ACTION, $resourceActionGrant->getAction());
     }
 }

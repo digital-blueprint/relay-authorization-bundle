@@ -185,7 +185,7 @@ class ResourceActionGrant
     #[ApiProperty(
         description: 'AuthorizationRole to grant',
         openapiContext: [
-            'example' => '/authorization/roles/'.InternalResourceActionGrantService::MANAGER_ROLE_IDENTIFIER,
+            'example' => '/authorization/roles/'.InternalResourceActionGrantService::OWNER_ROLE_IDENTIFIER,
         ]
     )]
     #[ORM\JoinColumn(name: self::ROLE_IDENTIFIER_COLUMN, referencedColumnName: Role::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]

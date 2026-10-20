@@ -26,7 +26,7 @@ class AddTestResourceCommand extends Command
         $this->setName('dbp:relay:authorization:add-resource');
         $this->setAliases(['dbp:relay-authorization:add-resource']);
         $this
-            ->setDescription('Add a resource and a manage resource grant for testing')
+            ->setDescription('Add a resource and a owner grant for testing')
             ->addArgument('resourceClass', InputArgument::REQUIRED, 'resourceClass')
             ->addArgument('userIdentifier', InputArgument::REQUIRED, 'userIdentifier')
             ->addArgument('resourceIdentifier', InputArgument::OPTIONAL, 'identifier: default null', null)
@@ -42,7 +42,7 @@ class AddTestResourceCommand extends Command
         $this->authorizationService->addResourceActionGrantByResourceClassAndIdentifier(
             $resourceClass,
             $resourceIdentifier,
-            action: AuthorizationService::MANAGE_ACTION,
+            action: AuthorizationService::OWN_ACTION,
             userIdentifier: $userIdentifier
         );
 
