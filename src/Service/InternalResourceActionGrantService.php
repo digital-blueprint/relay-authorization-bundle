@@ -144,7 +144,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     {
         $ownActionNames = [
             'en' => 'Own',
-            'de' => 'Eigentümer sein',
+            'de' => 'Eigentümer*in sein',
         ];
         self::addOrUpdateAvailableResourceClassActionInternal(
             $entityManager,
@@ -167,7 +167,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         self::addOrUpdateRoleStatic($entityManager,
             [
                 'en' => 'Owner',
-                'de' => 'Eigentümer',
+                'de' => 'Eigentümer*in',
             ],
             [
                 // works for both item and collection resources:
