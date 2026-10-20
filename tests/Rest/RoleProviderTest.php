@@ -127,7 +127,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
                     && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer*in';
             }
         ));
 
@@ -168,7 +168,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
                     && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer*in';
             }
         ));
 
@@ -223,7 +223,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
                     && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer*in';
             }
         ));
         $this->assertCount(1, $this->selectWhere($rolesReturned,
@@ -274,7 +274,7 @@ class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizatio
                     && $role->getRoleNames()[0]->getLanguageTag() === 'en'
                     && $role->getRoleNames()[0]->getName() === 'Owner'
                     && $role->getRoleNames()[1]->getLanguageTag() === 'de'
-                    && $role->getRoleNames()[1]->getName() === 'Eigentümer';
+                    && $role->getRoleNames()[1]->getName() === 'Eigentümer*in';
             }
         ));
         $this->assertCount(1, $this->selectWhere($rolesReturned,
