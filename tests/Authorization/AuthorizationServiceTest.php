@@ -29,7 +29,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             $this->testConfig[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES] = [
                 [
                     Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS,
-                    Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
+                    Configuration::POLICY => 'user.get("IS_TEST_RESOURCE_COLLECTION_OWNER")',
                 ],
             ];
             $this->testConfig[Configuration::DYNAMIC_GROUPS] = [
@@ -59,7 +59,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertNull($grantedActions);
 
         $attributes = $this->getDefaultUserAttributes();
-        $attributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = true;
+        $attributes['IS_TEST_RESOURCE_COLLECTION_OWNER'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $attributes);
 
         $grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser(
@@ -150,7 +150,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertEquals(['everybody'], $currentUsersDynamicGroups);
 
         $userAttributes = $this->getDefaultUserAttributes();
-        $userAttributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = true;
+        $userAttributes['IS_TEST_RESOURCE_COLLECTION_OWNER'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
         $currentUsersDynamicGroups = $this->authorizationService->getDynamicGroupsCurrentUserIsMemberOf();
@@ -3934,7 +3934,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES][] =
             [
                 Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS_2,
-                Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
+                Configuration::POLICY => 'user.get("IS_TEST_RESOURCE_COLLECTION_OWNER")',
             ];
 
         $this->setUp();
@@ -3967,7 +3967,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES] = [
             [
                 Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS_2,
-                Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
+                Configuration::POLICY => 'user.get("IS_TEST_RESOURCE_COLLECTION_OWNER")',
             ],
         ];
 
@@ -3999,7 +3999,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES][] =
             [
                 Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS_2,
-                Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
+                Configuration::POLICY => 'user.get("IS_TEST_RESOURCE_COLLECTION_OWNER")',
             ];
         $this->setUp();
 
@@ -4029,7 +4029,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->testConfig[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES][] =
             [
                 Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS_2,
-                Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
+                Configuration::POLICY => 'user.get("IS_TEST_RESOURCE_COLLECTION_OWNER")',
             ];
         $this->setUp();
 
@@ -4419,7 +4419,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
     protected function getDefaultUserAttributes(): array
     {
         $defaultUserAttributes = parent::getDefaultUserAttributes();
-        $defaultUserAttributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = false;
+        $defaultUserAttributes['IS_TEST_RESOURCE_COLLECTION_OWNER'] = false;
         $defaultUserAttributes['IS_STUDENT'] = false;
         $defaultUserAttributes['IS_EMPLOYEE'] = false;
 

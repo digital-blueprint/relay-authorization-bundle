@@ -44,8 +44,8 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     public const MAX_NUM_RESULTS_DEFAULT = 1024;
 
-    public const MANAGE_ITEM_ACTION_UUID = '019ecac3-2eea-7297-ae1a-486de6fca628';
-    public const MANAGE_COLLECTION_ACTION_UUID = '019ecac3-d095-7ae7-b10b-30bff78040a7';
+    public const OWN_ITEM_ACTION_UUID = '019ecac3-2eea-7297-ae1a-486de6fca628';
+    public const OWN_COLLECTION_ACTION_UUID = '019ecac3-d095-7ae7-b10b-30bff78040a7';
 
     public const OWNER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
 
@@ -152,7 +152,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             AuthorizationService::OWN_ACTION,
             AvailableResourceClassAction::ITEM_ACTION_TYPE,
             $ownActionNames,
-            identifier: self::MANAGE_ITEM_ACTION_UUID,
+            identifier: self::OWN_ITEM_ACTION_UUID,
             logger: $logger
         );
         self::addOrUpdateAvailableResourceClassActionInternal(
@@ -161,7 +161,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             AuthorizationService::OWN_ACTION,
             AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
             $ownActionNames,
-            identifier: self::MANAGE_COLLECTION_ACTION_UUID,
+            identifier: self::OWN_COLLECTION_ACTION_UUID,
             logger: $logger
         );
         self::addOrUpdateRoleStatic($entityManager,
@@ -530,7 +530,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
     /**
      * Returns all available resource class actions for the given resource class and action type.
-     * NOTE: The MANAGE_ACTION is included if any actions are defined for the given resource class and action type
+     * NOTE: The 'own' action is included if any actions are defined for the given resource class and action type
      * (unless it's filtered out by $whereActionsIn).
      *
      * @param string[]|null $whereActionsIn If provided, only return available resource class actions whose action is in this array
