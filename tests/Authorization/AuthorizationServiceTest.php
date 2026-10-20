@@ -2846,7 +2846,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     && $rag->getResourceIdentifier() === AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
                     && $rag->getUserIdentifier() === null
                     && $rag->getUserGroup() === null
-                    && $rag->getDynamicUserGroupIdentifier() === AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS;
+                    && $rag->getDynamicUserGroupIdentifier() === AuthorizationService::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX.self::TEST_RESOURCE_CLASS;
             }));
     }
 
@@ -2937,7 +2937,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                     && $rag->getResourceIdentifier() === AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
                     && $rag->getUserIdentifier() === null
                     && $rag->getUserGroup() === null
-                    && $rag->getDynamicUserGroupIdentifier() === AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS;
+                    && $rag->getDynamicUserGroupIdentifier() === AuthorizationService::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX.self::TEST_RESOURCE_CLASS;
             }));
     }
 
@@ -4012,7 +4012,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($testResource2CollectionResource->getIdentifier(), $resourceActionGrants[0]->getAuthorizationResource()->getIdentifier());
         $this->assertEquals(AuthorizationService::OWN_ACTION, $resourceActionGrants[0]->getAction());
-        $this->assertEquals(AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS_2, $resourceActionGrants[0]->getDynamicUserGroupIdentifier());
+        $this->assertEquals(AuthorizationService::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX.self::TEST_RESOURCE_CLASS_2, $resourceActionGrants[0]->getDynamicUserGroupIdentifier());
     }
 
     public function testUpdateManageResourceCollectionPolicyGrantsF(): void
@@ -4042,7 +4042,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->assertCount(1, $resourceActionGrants);
         $this->assertEquals($testResource2CollectionResource->getIdentifier(), $resourceActionGrants[0]->getAuthorizationResource()->getIdentifier());
         $this->assertEquals(AuthorizationService::OWN_ACTION, $resourceActionGrants[0]->getAction());
-        $this->assertEquals(AuthorizationService::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.self::TEST_RESOURCE_CLASS_2,
+        $this->assertEquals(AuthorizationService::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX.self::TEST_RESOURCE_CLASS_2,
             $resourceActionGrants[0]->getDynamicUserGroupIdentifier());
     }
 
