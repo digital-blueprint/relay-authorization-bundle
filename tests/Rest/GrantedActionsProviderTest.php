@@ -172,7 +172,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             $resourceGroup->getResourceIdentifier(), $resource->getResourceIdentifier());
 
         $this->addGrant($resource,
-            action: AuthorizationService::MANAGE_ACTION,
+            action: AuthorizationService::OWN_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER);
         $this->addGrant($resourceGroup,
             userIdentifier: self::ANOTHER_USER_IDENTIFIER,
@@ -708,7 +708,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::EXCLUDE_COLLECTION_RESOURCES_QUERY_PARAMETER => false,
-                Common::WHERE_IS_GRANTED_ACTION_QUERY_PARAMETER => AuthorizationService::MANAGE_ACTION,
+                Common::WHERE_IS_GRANTED_ACTION_QUERY_PARAMETER => AuthorizationService::OWN_ACTION,
             ]
         );
         $this->internalResourceActionGrantService->reset();
@@ -745,7 +745,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
         $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
-                Common::WHERE_IS_GRANTED_ACTION_QUERY_PARAMETER => AuthorizationService::MANAGE_ACTION,
+                Common::WHERE_IS_GRANTED_ACTION_QUERY_PARAMETER => AuthorizationService::OWN_ACTION,
             ]
         );
         $this->internalResourceActionGrantService->reset();

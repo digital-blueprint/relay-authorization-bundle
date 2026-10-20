@@ -119,14 +119,14 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
-        $resourceActionGrant->setAction(AuthorizationService::MANAGE_ACTION);
+        $resourceActionGrant->setAction(AuthorizationService::OWN_ACTION);
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
         $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
 
         $event = $this->testResourceActionGrantAddedEventSubscriber->getEvent();
         $this->assertEquals(self::TEST_RESOURCE_CLASS, $event->getResourceActionGrant()->getResourceClass());
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $event->getResourceActionGrant()->getResourceIdentifier());
-        $this->assertEquals(AuthorizationService::MANAGE_ACTION, $event->getResourceActionGrant()->getAction());
+        $this->assertEquals(AuthorizationService::OWN_ACTION, $event->getResourceActionGrant()->getAction());
         $this->assertNull($event->getResourceActionGrant()->getRole());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $event->getResourceActionGrant()->getUserIdentifier());
         $this->assertNull($event->getResourceActionGrant()->getDynamicUserGroupIdentifier());
@@ -542,14 +542,14 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
         $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $resourceActionGrant->setAction(AuthorizationService::MANAGE_ACTION);
+        $resourceActionGrant->setAction(AuthorizationService::OWN_ACTION);
         $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
         $this->assertTrue(UuidV7::isValid($resourceActionGrant->getIdentifier()));
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $resourceActionGrant->getResourceClass());
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, $resourceActionGrant->getResourceIdentifier());
-        $this->assertEquals(AuthorizationService::MANAGE_ACTION, $resourceActionGrant->getAction());
+        $this->assertEquals(AuthorizationService::OWN_ACTION, $resourceActionGrant->getAction());
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $resourceActionGrant->getUserIdentifier());
         $this->assertEquals(null, $resourceActionGrant->getRole());
         $this->assertEquals(null, $resourceActionGrant->getUserGroup());

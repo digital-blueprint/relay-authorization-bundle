@@ -27,13 +27,13 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
     {
         $this->assertFalse($this->userAttributeProvider->hasUserAttribute(''));
         $this->assertFalse($this->userAttributeProvider->hasUserAttribute('foo'));
-        $this->assertFalse($this->userAttributeProvider->hasUserAttribute('foo.'.AuthorizationService::MANAGE_ACTION));
+        $this->assertFalse($this->userAttributeProvider->hasUserAttribute('foo.'.AuthorizationService::OWN_ACTION));
         $this->assertFalse($this->userAttributeProvider->hasUserAttribute(self::TEST_RESOURCE_CLASS.'foo'));
         $this->assertFalse($this->userAttributeProvider->hasUserAttribute(self::TEST_RESOURCE_CLASS.'foo.bar'));
         $this->assertTrue($this->userAttributeProvider->hasUserAttribute(
             self::TEST_RESOURCE_CLASS.'.'.TestResources::CREATE_ACTION));
-        $this->assertTrue($this->userAttributeProvider->hasUserAttribute(self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::MANAGE_ACTION));
-        $this->assertTrue($this->userAttributeProvider->hasUserAttribute(self::TEST_RESOURCE_CLASS.'.foo.'.AuthorizationService::MANAGE_ACTION));
+        $this->assertTrue($this->userAttributeProvider->hasUserAttribute(self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::OWN_ACTION));
+        $this->assertTrue($this->userAttributeProvider->hasUserAttribute(self::TEST_RESOURCE_CLASS.'.foo.'.AuthorizationService::OWN_ACTION));
         $this->assertTrue($this->userAttributeProvider->hasUserAttribute(
             self::TEST_RESOURCE_CLASS.'.foo.'.TestResources::READ_ACTION));
     }
@@ -50,7 +50,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
      */
     public function testGetCollectionManageActionAttribute(): void
     {
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::MANAGE_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::OWN_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
 
@@ -74,7 +74,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.TestResources::WRITE_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.AuthorizationService::MANAGE_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.AuthorizationService::OWN_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.
@@ -101,7 +101,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $this->assertTrue($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
 
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::MANAGE_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::OWN_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
         $attributeName = self::TEST_RESOURCE_CLASS.'.foo';
@@ -124,12 +124,12 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $authorizationResource = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
 
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.AuthorizationService::MANAGE_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.AuthorizationService::OWN_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
 
         $this->testEntityManager->addResourceActionGrant($authorizationResource,
-            AuthorizationService::MANAGE_ACTION, self::CURRENT_USER_IDENTIFIER);
+            AuthorizationService::OWN_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->assertTrue($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
@@ -148,7 +148,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.TestResources::CREATE_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::MANAGE_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::OWN_ACTION;
         // or available item actions of other resource items:
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
@@ -177,7 +177,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $this->assertTrue($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
 
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.AuthorizationService::MANAGE_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.'.AuthorizationService::OWN_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'.foo';
@@ -186,7 +186,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.TestResources::CREATE_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
-        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::MANAGE_ACTION;
+        $attributeName = self::TEST_RESOURCE_CLASS.'.'.AuthorizationService::OWN_ACTION;
         $this->assertFalse($this->userAttributeProvider->getUserAttribute(
             self::CURRENT_USER_IDENTIFIER, $attributeName));
         $attributeName = self::TEST_RESOURCE_CLASS.'.'.self::TEST_RESOURCE_IDENTIFIER.'_2.'.
@@ -206,7 +206,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
     protected function getTestConfig(): array
     {
         $testConfig = parent::getTestConfig();
-        $testConfig[Configuration::MANAGE_RESOURCE_COLLECTION_POLICIES] = [
+        $testConfig[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES] = [
             [
                 Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS,
                 Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',

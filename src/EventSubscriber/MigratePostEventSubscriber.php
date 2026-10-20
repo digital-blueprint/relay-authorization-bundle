@@ -29,9 +29,9 @@ readonly class MigratePostEventSubscriber implements EventSubscriberInterface
     {
         $output = $event->getOutput();
         try {
-            $this->authorizationService->updateManageResourceCollectionPolicyGrants();
+            $this->authorizationService->updateResourceCollectionOwnerPolicyGrants();
         } catch (\Throwable $throwable) {
-            $output->writeln('Error updating manage resource collection policy grants: '.$throwable->getMessage());
+            $output->writeln('Error updating resource collection owner policy grants: '.$throwable->getMessage());
         }
     }
 }

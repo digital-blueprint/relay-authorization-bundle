@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- replace 'manage' by 'own' which is more common in authz terminology
 - GrantedActions API: If the user has a manage grant for a resource, add all available actions of the respective resource class and
   type (item or collection) to list of granted actions.
 - Allow users to add new authorization over the HTTP API, if they are granted the "add_resource" permission for the respective

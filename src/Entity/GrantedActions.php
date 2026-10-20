@@ -121,9 +121,9 @@ class GrantedActions
     #[Ignore]
     public function addAction(string $action): void
     {
-        if ([AuthorizationService::MANAGE_ACTION] !== $this->actions) {
-            if (AuthorizationService::MANAGE_ACTION === $action) {
-                $this->actions = [AuthorizationService::MANAGE_ACTION];
+        if ([AuthorizationService::OWN_ACTION] !== $this->actions) {
+            if (AuthorizationService::OWN_ACTION === $action) {
+                $this->actions = [AuthorizationService::OWN_ACTION];
             } else {
                 $this->actions[] = $action;
             }

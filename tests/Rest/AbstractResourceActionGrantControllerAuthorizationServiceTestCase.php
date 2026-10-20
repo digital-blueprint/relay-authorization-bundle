@@ -32,7 +32,7 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addResourceAndGrant($resourceClass, $resourceIdentifier,
-            AuthorizationService::MANAGE_ACTION, $userIdentifier);
+            AuthorizationService::OWN_ACTION, $userIdentifier);
     }
 
     protected function addResourceAndGrant(string $resourceClass = self::TEST_RESOURCE_CLASS,
@@ -79,6 +79,6 @@ abstract class AbstractResourceActionGrantControllerAuthorizationServiceTestCase
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
         return $this->addGrant(
-            $resource, AuthorizationService::MANAGE_ACTION, $userIdentifier);
+            $resource, AuthorizationService::OWN_ACTION, $userIdentifier);
     }
 }

@@ -14,11 +14,11 @@ final class Version20260720093400 extends EntityManagerMigration
 {
     public function getDescription(): string
     {
-        return 'add administrator role';
+        return 'add owner actions and roles';
     }
 
     public function up(Schema $schema): void
     {
-        InternalResourceActionGrantService::ensureManageActionsAndRoleAreAvailable($this->getEntityManager());
+        InternalResourceActionGrantService::addOrUpdateOwnerActionsAndRoles($this->getEntityManager());
     }
 }

@@ -202,7 +202,7 @@ class ApiTest extends ApiTestCase
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             userIdentifier: self::CURRENT_USER_IDENTIFIER,
-            roleIdentifier: AuthorizationService::MANAGER_ROLE_IDENTIFIER,
+            roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER,
             creatorId: self::CURRENT_USER_IDENTIFIER
         );
 
@@ -214,7 +214,7 @@ class ApiTest extends ApiTestCase
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $manageGrantFromGet['resourceIdentifier']);
         $this->assertEquals(AuthorizationResource::RESOURCE_RESOURCE_TYPE, $manageGrantFromGet['resourceType']);
         $this->assertEquals(null, $manageGrantFromGet['action']);
-        $this->assertEquals('/authorization/roles/'.AuthorizationService::MANAGER_ROLE_IDENTIFIER, $manageGrantFromGet['role']);
+        $this->assertEquals('/authorization/roles/'.AuthorizationService::OWNER_ROLE_IDENTIFIER, $manageGrantFromGet['role']);
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $manageGrantFromGet['userIdentifier']);
         $this->assertEquals(null, $manageGrantFromGet['userGroup']);
         $this->assertEquals(null, $manageGrantFromGet['dynamicUserGroupIdentifier']);
@@ -272,7 +272,7 @@ class ApiTest extends ApiTestCase
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             userIdentifier: self::CURRENT_USER_IDENTIFIER,
-            roleIdentifier: AuthorizationService::MANAGER_ROLE_IDENTIFIER,
+            roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER,
             creatorId: self::CURRENT_USER_IDENTIFIER
         );
 

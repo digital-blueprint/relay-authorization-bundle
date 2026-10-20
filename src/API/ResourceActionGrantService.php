@@ -16,8 +16,8 @@ class ResourceActionGrantService
 {
     public const COLLECTION_RESOURCE_IDENTIFIER = AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
 
-    public const MANAGE_ACTION = AuthorizationService::MANAGE_ACTION;
-    public const MANAGER_ROLE_IDENTIFIER = AuthorizationService::MANAGER_ROLE_IDENTIFIER;
+    public const OWN_ACTION = AuthorizationService::OWN_ACTION;
+    public const OWNER_ROLE_IDENTIFIER = AuthorizationService::OWNER_ROLE_IDENTIFIER;
 
     public const ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
     public const COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;

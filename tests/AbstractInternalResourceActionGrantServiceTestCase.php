@@ -62,7 +62,7 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
 
         $resourceClassActions = array_keys($resourceClassActions);
         if ([] !== $resourceClassActions) {
-            $resourceClassActions[] = ResourceActionGrantService::MANAGE_ACTION;
+            $resourceClassActions[] = ResourceActionGrantService::OWN_ACTION;
         }
 
         return $resourceClassActions;

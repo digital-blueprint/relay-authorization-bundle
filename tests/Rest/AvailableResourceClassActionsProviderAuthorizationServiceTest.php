@@ -38,7 +38,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
 
         $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            action: AuthorizationService::MANAGE_ACTION,
+            action: AuthorizationService::OWN_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER
         );
         $rag = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
@@ -85,7 +85,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
             Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
         ]);
         $allTestResourceActionsPlusManage = TestResources::TEST_RESOURCE_ITEM_ACTIONS;
-        $allTestResourceActionsPlusManage[AuthorizationService::MANAGE_ACTION] = [];
+        $allTestResourceActionsPlusManage[AuthorizationService::OWN_ACTION] = [];
         $this->assertCount(count($allTestResourceActionsPlusManage), $collection);
         $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
             $allTestResourceActionsPlusManage, AvailableResourceClassAction::ITEM_ACTION_TYPE);
