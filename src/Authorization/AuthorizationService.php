@@ -81,7 +81,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const GROUP_SEARCH_FILTER = 'search';
     public const GET_CHILD_GROUP_CANDIDATES_FOR_GROUP_IDENTIFIER_FILTER = 'getChildGroupCandidatesForGroupIdentifier';
     public const DYNAMIC_GROUP_IDENTIFIER_EVERYBODY = 'everybody';
-    public const MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX = '@';
+    public const RESOURCE_COLLECTION_OWNER_POLICY_PREFIX = '@';
     public const COLLECTION_RESOURCE_IDENTIFIER = InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER;
 
     public const RESOURCE_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE;
@@ -654,7 +654,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * Updates the resource collection owner policy grants in the grants table according to the current bundle configuration.
      * It ensures that there is one owner grant per resource class defined in the config, whose grant holders are
-     * defined by the Configuration::MANAGE_RESOURCE_COLLECTION_POLICY.
+     * defined by the Configuration::RESOURCE_COLLECTION_OWNER_POLICY.
      */
     public function updateResourceCollectionOwnerPolicyGrants(): void
     {
@@ -832,17 +832,17 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     private static function toManageResourceCollectionPolicyName(string $resourceClass): string
     {
-        return self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX.$resourceClass;
+        return self::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX.$resourceClass;
     }
 
     private static function toResourceClass(string $manageResourceCollectionPolicyName): string
     {
-        return substr($manageResourceCollectionPolicyName, strlen(self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX));
+        return substr($manageResourceCollectionPolicyName, strlen(self::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX));
     }
 
     private static function isManageResourceCollectionPolicyName(string $dynamicUserGroupIdentifier): bool
     {
-        return str_starts_with($dynamicUserGroupIdentifier, self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX);
+        return str_starts_with($dynamicUserGroupIdentifier, self::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX);
     }
 
     private static function toIsCurrentUserMemberOfDynamicGroupPolicyName(string $dynamicUserGroupIdentifier): string
@@ -852,7 +852,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     private static function isCurrentUserMemberOfDynamicGroupPolicyName(string $dynamicUserGroupIdentifier): bool
     {
-        return false === str_starts_with($dynamicUserGroupIdentifier, self::MANAGE_RESOURCE_COLLECTION_POLICY_PREFIX);
+        return false === str_starts_with($dynamicUserGroupIdentifier, self::RESOURCE_COLLECTION_OWNER_POLICY_PREFIX);
     }
 
     /**

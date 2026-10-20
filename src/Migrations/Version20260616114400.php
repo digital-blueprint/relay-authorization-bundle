@@ -24,9 +24,9 @@ final class Version20260616114400 extends EntityManagerMigration
 
     public function up(Schema $schema): void
     {
-        $MANAGE_ITEM_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::OWN_ITEM_ACTION_UUID)->toHex();
-        $MANAGE_COLLECTION_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::OWN_COLLECTION_ACTION_UUID)->toHex();
-        $MANAGE_ACTION = AuthorizationService::OWN_ACTION;
+        $OWN_ITEM_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::OWN_ITEM_ACTION_UUID)->toHex();
+        $OWN_COLLECTION_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::OWN_COLLECTION_ACTION_UUID)->toHex();
+        $MANAGE_ACTION = 'manage';
         $COLLECTION_RESOURCE_IDENTIFIER = AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
         $ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
         $COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;
@@ -44,8 +44,8 @@ final class Version20260616114400 extends EntityManagerMigration
         $this->addSql('
             INSERT INTO '.AvailableResourceClassAction::TABLE_NAME." (identifier, resource_class, action, action_type)
             VALUES
-                ($MANAGE_ITEM_ACTION_UUID, NULL, '$MANAGE_ACTION', $ITEM_ACTION_TYPE),
-                ($MANAGE_COLLECTION_ACTION_UUID, NULL, '$MANAGE_ACTION', $COLLECTION_ACTION_TYPE)
+                ($OWN_ITEM_ACTION_UUID, NULL, '$MANAGE_ACTION', $ITEM_ACTION_TYPE),
+                ($OWN_COLLECTION_ACTION_UUID, NULL, '$MANAGE_ACTION', $COLLECTION_ACTION_TYPE)
         ");
 
         $this->addSql('
