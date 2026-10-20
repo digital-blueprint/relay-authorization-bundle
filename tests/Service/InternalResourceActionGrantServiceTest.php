@@ -1101,7 +1101,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         );
         $this->assertCount(1, $availableResourceClassActions);
         $availableResourceClassAction = $availableResourceClassActions[0];
-        $this->assertEquals(InternalResourceActionGrantService::MANAGE_ITEM_ACTION_UUID, $availableResourceClassAction->getIdentifier());
+        $this->assertEquals(InternalResourceActionGrantService::OWN_ITEM_ACTION_UUID, $availableResourceClassAction->getIdentifier());
         $this->assertEquals(AuthorizationService::OWN_ACTION, $availableResourceClassAction->getAction());
         $this->assertEquals(AvailableResourceClassAction::ITEM_ACTION_TYPE, $availableResourceClassAction->getActionType());
 
@@ -1112,7 +1112,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         );
         $this->assertCount(1, $availableResourceClassActions);
         $availableResourceClassAction = $availableResourceClassActions[0];
-        $this->assertEquals(InternalResourceActionGrantService::MANAGE_COLLECTION_ACTION_UUID, $availableResourceClassAction->getIdentifier());
+        $this->assertEquals(InternalResourceActionGrantService::OWN_COLLECTION_ACTION_UUID, $availableResourceClassAction->getIdentifier());
         $this->assertEquals(AuthorizationService::OWN_ACTION, $availableResourceClassAction->getAction());
         $this->assertEquals(AvailableResourceClassAction::COLLECTION_ACTION_TYPE, $availableResourceClassAction->getActionType());
 

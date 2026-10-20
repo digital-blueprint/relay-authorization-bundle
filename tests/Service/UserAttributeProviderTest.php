@@ -55,7 +55,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
             self::CURRENT_USER_IDENTIFIER, $attributeName));
 
         $userAttributes = $this->getDefaultUserAttributes();
-        $userAttributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = true;
+        $userAttributes['IS_TEST_RESOURCE_COLLECTION_OWNER'] = true;
         $this->login(self::CURRENT_USER_IDENTIFIER, $userAttributes);
 
         $this->assertTrue($this->userAttributeProvider->getUserAttribute(
@@ -198,7 +198,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
     protected function getDefaultUserAttributes(): array
     {
         $defaultUserAttributes = parent::getDefaultUserAttributes();
-        $defaultUserAttributes['MAY_MANAGE_TEST_RESOURCE_COLLECTION'] = false;
+        $defaultUserAttributes['IS_TEST_RESOURCE_COLLECTION_OWNER'] = false;
 
         return $defaultUserAttributes;
     }
@@ -209,7 +209,7 @@ class UserAttributeProviderTest extends AbstractAuthorizationServiceTestCase
         $testConfig[Configuration::RESOURCE_COLLECTION_OWNER_POLICIES] = [
             [
                 Configuration::RESOURCE_CLASS => self::TEST_RESOURCE_CLASS,
-                Configuration::POLICY => 'user.get("MAY_MANAGE_TEST_RESOURCE_COLLECTION")',
+                Configuration::POLICY => 'user.get("IS_TEST_RESOURCE_COLLECTION_OWNER")',
             ],
         ];
 
