@@ -273,6 +273,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 $availableResourceClassAction->setAction($action);
                 $availableResourceClassAction->setActionType($actionType);
                 $entityManager->persist($availableResourceClassAction);
+            } elseif (null !== $identifier) {
+                $availableResourceClassAction->setResourceClass($resourceClass);
+                $availableResourceClassAction->setAction($action);
+                $availableResourceClassAction->setActionType($actionType);
             }
 
             $existingByLanguageTag = [];
