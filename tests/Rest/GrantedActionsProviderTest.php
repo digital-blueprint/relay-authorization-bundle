@@ -10,11 +10,12 @@ use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 
-class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
+class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
 {
     private ?DataProviderTester $grantedActionsProviderTester = null;
 
@@ -37,7 +38,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $manageGrant = $this->addResourceAndManageGrantToTestDB();
+        $manageGrant = $this->addResourceAndOwnerGrantToTestDB();
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             action: TestResources::READ_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER);
@@ -345,7 +346,7 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $manageGrant = $this->addResourceAndManageGrantToTestDB(
+        $manageGrant = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER);
@@ -494,22 +495,22 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $res1_manage = $this->addResourceAndManageGrantToTestDB(
+        $res1_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER
         );
-        $res2_manage = $this->addResourceAndManageGrantToTestDB(
+        $res2_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_2',
             self::ANOTHER_USER_IDENTIFIER
         );
-        $res3_manage = $this->addResourceAndManageGrantToTestDB(
+        $res3_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_3',
             self::ANOTHER_USER_IDENTIFIER.'_2'
         );
-        $resColl_manage = $this->addResourceAndManageGrantToTestDB(
+        $resColl_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER
@@ -929,22 +930,22 @@ class GrantedActionsProviderTest extends AbstractResourceActionGrantControllerAu
             ]
         );
 
-        $res1_manage = $this->addResourceAndManageGrantToTestDB(
+        $res1_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER
         );
-        $res2_manage = $this->addResourceAndManageGrantToTestDB(
+        $res2_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_2',
             self::ANOTHER_USER_IDENTIFIER
         );
-        $res3_manage = $this->addResourceAndManageGrantToTestDB(
+        $res3_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER.'_3',
             self::ANOTHER_USER_IDENTIFIER.'_2'
         );
-        $resColl_manage = $this->addResourceAndManageGrantToTestDB(
+        $resColl_manage = $this->addResourceAndOwnerGrantToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER

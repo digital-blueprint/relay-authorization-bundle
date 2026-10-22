@@ -6,7 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
-use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 
@@ -18,7 +17,6 @@ use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
 class UserGroupProvider extends AbstractDataProvider
 {
     public function __construct(
-        private readonly UserGroupService $groupService,
         private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
@@ -26,24 +24,12 @@ class UserGroupProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->groupService->tryGetUserGroup($id);
+        return $this->authorizationService->getUserGroupByIdentifierIfGranted($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
     {
         return $this->authorizationService->getUserGroupsCurrentUserIsAuthorizedToRead(
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage, $filters);
-    }
-
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
-    {
-        assert($item instanceof UserGroup);
-
-        return $this->authorizationService->isCurrentUserAuthorizedToReadGroup($item);
-    }
-
-    protected function isCurrentUserAuthorizedToGetCollection(array $filters): bool
-    {
-        return true;
     }
 }

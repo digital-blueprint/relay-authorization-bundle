@@ -6,7 +6,6 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
-use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProcessor;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -19,28 +18,9 @@ class UserGroupProcessor extends AbstractDataProcessor implements LoggerAwareInt
     use LoggerAwareTrait;
 
     public function __construct(
-        private readonly UserGroupService $groupService,
         private readonly AuthorizationService $authorizationService)
     {
         parent::__construct();
-    }
-
-    protected function isCurrentUserAuthorizedToAddItem($item, array $filters): bool
-    {
-        assert($item instanceof UserGroup);
-
-        return $this->authorizationService->isCurrentUserAuthorizedToAddGroups();
-    }
-
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
-    {
-        assert($item instanceof UserGroup);
-
-        return match ($operation) {
-            self::UPDATE_ITEM_OPERATION => $this->authorizationService->isCurrentUserAuthorizedToUpdateGroup($item),
-            self::REMOVE_ITEM_OPERATION => $this->authorizationService->isCurrentUserAuthorizedToRemoveGroup($item),
-            default => false,
-        };
     }
 
     /**
@@ -51,38 +31,28 @@ class UserGroupProcessor extends AbstractDataProcessor implements LoggerAwareInt
         assert($data instanceof UserGroup);
         $userGroup = $data;
 
-        $userGroup = $this->groupService->addUserGroup($userGroup);
-
-        try {
-            $this->authorizationService->addUserGroup($userGroup->getIdentifier());
-        } catch (\Throwable $throwable) {
-            // remove inaccessible user group
-            $this->groupService->removeUserGroup($userGroup);
-            throw $throwable;
-        }
-
-        return $userGroup;
+        return $this->authorizationService->addUserGroupIfGranted($userGroup);
     }
 
+    /**
+     * @throws \Throwable
+     */
     protected function updateItem(mixed $identifier, mixed $data, $previousData, array $filters): UserGroup
     {
         assert($data instanceof UserGroup);
         $userGroup = $data;
 
-        return $this->groupService->updateUserGroup($userGroup);
+        return $this->authorizationService->updateUserGroupIfGranted($userGroup);
     }
 
+    /**
+     * @throws \Throwable
+     */
     protected function removeItem(mixed $identifier, mixed $data, array $filters): void
     {
         assert($data instanceof UserGroup);
         $userGroup = $data;
 
-        $this->groupService->removeUserGroup($userGroup);
-
-        try {
-            $this->authorizationService->removeUserGroup($userGroup->getIdentifier());
-        } catch (\Throwable $e) {
-            $this->logger->warning(sprintf('Failed to remove group resource \'%s\' from authorization: %s', $userGroup->getIdentifier(), $e->getMessage()));
-        }
+        $this->authorizationService->removeUserGroupIfGranted($userGroup);
     }
 }

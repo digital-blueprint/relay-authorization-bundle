@@ -32,7 +32,7 @@ class UserGroupMemberProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->groupService->getUserGroupMember($id);
+        return $this->authorizationService->getUserGroupMemberByIdentifierIfGranted($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
@@ -43,28 +43,9 @@ class UserGroupMemberProvider extends AbstractDataProvider
                 Common::REQUIRED_PARAMETER_MISSION_ERROR_ID, [self::GROUP_IDENTIFIER_QUERY_PARAMETER]);
         }
 
-        $userGroup = $this->groupService->tryGetUserGroup($groupIdentifier);
-        if ($userGroup === null) {
-            throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
-                "Group with ID '$groupIdentifier' not found", self::GROUP_NOT_FOUND_ERROR_ID, [$groupIdentifier]);
-        }
-        if (!$this->authorizationService->isCurrentUserAuthorizedToReadGroup($userGroup)) {
-            throw new ApiError(Response::HTTP_FORBIDDEN, 'forbidden');
-        }
+        $this->authorizationService->getUserGroupByIdentifierIfGranted($groupIdentifier);
 
         return $this->groupService->getUserGroupMembers(
             Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage), $maxNumItemsPerPage, $groupIdentifier);
-    }
-
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
-    {
-        assert($item instanceof UserGroupMember);
-
-        return $this->authorizationService->isCurrentUserAuthorizedToReadUserGroupMember($item);
-    }
-
-    protected function isCurrentUserAuthorizedToGetCollection(array $filters): bool
-    {
-        return true;
     }
 }

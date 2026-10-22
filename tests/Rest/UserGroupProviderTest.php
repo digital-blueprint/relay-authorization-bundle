@@ -8,11 +8,13 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Rest\UserGroupProvider;
 use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Uid\Uuid;
 
-class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceTestCase
+class UserGroupProviderTest extends AbstractAuthorizationServiceTestCase
 {
     private DataProviderTester $groupProviderTester;
 
@@ -20,14 +22,13 @@ class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceT
     {
         parent::setUp();
 
-        $groupProvider = new UserGroupProvider(
-            $this->userGroupService, $this->authorizationService);
+        $groupProvider = new UserGroupProvider($this->authorizationService);
         $this->groupProviderTester = DataProviderTester::create($groupProvider, UserGroup::class);
     }
 
     public function testGetGroupItem(): void
     {
-        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        $userGroup = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME)[0];
         $this->testEntityManager->addUserGroupMember($userGroup, self::CURRENT_USER_IDENTIFIER);
         $this->testEntityManager->clear(); // prevent re-use of cached group entity
         $groupPersistence = $this->groupProviderTester->getItem($userGroup->getIdentifier());
@@ -40,11 +41,11 @@ class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceT
 
     public function testGetGroupItemWithReadGrant(): void
     {
-        $userGroup = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME);
+        [$userGroup, $manageGrant] = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME);
         $childGroup = $this->testEntityManager->addUserGroup('child group');
+
         $this->testEntityManager->addUserGroupMember($userGroup, childGroup: $childGroup);
 
-        $manageGrant = $this->authorizationService->addUserGroup($userGroup->getIdentifier());
         $this->testEntityManager->addResourceActionGrant($manageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::ANOTHER_USER_IDENTIFIER);
         $this->login(self::ANOTHER_USER_IDENTIFIER);
@@ -60,28 +61,43 @@ class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceT
 
     public function testGetGroupItemNotFound(): void
     {
-        $this->assertNull($this->groupProviderTester->getItem('no'));
+        try {
+            $this->groupProviderTester->getItem(Uuid::v7()->toRfc4122());
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+        }
     }
 
-    public function testGetGroupItemForbidden(): void
+    public function testGetGroupItemNotFoundInvalidId(): void
     {
-        $userGroup = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME);
+        try {
+            $this->groupProviderTester->getItem('not-a-uuid');
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+        }
+    }
+
+    public function testGetGroupItemNotReadable(): void
+    {
+        $userGroup = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME)[0];
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
+
         try {
             $this->groupProviderTester->getItem($userGroup->getIdentifier());
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
+            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
         }
     }
 
     public function testGetGroupCollection(): void
     {
         // current user has manage grants for groups 1 and 2, a read grant for group 3, and a write grant for group 5
-        $this->login(self::CURRENT_USER_IDENTIFIER);
-        $group1 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_1');
-        $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_2');
+        $group1 = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_1')[0];
+        $group2 = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_2')[0];
 
         $childGroup = $this->testEntityManager->addUserGroup('child group');
 
@@ -91,19 +107,21 @@ class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceT
 
         // another user has manage grants for groups 3, 4, and 5
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $group3 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_3');
-        $group3ManageGrant = $this->authorizationService->addUserGroup($group3->getIdentifier());
+
+        [$group3, $group3ManageGrant] = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_3');
+
         $this->testEntityManager->addResourceActionGrant($group3ManageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $group4 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_4');
+        $group4 = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_4')[0];
 
-        $group5 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_5');
-        $group5ManageGrant = $this->authorizationService->addUserGroup($group5->getIdentifier());
+        [$group5, $group5ManageGrant] = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_5');
+
         $this->testEntityManager->addResourceActionGrant($group5ManageGrant->getAuthorizationResource(),
             AuthorizationService::DELETE_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
         $this->login(self::CURRENT_USER_IDENTIFIER);
+
         $groups = $this->groupProviderTester->getCollection([
             'page' => 1,
             'perPage' => 10,
@@ -189,20 +207,20 @@ class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceT
     {
         // current user has manage grants for groups 1 and 2, a read grant for group 3, and a write grant for group 5
         $this->login(self::CURRENT_USER_IDENTIFIER);
-        $group1 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_1');
-        $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_2');
+        $group1 = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_1')[0];
+        $group2 = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_2')[0];
 
         // another user has manage grants for groups 3, 4, and 5
         $this->login(self::ANOTHER_USER_IDENTIFIER);
-        $group3 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_3');
-        $group3ManageGrant = $this->authorizationService->addUserGroup($group3->getIdentifier());
+        [$group3, $group3ManageGrant] = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_3');
+
         $this->testEntityManager->addResourceActionGrant($group3ManageGrant->getAuthorizationResource(),
             AuthorizationService::READ_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
-        $group4 = $this->addTestGroupAndManageGroupGrantForCurrentUser(self::TEST_GROUP_NAME.'_4');
+        $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_4');
 
-        $group5 = $this->testEntityManager->addUserGroup(self::TEST_GROUP_NAME.'_5');
-        $group5ManageGrant = $this->authorizationService->addUserGroup($group5->getIdentifier());
+        $group5ManageGrant = $this->addUserGroupAndOwnerGrantForCurrentUser(self::TEST_GROUP_NAME.'_5')[1];
+
         $this->testEntityManager->addResourceActionGrant($group5ManageGrant->getAuthorizationResource(),
             AuthorizationService::DELETE_GROUP_ACTION, self::CURRENT_USER_IDENTIFIER);
 
@@ -221,10 +239,10 @@ class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceT
         $this->login(self::CURRENT_USER_IDENTIFIER);
 
         // all ancestors of the group, all child groups, and the group itself are disallowed group members
-        $group0 = $this->addTestGroupAndManageGroupGrantForCurrentUser('Group 0');
-        $group1 = $this->addTestGroupAndManageGroupGrantForCurrentUser('Group 1');
-        $group2 = $this->addTestGroupAndManageGroupGrantForCurrentUser('Group 2');
-        $group3 = $this->addTestGroupAndManageGroupGrantForCurrentUser('Group 3');
+        $group0 = $this->addUserGroupAndOwnerGrantForCurrentUser('Group 0')[0];
+        $group1 = $this->addUserGroupAndOwnerGrantForCurrentUser('Group 1')[0];
+        $group2 = $this->addUserGroupAndOwnerGrantForCurrentUser('Group 2')[0];
+        $group3 = $this->addUserGroupAndOwnerGrantForCurrentUser('Group 3')[0];
 
         $this->testEntityManager->addUserGroupMember($group0, childGroup: $group2);
         $this->testEntityManager->addUserGroupMember($group1, childGroup: $group2);
@@ -287,7 +305,7 @@ class UserGroupProviderTest extends AbstractGroupControllerAuthorizationServiceT
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
             $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
-            $this->assertEquals(UserGroupService::GETTING_GROUP_COLLECTION_FAILED_ERROR_ID, $apiError->getErrorId());
+            $this->assertEquals(UserGroupService::GETTING_USER_GROUP_COLLECTION_FAILED_ERROR_ID, $apiError->getErrorId());
         }
     }
 }

@@ -20,18 +20,19 @@ class UserGroupService implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    public const ADDING_GROUP_FAILED_ERROR_ID = 'authorization:adding-user-group-failed';
-    public const GROUP_MEMBER_INVALID_ERROR_ID = 'authorization:user-group-member-invalid';
-    public const UPDATING_GROUP_FAILED_ERROR_ID = 'authorization:updating-user-group-failed';
-    public const REMOVING_GROUP_FAILED_ERROR_ID = 'authorization:removing-user-group-failed';
-    public const GROUP_INVALID_ERROR_ID = 'authorization:user-group-invalid';
-    public const GROUP_NOT_FOUND_ERROR_ID = 'authorization:user-group-not-found';
-    public const GETTING_GROUP_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-collection-failed';
-    public const GETTING_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-item-failed';
-    public const REMOVING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-user-group-member-failed';
-    public const ADDING_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:adding-user-group-member-failed';
-    public const GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-member-item-failed';
-    public const GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-member-collection-failed';
+    public const ADDING_USER_GROUP_FAILED_ERROR_ID = 'authorization:adding-user-group-failed';
+    public const USER_GROUP_MEMBER_INVALID_ERROR_ID = 'authorization:user-group-member-invalid';
+    public const UPDATING_USER_GROUP_FAILED_ERROR_ID = 'authorization:updating-user-group-failed';
+    public const REMOVING_USER_GROUP_FAILED_ERROR_ID = 'authorization:removing-user-group-failed';
+    public const USER_GROUP_INVALID_ERROR_ID = 'authorization:user-group-invalid';
+    public const USER_GROUP_NOT_FOUND_ERROR_ID = 'authorization:user-group-not-found';
+    public const USER_GROUP_MEMBER_NOT_FOUND_ERROR_ID = 'authorization:user-group-member-not-found';
+    public const GETTING_USER_GROUP_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-collection-failed';
+    public const GETTING_USER_GROUP_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-item-failed';
+    public const REMOVING_USER_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:removing-user-group-member-failed';
+    public const ADDING_USER_GROUP_MEMBER_FAILED_ERROR_ID = 'authorization:adding-user-group-member-failed';
+    public const GETTING_USER_GROUP_MEMBER_ITEM_FAILED_ERROR_ID = 'authorization:getting-user-group-member-item-failed';
+    public const GETTING_USER_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-user-group-member-collection-failed';
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager)
@@ -138,7 +139,7 @@ class UserGroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function tryGetUserGroup(string $identifier): ?UserGroup
+    public function tryGetUserGroupByIdentifier(string $identifier): ?UserGroup
     {
         return $this->tryGetUserGroupInternal($identifier);
     }
@@ -146,12 +147,11 @@ class UserGroupService implements LoggerAwareInterface
     /**
      * @throws ApiError
      */
-    public function getUserGroup(string $identifier): UserGroup
+    public function getUserGroupByIdentifier(string $identifier): UserGroup
     {
         $userGroup = $this->tryGetUserGroupInternal($identifier);
         if ($userGroup === null) {
-            throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'Group not found', self::GROUP_NOT_FOUND_ERROR_ID,
-                ['identifier' => $identifier]);
+            $this->throwUserGroupNotFound($identifier);
         }
 
         return $userGroup;
@@ -171,7 +171,7 @@ class UserGroupService implements LoggerAwareInterface
         } catch (\Throwable $throwable) {
             $this->logger->error('Failed to add group: '.$throwable->getMessage(), ['exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be added',
-                self::ADDING_GROUP_FAILED_ERROR_ID);
+                self::ADDING_USER_GROUP_FAILED_ERROR_ID);
         }
 
         return $userGroup;
@@ -193,7 +193,7 @@ class UserGroupService implements LoggerAwareInterface
                 'identifier' => $userGroup->getIdentifier(),
             ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be updated',
-                self::UPDATING_GROUP_FAILED_ERROR_ID);
+                self::UPDATING_USER_GROUP_FAILED_ERROR_ID);
         }
 
         return $userGroup;
@@ -214,31 +214,31 @@ class UserGroupService implements LoggerAwareInterface
             ]
             );
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group could not be removed',
-                self::REMOVING_GROUP_FAILED_ERROR_ID);
+                self::REMOVING_USER_GROUP_FAILED_ERROR_ID);
         }
     }
 
     /**
      * @throws ApiError
      */
-    public function addUserGroupMember(UserGroupMember $groupMember): UserGroupMember
+    public function addUserGroupMember(UserGroupMember $userGroupMember): UserGroupMember
     {
-        $this->validateUserGroupMember($groupMember);
+        $this->validateUserGroupMember($userGroupMember);
 
-        $groupMember->setIdentifier(Uuid::v7()->toRfc4122());
+        $userGroupMember->setIdentifier(Uuid::v7()->toRfc4122());
         try {
-            $this->entityManager->persist($groupMember);
+            $this->entityManager->persist($userGroupMember);
             $this->entityManager->flush();
         } catch (\Throwable $throwable) {
             $this->logger->error('Failed to add group member', [
                 'exception' => $throwable,
-                'groupIdentifier' => $groupMember->getUserGroup()?->getIdentifier(),
+                'groupIdentifier' => $userGroupMember->getUserGroup()?->getIdentifier(),
             ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be added',
-                self::ADDING_GROUP_MEMBER_FAILED_ERROR_ID);
+                self::ADDING_USER_GROUP_MEMBER_FAILED_ERROR_ID);
         }
 
-        return $groupMember;
+        return $userGroupMember;
     }
 
     /**
@@ -255,24 +255,30 @@ class UserGroupService implements LoggerAwareInterface
                 'identifier' => $groupMember->getIdentifier(),
             ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Group member could not be removed',
-                self::REMOVING_GROUP_MEMBER_FAILED_ERROR_ID);
+                self::REMOVING_USER_GROUP_MEMBER_FAILED_ERROR_ID);
         }
     }
 
     /**
      * @throws ApiError
      */
-    public function getUserGroupMember(string $identifier): ?UserGroupMember
+    public function getUserGroupMemberByIdentifier(string $identifier): UserGroupMember
     {
         try {
-            return Uuid::isValid($identifier) ? $this->entityManager
+            $userGroupMember = Uuid::isValid($identifier) ? $this->entityManager
                 ->getRepository(UserGroupMember::class)
                 ->find($identifier) : null;
         } catch (\Throwable $throwable) {
             $this->logger->error('Failed to get group member: '.$throwable->getMessage(), ['identifier' => $identifier, 'exception' => $throwable]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member',
-                self::GETTING_GROUP_MEMBER_ITEM_FAILED_ERROR_ID);
+                self::GETTING_USER_GROUP_MEMBER_ITEM_FAILED_ERROR_ID);
         }
+
+        if (null === $userGroupMember) {
+            $this->throwUserGroupMemberNotFound($identifier);
+        }
+
+        return $userGroupMember;
     }
 
     /**
@@ -293,7 +299,7 @@ class UserGroupService implements LoggerAwareInterface
                 'exception' => $throwable,
             ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group member collection',
-                self::GETTING_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID);
+                self::GETTING_USER_GROUP_MEMBER_COLLECTION_FAILED_ERROR_ID);
         }
     }
 
@@ -311,7 +317,7 @@ class UserGroupService implements LoggerAwareInterface
             ]
             );
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Failed to get group',
-                self::GETTING_GROUP_ITEM_FAILED_ERROR_ID);
+                self::GETTING_USER_GROUP_ITEM_FAILED_ERROR_ID);
         }
     }
 
@@ -322,32 +328,58 @@ class UserGroupService implements LoggerAwareInterface
     {
         if ($userGroup->getName() === null) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'user group is invalid: \'name\' is required', self::GROUP_INVALID_ERROR_ID, ['name']);
+                'user group is invalid: \'name\' is required', self::USER_GROUP_INVALID_ERROR_ID, ['name']);
         }
     }
 
     /**
      * @throws ApiError
      */
-    private function validateUserGroupMember(UserGroupMember $groupMember): void
+    private function validateUserGroupMember(UserGroupMember $userGroupMember): void
     {
-        if ($groupMember->getUserGroup() === null) {
+        if (null === $userGroupMember->getUserGroup()) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
-                'group member is invalid: \'userGroup\' is required', self::GROUP_MEMBER_INVALID_ERROR_ID, ['userGroup']);
+                'group member is invalid: \'userGroup\' is required',
+                self::USER_GROUP_MEMBER_INVALID_ERROR_ID,
+                ['userGroup']);
         }
+
         // Matching parent and child group would cause and endless loop
-        if ($groupMember->getChildGroup() !== null
-            && $this->isAllowedChildGroupOf($groupMember->getChildGroup(), $groupMember->getUserGroup())) {
+        if ($userGroupMember->getChildGroup() !== null
+            && $this->isAllowedChildGroupOf($userGroupMember->getChildGroup(), $userGroupMember->getUserGroup())) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'group member is invalid:  \'childGroup\' must not be the same or an ancestor of \'group\' (causes infinite loop)',
-                self::GROUP_MEMBER_INVALID_ERROR_ID, ['childGroup']);
+                self::USER_GROUP_MEMBER_INVALID_ERROR_ID, ['childGroup']);
         }
-        if (($groupMember->getUserIdentifier() === null && $groupMember->getChildGroup() === null)
-            || ($groupMember->getUserIdentifier() !== null && $groupMember->getChildGroup() !== null)) {
+
+        if (($userGroupMember->getUserIdentifier() === null && $userGroupMember->getChildGroup() === null)
+            || ($userGroupMember->getUserIdentifier() !== null && $userGroupMember->getChildGroup() !== null)) {
             throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
                 'group member is invalid: exactly one of \'userIdentifier\' or \'childGroup\' must be given',
-                self::GROUP_MEMBER_INVALID_ERROR_ID);
+                self::USER_GROUP_MEMBER_INVALID_ERROR_ID);
         }
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function throwUserGroupNotFound(string $identifier)
+    {
+        throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
+            'User group not found',
+            self::USER_GROUP_NOT_FOUND_ERROR_ID,
+            ['identifier' => $identifier]);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    public function throwUserGroupMemberNotFound(string $identifier)
+    {
+        throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
+            'User group member not found',
+            self::USER_GROUP_MEMBER_NOT_FOUND_ERROR_ID,
+            ['identifier' => $identifier]);
     }
 
     /**
@@ -355,7 +387,7 @@ class UserGroupService implements LoggerAwareInterface
      */
     public function getDisallowedChildGroupIdentifiersBinaryFor(string $groupIdentifier): array
     {
-        return $this->getDisallowedChildGroupIdentifiersBinaryInternal($this->getUserGroup($groupIdentifier));
+        return $this->getDisallowedChildGroupIdentifiersBinaryInternal($this->getUserGroupByIdentifier($groupIdentifier));
     }
 
     private function isAllowedChildGroupOf(UserGroup $childGroupCandidate, UserGroup $userGroup): bool

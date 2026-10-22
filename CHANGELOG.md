@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- combine resource access and permission checks into single `IfGranted` methods in the AuthorizationService
+- add 'create_grants' and 'share' to ResourceActionGrant::grantedActions, to indicate whether the current user may 
+  add new grants for the grant's resource or share the grant with other users
 - replace 'manage' by 'own' which is more common in authz terminology
 - GrantedActions API: If the user has a manage grant for a resource, add all available actions of the respective resource class and
   type (item or collection) to list of granted actions.
