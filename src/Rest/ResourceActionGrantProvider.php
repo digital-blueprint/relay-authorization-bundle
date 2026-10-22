@@ -6,10 +6,8 @@ namespace Dbp\Relay\AuthorizationBundle\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\Rest\AbstractDataProvider;
 use Dbp\Relay\CoreBundle\Rest\Query\Pagination\Pagination;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @extends AbstractDataProvider<ResourceActionGrant>
@@ -26,7 +24,7 @@ class ResourceActionGrantProvider extends AbstractDataProvider
 
     protected function getItemById(string $id, array $filters = [], array $options = []): ?object
     {
-        return $this->authorizationService->getResourceActionGrantByIdentifier($id);
+        return $this->authorizationService->getResourceActionGrantByIdentifierIfGranted($id);
     }
 
     protected function getPage(int $currentPageNumber, int $maxNumItemsPerPage, array $filters = [], array $options = []): array
@@ -37,17 +35,5 @@ class ResourceActionGrantProvider extends AbstractDataProvider
             Common::getResourceTypeQueryParameter($filters),
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
             maxNumResults: $maxNumItemsPerPage);
-    }
-
-    protected function isCurrentUserAuthorizedToAccessItem(int $operation, mixed $item, array $filters): bool
-    {
-        assert($item instanceof ResourceActionGrant);
-
-        // throw 404 instead of 403 to avoid leaking information about the existence of the resource action grant
-        if (false === $this->authorizationService->isCurrentUserAuthorizedToReadGrant($item)) {
-            throw ApiError::withDetails(Response::HTTP_NOT_FOUND, 'resource action grant not found');
-        }
-
-        return true;
     }
 }

@@ -10,12 +10,13 @@ use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Rest\RoleProvider;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Dbp\Relay\CoreBundle\TestUtils\DataProviderTester;
 use Symfony\Component\HttpFoundation\Response;
 
-class RoleProviderTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
+class RoleProviderTest extends AbstractAuthorizationServiceTestCase
 {
     private ?DataProviderTester $roleProviderTester = null;
 

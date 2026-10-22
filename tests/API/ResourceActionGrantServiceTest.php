@@ -32,7 +32,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
 
     public function testAddResourceActionGrantWithManageAction(): void
     {
-        $this->resourceActionGrantService->addResourceActionGrant(
+        $resourceActionGrant = $this->resourceActionGrantService->addResourceActionGrant(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
             action: ResourceActionGrantService::OWN_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER);
@@ -43,8 +43,9 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $resourcePersistence->getResourceIdentifier());
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $resourcePersistence->getResourceClass());
 
-        $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrant(
-            $resourcePersistence->getIdentifier(), ResourceActionGrantService::OWN_ACTION, self::CURRENT_USER_IDENTIFIER);
+        $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrantByIdentifier(
+            $resourceActionGrant->getIdentifier()
+        );
         $this->assertSame($resourcePersistence->getIdentifier(), $resourceActionGrantPersistence->getAuthorizationResource()->getIdentifier());
         $this->assertSame(ResourceActionGrantService::OWN_ACTION, $resourceActionGrantPersistence->getAction());
         $this->assertSame(self::CURRENT_USER_IDENTIFIER, $resourceActionGrantPersistence->getUserIdentifier());
@@ -84,7 +85,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $action = TestResources::WRITE_ACTION;
         $userIdentifier = self::ANOTHER_USER_IDENTIFIER;
 
-        $this->resourceActionGrantService->addResourceActionGrant(
+        $resourceActionGrant = $this->resourceActionGrantService->addResourceActionGrant(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
             action: $action,
             userIdentifier: $userIdentifier);
@@ -92,7 +93,8 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $resourcePersistence = $this->testEntityManager->getAuthorizationResourceByResourceClassAndIdentifier(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
 
-        $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrant($resourcePersistence->getIdentifier(), $action, $userIdentifier);
+        $resourceActionGrantPersistence = $this->testEntityManager->getResourceActionGrantByIdentifier(
+            $resourceActionGrant->getIdentifier());
         $this->assertSame($resourcePersistence->getIdentifier(), $resourceActionGrantPersistence->getAuthorizationResource()->getIdentifier());
         $this->assertSame($action, $resourceActionGrantPersistence->getAction());
         $this->assertSame($userIdentifier, $resourceActionGrantPersistence->getUserIdentifier());

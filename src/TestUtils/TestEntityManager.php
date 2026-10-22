@@ -157,24 +157,62 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function getResourceActionGrant(string $authorizationResourceIdentifier, string $action, string $userIdentifier): ?ResourceActionGrant
+    public function getResourceActionGrant(
+        string $resourceClass, string $resourceIdentifier, int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+        ?string $action = null, ?string $roleIdentifier = null,
+        ?string $userIdentifier = null, ?string $userGroupIdentifier = null, ?string $dynamicUserGroupIdentifier = null): ?ResourceActionGrant
     {
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder();
             $queryBuilder
                 ->select('rag')
                 ->from(ResourceActionGrant::class, 'rag')
+                ->innerJoin(AuthorizationResource::class, 'ar', Join::WITH, 'rag.authorizationResource = ar.identifier')
                 ->innerJoin(AvailableResourceClassAction::class, 'arca', Join::WITH, 'rag.availableResourceClassAction = arca.identifier')
-                ->where($queryBuilder->expr()->eq('rag.authorizationResource', ':authorizationResource'))
-                ->setParameter(':authorizationResource', $authorizationResourceIdentifier, AuthorizationUuidBinaryType::NAME)
-                ->andWhere($queryBuilder->expr()->eq('arca.action', ':action'))
-                ->setParameter(':action', $action);
+                ->where($queryBuilder->expr()->eq('ar.resourceClass', ':resourceClass'))
+                ->setParameter(':resourceClass', $resourceClass)
+                ->andWhere($queryBuilder->expr()->eq('ar.resourceIdentifier', ':resourceIdentifier'))
+                ->setParameter(':resourceIdentifier', $resourceIdentifier)
+                ->andWhere($queryBuilder->expr()->eq('ar.resourceType', ':resourceType'))
+                ->setParameter(':resourceType', $resourceType);
 
-            return $queryBuilder
+            if ($action !== null) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq('arca.action', ':action'))
+                    ->setParameter(':action', $action);
+            }
+            if ($roleIdentifier !== null) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq('rag.role', ':roleIdentifier'))
+                    ->setParameter(':roleIdentifier', $roleIdentifier);
+            }
+            if ($userIdentifier !== null) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq('rag.userIdentifier', ':userIdentifier'))
+                    ->setParameter(':userIdentifier', $userIdentifier);
+            }
+            if ($userGroupIdentifier !== null) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq('rag.userGroup', ':userGroupIdentifier'))
+                    ->setParameter(':userGroupIdentifier', $userGroupIdentifier, AuthorizationUuidBinaryType::NAME);
+            }
+            if ($dynamicUserGroupIdentifier !== null) {
+                $queryBuilder
+                    ->andWhere($queryBuilder->expr()->eq('rag.dynamicUserGroupIdentifier', ':dynamicUserGroupIdentifier'))
+                    ->setParameter(':dynamicUserGroupIdentifier', $dynamicUserGroupIdentifier);
+            }
+
+            $results = $queryBuilder
                 ->getQuery()
-                ->getOneOrNullResult();
+                ->getResult();
+
+            if (count($results) > 1) {
+                throw new \RuntimeException('multiple resource action grants found for the given criteria');
+            }
+
+            return $results[0] ?? null;
         } catch (\Exception $exception) {
-            throw new \RuntimeException($exception->getMessage());
+            throw new \RuntimeException('failed to get resource action grant: '.$exception->getMessage());
         }
     }
 
@@ -273,7 +311,7 @@ class TestEntityManager extends CoreTestEntityManager
         }
     }
 
-    public function getUserGroup(string $identifier): ?UserGroup
+    public function getUserGroupByIdentifier(string $identifier): ?UserGroup
     {
         try {
             return $this->entityManager->getRepository(UserGroup::class)
@@ -477,16 +515,20 @@ class TestEntityManager extends CoreTestEntityManager
     /**
      * Drops all tables in the database to simulate a database error.
      */
-    public function prepareDBError(): void
+    public function prepareDBError(?string $tableToDrop = null): void
     {
         $connection = $this->entityManager->getConnection();
         try {
             $this->entityManager->clear(); // Clear the entity manager to avoid finding cached entities
             $connection->executeStatement('PRAGMA foreign_keys = OFF');
-            $schemaManager = $connection->createSchemaManager();
-            $tableNames = array_map(fn ($tableName) => $tableName->getUnqualifiedName()->getValue(), $schemaManager->introspectTableNames());
-            foreach ($tableNames as $tableName) {
-                $this->entityManager->getConnection()->executeStatement('DROP TABLE IF EXISTS `'.$tableName.'`');
+            if ($tableToDrop !== null) {
+                $this->entityManager->getConnection()->executeStatement('DROP TABLE IF EXISTS `'.$tableToDrop.'`');
+            } else {
+                $schemaManager = $connection->createSchemaManager();
+                $tableNames = array_map(fn ($tableName) => $tableName->getUnqualifiedName()->getValue(), $schemaManager->introspectTableNames());
+                foreach ($tableNames as $tableName) {
+                    $this->entityManager->getConnection()->executeStatement('DROP TABLE IF EXISTS `'.$tableName.'`');
+                }
             }
         } catch (\Throwable $throwable) {
             throw new \RuntimeException('Failed to drop all tables in the database: '.$throwable->getMessage());

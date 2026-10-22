@@ -6,13 +6,21 @@ namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
+use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
+use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
+use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
 
 abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalResourceActionGrantServiceTestCase
 {
+    protected const TEST_GROUP_NAME = 'Testgroup';
+
     protected ?AuthorizationService $authorizationService = null;
+    protected ?UserGroupService $userGroupService = null;
     protected ?array $testConfig = null;
 
     protected function setUp(): void
@@ -27,6 +35,8 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
             TestResources::getAvailableResourceClassActions(),
             self::CURRENT_USER_IDENTIFIER,
             $this->getDefaultUserAttributes());
+
+        $this->userGroupService = $this->authorizationService->getUserGroupService();
     }
 
     protected function login(?string $userIdentifier, ?array $userAttributes = null): void
@@ -67,13 +77,13 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         ];
     }
 
-    protected function addGroupAndManageGroupGrantForCurrentUser(string $groupName = 'Testgroup'): array
+    protected function addUserGroupAndOwnerGrantForCurrentUser(string $groupName = self::TEST_GROUP_NAME): array
     {
         $userGroup = $this->testEntityManager->addUserGroup($groupName);
         $manageGroupGrant = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             AuthorizationService::GROUP_RESOURCE_CLASS, $userGroup->getIdentifier(),
             action: AuthorizationService::OWN_ACTION,
-            userIdentifier: self::CURRENT_USER_IDENTIFIER
+            userIdentifier: $this->authorizationService->getUserIdentifier()
         );
 
         return [$userGroup, $manageGroupGrant];
@@ -98,5 +108,74 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
             $this->assertCount(1, $matches,
                 "Expected exactly one AvailableResourceClassAction for resourceClass='$resourceClass', action='$action', actionType=$actionType");
         }
+    }
+
+    protected function getResourceActionGrantFromDB(string $identifier): ?ResourceActionGrant
+    {
+        return $this->testEntityManager->getResourceActionGrantByIdentifier($identifier);
+    }
+
+    protected function addResource(
+        string $resourceClass = self::TEST_RESOURCE_CLASS,
+        string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER,
+        int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
+    {
+        return $this->testEntityManager->addAuthorizationResource(
+            $resourceClass, $resourceIdentifier, $resourceType);
+    }
+
+    protected function addResourceAndOwnerGrantToTestDB(string $resourceClass = self::TEST_RESOURCE_CLASS,
+        string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER,
+        string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
+    {
+        return $this->addResourceAndGrant($resourceClass, $resourceIdentifier,
+            AuthorizationService::OWN_ACTION, $userIdentifier);
+    }
+
+    protected function addResourceAndGrant(string $resourceClass = self::TEST_RESOURCE_CLASS,
+        string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER,
+        string $action = 'action',
+        string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
+    {
+        $resource = $this->addResource($resourceClass, $resourceIdentifier);
+
+        return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
+    }
+
+    protected function addResourceActionGrantToTestDB(AuthorizationResource $resource, string $action,
+        string $userIdentifier = self::CURRENT_USER_IDENTIFIER,
+        ?UserGroup $userGroup = null,
+        ?string $dynamicUserGroupIdentifier = null,
+        ?bool $shareable = null,
+        ?ResourceActionGrant $shareOf = null): ResourceActionGrant
+    {
+        return $this->testEntityManager->addResourceActionGrant(
+            $resource, $action,
+            userIdentifier: $userIdentifier,
+            userGroup: $userGroup,
+            dynamicUserGroupIdentifier: $dynamicUserGroupIdentifier,
+            shareable: $shareable,
+            shareOf: $shareOf);
+    }
+
+    protected function addGrant(AuthorizationResource $resource,
+        ?string $action = null,
+        ?string $userIdentifier = self::CURRENT_USER_IDENTIFIER,
+        ?string $roleIdentifier = null,
+        ?bool $shareable = null
+    ): ResourceActionGrant {
+        return $this->testEntityManager->addResourceActionGrant($resource,
+            action: $action,
+            userIdentifier: $userIdentifier,
+            roleIdentifier: $roleIdentifier,
+            shareable: $shareable
+        );
+    }
+
+    protected function addManageGrant(AuthorizationResource $resource,
+        string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
+    {
+        return $this->addGrant(
+            $resource, AuthorizationService::OWN_ACTION, $userIdentifier);
     }
 }

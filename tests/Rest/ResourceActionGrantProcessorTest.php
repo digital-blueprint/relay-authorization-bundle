@@ -10,6 +10,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
 use Dbp\Relay\AuthorizationBundle\Tests\TestResources;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
@@ -17,7 +18,7 @@ use Dbp\Relay\CoreBundle\TestUtils\DataProcessorTester;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\UuidV7;
 
-class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantControllerAuthorizationServiceTestCase
+class ResourceActionGrantProcessorTest extends AbstractAuthorizationServiceTestCase
 {
     private const TEST_CONFIG = [
         Configuration::ADD_RESOURCE_POLICIES => [
@@ -52,9 +53,9 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->login(self::CURRENT_USER_IDENTIFIER, self::DEFAULT_USER_ATTRIBUTES);
     }
 
-    public function testAddResourceActionGrantWithAction(): void
+    public function testAddResourceActionGrantWithActionAsOwner(): void
     {
-        $this->addResourceAndManageGrantToTestDB();
+        $this->addResourceAndOwnerGrantToTestDB();
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
         $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
@@ -83,11 +84,11 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($resourceActionGrant->getDynamicUserGroupIdentifier(), $resourceActionGrantItem->getDynamicUserGroupIdentifier());
     }
 
-    public function testAddResourceActionGrantWithRole(): void
+    public function testAddResourceActionGrantWithRoleAsOwner(): void
     {
         $roleReader = $this->addRoleReader();
 
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB();
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB();
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass($manageResourceGrant->getResourceClass());
         $resourceActionGrant->setResourceIdentifier($manageResourceGrant->getResourceIdentifier());
@@ -115,7 +116,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
 
     public function testResourceActionGrantAddedEvent(): void
     {
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB();
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB();
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setAuthorizationResource($manageResourceGrant->getAuthorizationResource());
@@ -148,9 +149,9 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertNull($event->getResourceActionGrant()->getUserGroup());
 
         // test with a group grant holder and a resource collection grant
-        $userGroup = $this->testEntityManager->addUserGroup();
-        $this->authorizationService->addUserGroup($userGroup->getIdentifier());
-        $this->addResourceAndManageGrantToTestDB(
+        $userGroup = $this->addUserGroupAndOwnerGrantForCurrentUser()[0];
+
+        $this->addResourceAndOwnerGrantToTestDB(
             resourceClass: self::TEST_RESOURCE_CLASS,
             resourceIdentifier: AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER);
 
@@ -171,9 +172,9 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($userGroup->getIdentifier(), $event->getResourceActionGrant()->getUserGroup()->getIdentifier());
     }
 
-    public function testAddResourceActionGrantWithResourceClassAndIdentifierCollection(): void
+    public function testAddResourceActionGrantWithResourceClassAndIdentifierCollectionAsOwner(): void
     {
-        $this->addResourceAndManageGrantToTestDB(
+        $this->addResourceAndOwnerGrantToTestDB(
             TestEntityManager::DEFAULT_RESOURCE_CLASS,
             AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER
         );
@@ -192,9 +193,9 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
     }
 
-    public function testAddResourceActionGrantForDynamicUserGroupEverybody(): void
+    public function testAddResourceActionGrantForDynamicUserGroupAsOwner(): void
     {
-        $this->addResourceAndManageGrantToTestDB();
+        $this->addResourceAndOwnerGrantToTestDB();
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
@@ -211,9 +212,9 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($resourceActionGrant->getDynamicUserGroupIdentifier(), $resourceActionGrantItem->getDynamicUserGroupIdentifier());
     }
 
-    public function testAddResourceActionGrantShareActionExplicit(): void
+    public function testAddResourceActionGrantShareAction(): void
     {
-        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+        $manageGrant = $this->addResourceAndOwnerGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $readGrant = $this->addGrant($manageGrant->getAuthorizationResource(),
             action: TestResources::READ_ACTION,
@@ -241,39 +242,10 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($readGrant->getIdentifier(), $sharedResourceActionGrant->getShareOf()->getIdentifier());
     }
 
-    public function testAddResourceActionGrantShareActionImplicit(): void
-    {
-        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
-
-        $readGrant = $this->addGrant($manageGrant->getAuthorizationResource(),
-            action: TestResources::READ_ACTION,
-            userIdentifier: self::ANOTHER_USER_IDENTIFIER,
-            shareable: true
-        );
-
-        $this->login(self::ANOTHER_USER_IDENTIFIER);
-
-        $sharedResourceActionGrant = new ResourceActionGrant();
-        $sharedResourceActionGrant->setResourceClass(TestResources::TEST_RESOURCE_CLASS);
-        $sharedResourceActionGrant->setResourceIdentifier(self::TEST_RESOURCE_IDENTIFIER);
-        $sharedResourceActionGrant->setAction(TestResources::READ_ACTION);
-        $sharedResourceActionGrant->setShareable(false);
-        $sharedResourceActionGrant->setUserIdentifier(self::ANOTHER_USER_IDENTIFIER.'_2');
-
-        $sharedResourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($sharedResourceActionGrant);
-        $this->assertTrue(UuidV7::isValid($sharedResourceActionGrant->getIdentifier()));
-        $this->assertEquals($manageGrant->getResourceClass(), $sharedResourceActionGrant->getResourceClass());
-        $this->assertEquals($manageGrant->getResourceIdentifier(), $sharedResourceActionGrant->getResourceIdentifier());
-        $this->assertEquals(TestResources::READ_ACTION, $sharedResourceActionGrant->getAction());
-        $this->assertEquals(self::ANOTHER_USER_IDENTIFIER.'_2', $sharedResourceActionGrant->getUserIdentifier());
-        $this->assertEquals(false, $sharedResourceActionGrant->getShareable());
-        $this->assertEquals($readGrant->getIdentifier(), $sharedResourceActionGrant->getShareOf()->getIdentifier());
-    }
-
-    public function testAddResourceActionGrantShareRoleExplicit(): void
+    public function testAddResourceActionGrantShareRole(): void
     {
         // creating a share of a role where the actions are equal to the actions of the original role is allowed
-        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+        $manageGrant = $this->addResourceAndOwnerGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $roleEditor = $this->addRoleEditor();
 
@@ -303,42 +275,10 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals($roleGrant->getIdentifier(), $sharedResourceActionGrant->getShareOf()->getIdentifier());
     }
 
-    public function testAddResourceActionGrantShareRoleImplicit(): void
-    {
-        // creating a share of a role where the actions are equal to the actions of the original role is allowed
-        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
-
-        $roleEditor = $this->addRoleEditor();
-
-        $roleGrant = $this->addGrant($manageGrant->getAuthorizationResource(),
-            userIdentifier: self::ANOTHER_USER_IDENTIFIER,
-            roleIdentifier: $roleEditor->getIdentifier(),
-            shareable: true
-        );
-
-        $this->login(self::ANOTHER_USER_IDENTIFIER);
-
-        $sharedResourceActionGrant = new ResourceActionGrant();
-        $sharedResourceActionGrant->setResourceClass(TestResources::TEST_RESOURCE_CLASS);
-        $sharedResourceActionGrant->setResourceIdentifier(self::TEST_RESOURCE_IDENTIFIER);
-        $sharedResourceActionGrant->setRole($roleEditor);
-        $sharedResourceActionGrant->setShareable(false);
-        $sharedResourceActionGrant->setUserIdentifier(self::ANOTHER_USER_IDENTIFIER.'_2');
-
-        $sharedResourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($sharedResourceActionGrant);
-        $this->assertTrue(UuidV7::isValid($sharedResourceActionGrant->getIdentifier()));
-        $this->assertEquals($manageGrant->getResourceClass(), $sharedResourceActionGrant->getResourceClass());
-        $this->assertEquals($manageGrant->getResourceIdentifier(), $sharedResourceActionGrant->getResourceIdentifier());
-        $this->assertEquals($roleEditor, $sharedResourceActionGrant->getRole());
-        $this->assertEquals(self::ANOTHER_USER_IDENTIFIER.'_2', $sharedResourceActionGrant->getUserIdentifier());
-        $this->assertEquals(false, $sharedResourceActionGrant->getShareable());
-        $this->assertEquals($roleGrant->getIdentifier(), $sharedResourceActionGrant->getShareOf()->getIdentifier());
-    }
-
     public function testAddResourceActionGrantShareRoleSubset(): void
     {
         // creating a share of a role where the actions are a subset of the actions of the original role is allowed
-        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+        $manageGrant = $this->addResourceAndOwnerGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $roleEditor = $this->addRoleEditor();
         $roleReader = $this->addRoleReader();
@@ -355,7 +295,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $sharedResourceActionGrant->setResourceClass(TestResources::TEST_RESOURCE_CLASS);
         $sharedResourceActionGrant->setResourceIdentifier(self::TEST_RESOURCE_IDENTIFIER);
         $sharedResourceActionGrant->setRole($roleReader);
-        $sharedResourceActionGrant->setShareable(false);
+        $sharedResourceActionGrant->setShareOf($roleGrant);
         $sharedResourceActionGrant->setUserIdentifier(self::ANOTHER_USER_IDENTIFIER.'_2');
 
         $sharedResourceActionGrant = $this->resourceActionGrantProcessorTester->addItem($sharedResourceActionGrant);
@@ -372,7 +312,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
     {
         // creating a share of a role where the actions are
         // NOT a subset or equal to the actions of the original role is FORBIDDEN
-        $manageGrant = $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+        $manageGrant = $this->addResourceAndOwnerGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $roleEditor = $this->addRoleEditor();
         $roleReader = $this->addRoleReader();
@@ -402,7 +342,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
 
     public function testAddResourceActionGrantShareActionForbiddenWrongAction(): void
     {
-        $this->addResourceAndManageGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+        $this->addResourceAndOwnerGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
 
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(TestResources::TEST_RESOURCE_CLASS);
@@ -431,48 +371,43 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         }
     }
 
-    public function testAddResourceActionGrantBadRequestResourceClassMissing(): void
+    public function testAddResourceActionGrantShareActionForbiddenWrongResource(): void
     {
-        $this->addResourceAndManageGrantToTestDB();
-        $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
-        $resourceActionGrant->setAction('read');
-        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+        // another user has a shareable grant for a resource, but the current user tries to create a share of that grant for a different resource -> forbidden
+        $resourceOwnerGrant = $this->addResourceAndOwnerGrantToTestDB(userIdentifier: self::CURRENT_USER_IDENTIFIER);
+        $someOtherResourceOwnerGrant = $this->addResourceAndOwnerGrantToTestDB(
+            resourceIdentifier: 'some-other-resource',
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER);
+
+        $this->addResourceActionGrantToTestDB(
+            $resourceOwnerGrant->getAuthorizationResource(),
+            TestResources::READ_ACTION,
+            self::ANOTHER_USER_IDENTIFIER,
+            shareable: true);
+
+        $this->testEntityManager->clear();
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER);
+
+        $sharedResourceActionGrant = new ResourceActionGrant();
+        $sharedResourceActionGrant->setResourceClass(TestResources::TEST_RESOURCE_CLASS);
+        $sharedResourceActionGrant->setResourceIdentifier('some-other-resource');
+        $sharedResourceActionGrant->setAction(TestResources::READ_ACTION);
+        $sharedResourceActionGrant->setShareOf($someOtherResourceOwnerGrant);
+        $sharedResourceActionGrant->setUserIdentifier(self::ANOTHER_USER_IDENTIFIER.'_2');
 
         try {
-            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+            $this->resourceActionGrantProcessorTester->addItem($sharedResourceActionGrant);
             $this->fail('ApiError not thrown as expected');
         } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
-            $this->assertEquals(
-                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID,
-                $apiError->getErrorId());
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
         }
     }
 
-    public function testAddResourceActionGrantBadRequestResourceIdentifierMissing(): void
+    public function testAddResourceActionGrantItemForbiddenNoGrants(): void
     {
-        $this->addResourceAndManageGrantToTestDB();
-        $resourceActionGrant = new ResourceActionGrant();
-        $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
-        $resourceActionGrant->setAction('read');
-        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
-
-        try {
-            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
-            $this->fail('ApiError not thrown as expected');
-        } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
-            $this->assertEquals(
-                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID,
-                $apiError->getErrorId());
-        }
-    }
-
-    public function testAddResourceActionGrantItemForbiddenNotFound(): void
-    {
-        // current user has no grants for the resource -> throw not found to avoid information disclosure
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB(
+        // current user has no grants for the resource -> forbidden
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB(
             self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER.'_2');
@@ -486,15 +421,14 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
             $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
         }
     }
 
-    public function testAddResourceActionGrantItemForbidden(): void
+    public function testAddResourceActionGrantItemForbiddenGrantNotShareable(): void
     {
-        // the user is allowed to see the resource, however, they are neither resource manager
-        // nor is the grant they have shareable -> throw 403
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB(
+        // the user has a grant for the resource, but it is not shareable -> forbidden
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB(
             self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER.'_2'
@@ -518,9 +452,47 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         }
     }
 
-    public function testAddResourceActionGrantResourceNotFound(): void
+    public function testAddResourceActionGrantBadRequestResourceClassMissing(): void
     {
-        // resource does not exist and user is not allowed to create it -> throw 404
+        $this->addResourceAndOwnerGrantToTestDB();
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
+        $resourceActionGrant->setAction('read');
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        try {
+            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+            $this->fail('ApiError not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(
+                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID,
+                $apiError->getErrorId());
+        }
+    }
+
+    public function testAddResourceActionGrantBadRequestResourceIdentifierMissing(): void
+    {
+        $this->addResourceAndOwnerGrantToTestDB();
+        $resourceActionGrant = new ResourceActionGrant();
+        $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
+        $resourceActionGrant->setAction('read');
+        $resourceActionGrant->setUserIdentifier(self::CURRENT_USER_IDENTIFIER);
+
+        try {
+            $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
+            $this->fail('ApiError not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_BAD_REQUEST, $apiError->getStatusCode());
+            $this->assertEquals(
+                InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID,
+                $apiError->getErrorId());
+        }
+    }
+
+    public function testAddResourceActionGrantResourceCreateNotAllowed(): void
+    {
+        // resource does not exist and user is not allowed to create it -> forbidden
         $resourceActionGrant = new ResourceActionGrant();
         $resourceActionGrant->setResourceClass(TestEntityManager::DEFAULT_RESOURCE_CLASS);
         $resourceActionGrant->setResourceIdentifier(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER);
@@ -531,7 +503,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
             $this->resourceActionGrantProcessorTester->addItem($resourceActionGrant);
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
         }
     }
 
@@ -572,8 +544,9 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertEquals(AuthorizationResource::RESOURCE_RESOURCE_TYPE, $authorizationResource->getResourceType());
     }
 
-    public function testAddResourceActionGrantAddingNewResourceFailedMustBeManage(): void
+    public function testAddResourceActionGrantAddingNewResourceFailedMustBeOwnerGrant(): void
     {
+        // the user may create new resources, but the first grant for a new resource must be an owner grant -> forbidden
         $this->login(self::CURRENT_USER_IDENTIFIER, self::ADMIN_USER_ATTRIBUTES);
 
         $resourceActionGrant = new ResourceActionGrant();
@@ -593,19 +566,19 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         }
     }
 
-    public function testRemoveResourceActionGrantManage(): void
+    public function testRemoveResourceActionGrantOwnerGrantAsOwner(): void
     {
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB();
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB();
         $this->assertNotNull($this->getResourceActionGrantFromDB($manageResourceGrant->getIdentifier()));
 
         $this->resourceActionGrantProcessorTester->removeItem($manageResourceGrant->getIdentifier(), $manageResourceGrant);
         $this->assertNull($this->getResourceActionGrantFromDB($manageResourceGrant->getIdentifier()));
     }
 
-    public function testRemoveResourceActionGrant(): void
+    public function testRemoveResourceActionGrantReadGrantAsOwner(): void
     {
         // resource manager is allowed to remove any grants for a resource
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB();
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB();
         $resourceActionGrant = $this->addResourceActionGrantToTestDB($manageResourceGrant->getAuthorizationResource(),
             TestResources::READ_ACTION, self::CURRENT_USER_IDENTIFIER);
 
@@ -616,7 +589,7 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
     public function testRemoveResourceActionGrantShare(): void
     {
         // holders of shareable grants are allowed to remove any shares of their grants
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB();
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB();
         $resourceActionGrant = $this->addResourceActionGrantToTestDB($manageResourceGrant->getAuthorizationResource(),
             TestResources::READ_ACTION, self::ANOTHER_USER_IDENTIFIER,
             shareable: true);
@@ -632,10 +605,10 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
         $this->assertNull($this->getResourceActionGrantFromDB($resourceActionGrantShared->getIdentifier()));
     }
 
-    public function testRemoveResourceActionGrantItemForbiddenNotFound(): void
+    public function testRemoveResourceActionGrantItemForbiddenNoGrant(): void
     {
-        // current user has no grants for the resource -> throw not found to avoid information disclosure
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB(
+        // current user has no grants for the resource -> forbidden
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB(
             self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::CURRENT_USER_IDENTIFIER.'_2');
@@ -645,15 +618,15 @@ class ResourceActionGrantProcessorTest extends AbstractResourceActionGrantContro
                 $manageResourceGrant->getIdentifier(), $manageResourceGrant);
             $this->fail('exception not thrown as expected');
         } catch (ApiError $apiError) {
-            $this->assertEquals(Response::HTTP_NOT_FOUND, $apiError->getStatusCode());
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
         }
     }
 
-    public function testRemoveResourceActionGrantItemForbidden(): void
+    public function testRemoveResourceActionGrantItemForbiddenWrongGrant(): void
     {
         // current user has a grant for the resource but is not the resource manager,
         // nor is the grant to remove a share of the current user's grant -> forbidden
-        $manageResourceGrant = $this->addResourceAndManageGrantToTestDB(
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB(
             self::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER,
             self::ANOTHER_USER_IDENTIFIER);

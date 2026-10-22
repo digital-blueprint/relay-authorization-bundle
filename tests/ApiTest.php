@@ -100,7 +100,7 @@ class ApiTest extends ApiTestCase
 
         $this->testClient->setUpUser('another user', ['MAY_CREATE_GROUPS' => false]);
         $response = $this->testClient->get('/authorization/user-groups/'.$userGroup['identifier']);
-        $this->assertEquals(Response::HTTP_FORBIDDEN, $response->getStatusCode());
+        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
     }
 
     /**
@@ -127,10 +127,18 @@ class ApiTest extends ApiTestCase
         $response = $this->testClient->postJson('/authorization/user-groups', [
             'name' => 'Test Group',
         ]);
-        $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
         $userGroup = json_decode($response->getContent(), true);
 
-        $this->testClient->setUpUser('anotheruser', ['MAY_CREATE_GROUPS' => false]);
+        // user may read but not post
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            AuthorizationService::GROUP_RESOURCE_CLASS,
+            $userGroup['identifier'],
+            action: AuthorizationService::READ_GROUP_ACTION,
+            userIdentifier: self::ANOTHER_USER_IDENTIFIER
+        );
+
+        $this->login(self::ANOTHER_USER_IDENTIFIER, ['MAY_CREATE_GROUPS' => false]);
+
         $response = $this->testClient->postJson('/authorization/user-group-members', [
             'userGroup' => '/authorization/user-groups/'.$userGroup['identifier'],
             'userIdentifier' => 'anotheruser',

@@ -631,11 +631,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      */
     public function addResourceActionGrant(ResourceActionGrant $resourceActionGrant): ResourceActionGrant
     {
+        $this->validateResourceActionGrant($resourceActionGrant);
+
         $connection = $this->entityManager->getConnection();
         try {
             $connection->beginTransaction();
-
-            $this->validateResourceActionGrant($resourceActionGrant);
 
             if (null === $resourceActionGrant->getAuthorizationResource()) {
                 $resourceActionGrant->setAuthorizationResource(
@@ -674,15 +674,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         $this->eventDispatcher->dispatch(new ResourceActionGrantAddedEvent($resourceActionGrant));
 
         return $resourceActionGrant;
-    }
-
-    /**
-     * @throws ApiError
-     */
-    public function throwResourceNotFound(): void
-    {
-        throw ApiError::withDetails(Response::HTTP_NOT_FOUND,
-            'authorization resource not found', self::AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID);
     }
 
     /**
@@ -1280,13 +1271,36 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
      */
     private function validateResourceActionGrant(ResourceActionGrant $resourceActionGrant): void
     {
+        if (null === $resourceActionGrant->getResourceClass()) {
+            throw ApiError::withDetails(
+                Response::HTTP_BAD_REQUEST,
+                'resourceClass must be provided',
+                self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
+        }
+
+        if (null === $resourceActionGrant->getResourceIdentifier()) {
+            throw ApiError::withDetails(
+                Response::HTTP_BAD_REQUEST,
+                'resourceIdentifier must be provided',
+                self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
+        }
+
+        if (false === in_array($resourceActionGrant->getResourceType(), self::RESOURCE_TYPES, true)) {
+            throw ApiError::withDetails(
+                Response::HTTP_BAD_REQUEST,
+                'resourceType is undefined',
+                self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
+        }
+
         $providedGrantHolderIdentifiers = array_filter([
             $resourceActionGrant->getUserIdentifier() !== null,
             $resourceActionGrant->getUserGroup() !== null,
             $resourceActionGrant->getDynamicUserGroupIdentifier() !== null,
         ]);
+
         if (1 !== count($providedGrantHolderIdentifiers)) {
-            throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+            throw ApiError::withDetails(
+                Response::HTTP_BAD_REQUEST,
                 'Exactly one of userIdentifier, userGroup or dynamicUserGroupIdentifier must be provided',
                 self::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
         }
@@ -1388,6 +1402,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
 
             $queryBuilder->getQuery()->execute();
         } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to remove resource: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+                'resourceClass' => $resourceClass,
+                'resourceIdentifiers' => $resourceIdentifiers,
+                'resourceType' => $resourceType,
+                'removeGrantsOnly' => $removeGrantsOnly,
+            ]);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Resource could not be removed!', self::REMOVING_RESOURCE_FAILED_ERROR_ID,
                 ['message' => $throwable->getMessage()]);
