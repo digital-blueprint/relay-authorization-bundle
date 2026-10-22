@@ -16,7 +16,6 @@ use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\Serializer\DateTimeUtcNormalizer;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Context;
@@ -185,7 +184,7 @@ class ResourceActionGrant
     #[ApiProperty(
         description: 'AuthorizationRole to grant',
         openapiContext: [
-            'example' => '/authorization/roles/'.InternalResourceActionGrantService::OWNER_ROLE_IDENTIFIER,
+            'example' => '/authorization/roles/'.AuthorizationService::OWNER_ROLE_IDENTIFIER,
         ]
     )]
     #[ORM\JoinColumn(name: self::ROLE_IDENTIFIER_COLUMN, referencedColumnName: Role::IDENTIFIER_COLUMN_NAME, onDelete: 'CASCADE')]

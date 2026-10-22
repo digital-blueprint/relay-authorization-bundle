@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Authorization;
 
+use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
@@ -24,6 +25,7 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -61,11 +63,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         ],
         self::ADD_GROUP_MEMBERS_GROUP_ACTION => [
             'en' => 'Add members',
-            'de' => 'Mitglieder hinzufügen',
+            'de' => 'Mitglieder*innen hinzufügen',
         ],
         self::DELETE_GROUP_MEMBERS_GROUP_ACTION => [
-            'en' => 'Delete members',
-            'de' => 'Mitglieder löschen',
+            'en' => 'Remove members',
+            'de' => 'Mitglieder*innen entfernen',
         ],
     ];
     public const GROUP_COLLECTION_ACTIONS = [
@@ -85,9 +87,127 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const RESOURCE_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE;
     public const RESOURCE_GROUP_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE;
 
-    public const OWNER_ROLE_IDENTIFIER = InternalResourceActionGrantService::OWNER_ROLE_IDENTIFIER;
+    public const OWNER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
+    public const OWN_ITEM_ACTION_UUID = '019ecac3-2eea-7297-ae1a-486de6fca628';
+    public const OWN_COLLECTION_ACTION_UUID = '019ecac3-d095-7ae7-b10b-30bff78040a7';
+
+    private const OWN_ACTION_NAMES = [
+        'en' => 'Own',
+        'de' => 'Eigentümer*in sein',
+    ];
+
+    private const OWNER_ROLE_NAMES = [
+        'en' => 'Owner',
+        'de' => 'Eigentümer*in',
+    ];
 
     private ?array $config = null;
+
+    /**
+     * Adds or updates the 'own' actions and the 'owner' role.
+     */
+    public static function addOrUpdateActionsAndRoles(EntityManagerInterface $entityManager, ?LoggerInterface $logger = null): void
+    {
+        /**
+         * Owner actions and roles.
+         */
+        InternalResourceActionGrantService::addOrUpdateAvailableResourceClassActionStatic(
+            $entityManager,
+            null,
+            self::OWN_ACTION,
+            AvailableResourceClassAction::ITEM_ACTION_TYPE,
+            self::OWN_ACTION_NAMES,
+            identifier: self::OWN_ITEM_ACTION_UUID,
+            logger: $logger
+        );
+        InternalResourceActionGrantService::addOrUpdateAvailableResourceClassActionStatic(
+            $entityManager,
+            null,
+            self::OWN_ACTION,
+            AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
+            self::OWN_ACTION_NAMES,
+            identifier: self::OWN_COLLECTION_ACTION_UUID,
+            logger: $logger
+        );
+        InternalResourceActionGrantService::addOrUpdateRoleStatic($entityManager,
+            self::OWNER_ROLE_NAMES,
+            [
+                // works for both item and collection resources:
+                ResourceActionGrantService::createRoleAction(
+                    null, ResourceActionGrantService::OWN_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    null, ResourceActionGrantService::OWN_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
+            ],
+            identifier: ResourceActionGrantService::OWNER_ROLE_IDENTIFIER
+        );
+
+        /**
+         * User group actions and roles.
+         */
+        InternalResourceActionGrantService::addOrUpdateAvailableResourceClassActionsStatic($entityManager,
+            AuthorizationService::GROUP_RESOURCE_CLASS,
+            AuthorizationService::GROUP_ITEM_ACTIONS,
+            AuthorizationService::GROUP_COLLECTION_ACTIONS);
+
+        InternalResourceActionGrantService::addOrUpdateRoleStatic(
+            $entityManager,
+            [
+                'en' => 'Reader',
+                'de' => 'Leser*in',
+            ],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::READ_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+            ],
+        );
+        InternalResourceActionGrantService::addOrUpdateRoleStatic(
+            $entityManager,
+            [
+                'en' => 'Editor',
+                'de' => 'Bearbeiter*in',
+            ],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::READ_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::UPDATE_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::ADD_GROUP_MEMBERS_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::DELETE_GROUP_MEMBERS_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+            ],
+        );
+        InternalResourceActionGrantService::addOrUpdateRoleStatic(
+            $entityManager,
+            [
+                'en' => 'Manager',
+                'de' => 'Manager*in',
+            ],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::READ_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::UPDATE_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::DELETE_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::ADD_GROUP_MEMBERS_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::DELETE_GROUP_MEMBERS_GROUP_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
+            ],
+        );
+        InternalResourceActionGrantService::addOrUpdateRoleStatic(
+            $entityManager,
+            [
+                'en' => 'Creator',
+                'de' => 'Ersteller*in',
+            ],
+            [
+                ResourceActionGrantService::createRoleAction(
+                    AuthorizationService::GROUP_RESOURCE_CLASS, AuthorizationService::CREATE_GROUPS_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
+            ],
+        );
+    }
 
     public function __construct(
         private readonly InternalResourceActionGrantService $internalResourceActionGrantService,

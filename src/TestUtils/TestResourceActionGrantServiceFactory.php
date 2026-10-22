@@ -116,7 +116,7 @@ class TestResourceActionGrantServiceFactory
 
     private static function ensureActionsAndRoles(AuthorizationService $authorizationService, array $availableResourceClassActions): void
     {
-        InternalResourceActionGrantService::addOrUpdateOwnerActionsAndRoles($authorizationService->getEntityManager());
+        AuthorizationService::addOrUpdateActionsAndRoles($authorizationService->getEntityManager());
         foreach ($availableResourceClassActions as $resourceClass => $actions) {
             $authorizationService->addOrUpdateAvailableResourceClassActions($resourceClass,
                 $actions[0] ?? [],
