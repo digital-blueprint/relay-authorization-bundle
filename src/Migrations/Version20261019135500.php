@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Migrations;
 
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Doctrine\DBAL\Schema\Schema;
 
 /**
@@ -19,6 +19,6 @@ final class Version20261019135500 extends EntityManagerMigration
 
     public function up(Schema $schema): void
     {
-        InternalResourceActionGrantService::addOrUpdateOwnerActionsAndRoles($this->getEntityManager());
+        AuthorizationService::addOrUpdateActionsAndRoles($this->getEntityManager());
     }
 }

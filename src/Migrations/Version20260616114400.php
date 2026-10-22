@@ -8,7 +8,6 @@ use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Doctrine\DBAL\Schema\Schema;
 use Symfony\Component\Uid\UuidV7;
 
@@ -24,8 +23,8 @@ final class Version20260616114400 extends EntityManagerMigration
 
     public function up(Schema $schema): void
     {
-        $OWN_ITEM_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::OWN_ITEM_ACTION_UUID)->toHex();
-        $OWN_COLLECTION_ACTION_UUID = UuidV7::fromString(InternalResourceActionGrantService::OWN_COLLECTION_ACTION_UUID)->toHex();
+        $OWN_ITEM_ACTION_UUID = UuidV7::fromString(AuthorizationService::OWN_ITEM_ACTION_UUID)->toHex();
+        $OWN_COLLECTION_ACTION_UUID = UuidV7::fromString(AuthorizationService::OWN_COLLECTION_ACTION_UUID)->toHex();
         $MANAGE_ACTION = 'manage';
         $COLLECTION_RESOURCE_IDENTIFIER = AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER;
         $ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;

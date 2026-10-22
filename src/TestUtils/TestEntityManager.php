@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
-use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
@@ -17,7 +16,6 @@ use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -32,7 +30,6 @@ class TestEntityManager extends CoreTestEntityManager
     {
         assert($container instanceof Container);
         parent::__construct($container, DbpRelayAuthorizationExtension::AUTHORIZATION_ENTITY_MANAGER_ID);
-        self::addAvailableGroupResourceClassActions($this->getEntityManager());
     }
 
     public function addResourceActionGrant(AuthorizationResource $resource, ?string $action = null,
@@ -477,14 +474,6 @@ class TestEntityManager extends CoreTestEntityManager
         } catch (\Exception $exception) {
             throw new \RuntimeException($exception->getMessage());
         }
-    }
-
-    private static function addAvailableGroupResourceClassActions(EntityManagerInterface $entityManager): void
-    {
-        InternalResourceActionGrantService::addOrUpdateAvailableResourceClassActionsStatic($entityManager,
-            AuthorizationService::GROUP_RESOURCE_CLASS,
-            AuthorizationService::GROUP_ITEM_ACTIONS,
-            AuthorizationService::GROUP_COLLECTION_ACTIONS);
     }
 
     public function clear(): void

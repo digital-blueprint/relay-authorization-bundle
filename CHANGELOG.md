@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- add user group roles, gender user group action names
 - combine resource access and permission checks into single `IfGranted` methods in the AuthorizationService
 - add 'create_grants' and 'share' to ResourceActionGrant::grantedActions, to indicate whether the current user may 
   add new grants for the grant's resource or share the grant with other users

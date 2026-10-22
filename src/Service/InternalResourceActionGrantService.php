@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Service;
 
-use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Doctrine\RetryFlushEntityManager;
@@ -43,11 +42,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     use LoggerAwareTrait;
 
     public const MAX_NUM_RESULTS_DEFAULT = 1024;
-
-    public const OWN_ITEM_ACTION_UUID = '019ecac3-2eea-7297-ae1a-486de6fca628';
-    public const OWN_COLLECTION_ACTION_UUID = '019ecac3-d095-7ae7-b10b-30bff78040a7';
-
-    public const OWNER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
 
     public const COLLECTION_RESOURCE_IDENTIFIER = 'null';
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
@@ -116,7 +110,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     {
         $availableItemActions = [];
         foreach ($itemActions as $action => $actionNames) {
-            $availableItemActions[] = self::addOrUpdateAvailableResourceClassActionInternal(
+            $availableItemActions[] = self::addOrUpdateAvailableResourceClassActionStatic(
                 $entityManager, $resourceClass, $action,
                 AvailableResourceClassAction::ITEM_ACTION_TYPE,
                 $actionNames,
@@ -124,7 +118,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         }
         $availableCollectionActions = [];
         foreach ($collectionActions as $collectionAction => $actionNames) {
-            $availableCollectionActions[] = self::addOrUpdateAvailableResourceClassActionInternal(
+            $availableCollectionActions[] = self::addOrUpdateAvailableResourceClassActionStatic(
                 $entityManager, $resourceClass, $collectionAction,
                 AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
                 $actionNames,
@@ -135,49 +129,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             AvailableResourceClassAction::ITEM_ACTION_TYPE => $availableItemActions,
             AvailableResourceClassAction::COLLECTION_ACTION_TYPE => $availableCollectionActions,
         ];
-    }
-
-    /**
-     * Adds or updates the 'own' actions and the 'owner' role.
-     */
-    public static function addOrUpdateOwnerActionsAndRoles(EntityManagerInterface $entityManager, ?LoggerInterface $logger = null): void
-    {
-        $ownActionNames = [
-            'en' => 'Own',
-            'de' => 'Eigentümer*in sein',
-        ];
-        self::addOrUpdateAvailableResourceClassActionInternal(
-            $entityManager,
-            null,
-            AuthorizationService::OWN_ACTION,
-            AvailableResourceClassAction::ITEM_ACTION_TYPE,
-            $ownActionNames,
-            identifier: self::OWN_ITEM_ACTION_UUID,
-            logger: $logger
-        );
-        self::addOrUpdateAvailableResourceClassActionInternal(
-            $entityManager,
-            null,
-            AuthorizationService::OWN_ACTION,
-            AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
-            $ownActionNames,
-            identifier: self::OWN_COLLECTION_ACTION_UUID,
-            logger: $logger
-        );
-        self::addOrUpdateRoleStatic($entityManager,
-            [
-                'en' => 'Owner',
-                'de' => 'Eigentümer*in',
-            ],
-            [
-                // works for both item and collection resources:
-                ResourceActionGrantService::createRoleAction(
-                    null, ResourceActionGrantService::OWN_ACTION, ResourceActionGrantService::ITEM_ACTION_TYPE),
-                ResourceActionGrantService::createRoleAction(
-                    null, ResourceActionGrantService::OWN_ACTION, ResourceActionGrantService::COLLECTION_ACTION_TYPE),
-            ],
-            identifier: ResourceActionGrantService::OWNER_ROLE_IDENTIFIER
-        );
     }
 
     /**
@@ -243,7 +194,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     /**
      * @throw ApiError
      */
-    private static function addOrUpdateAvailableResourceClassActionInternal(
+    public static function addOrUpdateAvailableResourceClassActionStatic(
         EntityManagerInterface $entityManager,
         ?string $resourceClass, string $action, int $actionType, array $actionNames,
         ?string $identifier = null, ?LoggerInterface $logger = null): AvailableResourceClassAction
