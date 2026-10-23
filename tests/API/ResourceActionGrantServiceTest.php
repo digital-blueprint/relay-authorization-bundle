@@ -51,7 +51,7 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $this->assertSame(self::CURRENT_USER_IDENTIFIER, $resourceActionGrantPersistence->getUserIdentifier());
     }
 
-    public function testSetAvailableResourceClassActions(): void
+    public function testAddOrUpdateAvailableResourceClassActions(): void
     {
         $resourceClass = 'MyResourceClass';
         $itemActions = [
@@ -75,6 +75,41 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
         $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
             $resourceClass, AvailableResourceClassAction::ITEM_ACTION_TYPE);
         $this->assertContainsActions($availableResourceClassActions, $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
+            $resourceClass, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($availableResourceClassActions, $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+
+        unset($itemActions['edit']);
+        $itemActions['write'] = [
+            'en' => 'Write',
+            'fr' => 'Écrire',
+        ];
+
+        unset($collectionActions['create']);
+        $collectionActions['delete'] = [
+            'en' => 'Delete',
+            'fr' => 'Supprimer',
+        ];
+
+        $this->resourceActionGrantService->addOrUpdateAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
+
+        $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
+            $resourceClass, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($availableResourceClassActions, $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+
+        $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
+            $resourceClass, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+        $this->assertContainsActions($availableResourceClassActions, $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
+
+        $itemActions = [];
+        $collectionActions = [];
+
+        $this->resourceActionGrantService->addOrUpdateAvailableResourceClassActions($resourceClass, $itemActions, $collectionActions);
+
+        $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
+            $resourceClass, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+        $this->assertContainsActions($availableResourceClassActions, $resourceClass, $itemActions, AvailableResourceClassAction::ITEM_ACTION_TYPE);
+
         $availableResourceClassActions = $this->testEntityManager->getAvailableResourceClassActions(
             $resourceClass, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);
         $this->assertContainsActions($availableResourceClassActions, $resourceClass, $collectionActions, AvailableResourceClassAction::COLLECTION_ACTION_TYPE);

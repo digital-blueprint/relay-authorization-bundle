@@ -108,6 +108,22 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     public static function addOrUpdateAvailableResourceClassActionsStatic(EntityManagerInterface $entityManager,
         ?string $resourceClass, array $itemActions, array $collectionActions, ?LoggerInterface $logger = null): array
     {
+        $itemActionsToRemoveMap = [];
+        $collectionActionsToRemoveMap = [];
+
+        foreach ($entityManager->getRepository(AvailableResourceClassAction::class)->findBy([
+            'resourceClass' => $resourceClass,
+        ]) as $availableResourceClassAction) {
+            switch ($availableResourceClassAction->getActionType()) {
+                case AvailableResourceClassAction::ITEM_ACTION_TYPE:
+                    $itemActionsToRemoveMap[$availableResourceClassAction->getAction()] = $availableResourceClassAction;
+                    break;
+                case AvailableResourceClassAction::COLLECTION_ACTION_TYPE:
+                    $collectionActionsToRemoveMap[$availableResourceClassAction->getAction()] = $availableResourceClassAction;
+                    break;
+            }
+        }
+
         $availableItemActions = [];
         foreach ($itemActions as $action => $actionNames) {
             $availableItemActions[] = self::addOrUpdateAvailableResourceClassActionStatic(
@@ -115,7 +131,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 AvailableResourceClassAction::ITEM_ACTION_TYPE,
                 $actionNames,
                 logger: $logger);
+
+            unset($itemActionsToRemoveMap[$action]); // still available
         }
+
         $availableCollectionActions = [];
         foreach ($collectionActions as $collectionAction => $actionNames) {
             $availableCollectionActions[] = self::addOrUpdateAvailableResourceClassActionStatic(
@@ -123,6 +142,16 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 AvailableResourceClassAction::COLLECTION_ACTION_TYPE,
                 $actionNames,
                 logger: $logger);
+
+            unset($collectionActionsToRemoveMap[$collectionAction]); // still available
+        }
+
+        foreach ($itemActionsToRemoveMap as $availableResourceClassAction) {
+            $entityManager->remove($availableResourceClassAction);
+        }
+
+        foreach ($collectionActionsToRemoveMap as $availableResourceClassAction) {
+            $entityManager->remove($availableResourceClassAction);
         }
 
         return [
@@ -969,8 +998,9 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                                 AuthorizationService::OWN_ACTION, $grantedActionsEntity->getActions(), true)) {
                                 if (AuthorizationService::OWN_ACTION === $action) {
                                     $grantedActionsEntity->setActions(
-                                        $this->getAvailableActionsCached($effectiveResourceClass)[AvailableResourceClassAction::getActionTypeForResourceIdentifier(
-                                            $effectiveResourceIdentifier)] ?? []
+                                        $this->getAvailableActionsCached($effectiveResourceClass)[
+                                            AvailableResourceClassAction::getActionTypeForResourceIdentifier(
+                                                $effectiveResourceIdentifier)] ?? []
                                     );
                                 } else {
                                     $grantedActionsEntity->addAction($action);
@@ -1647,7 +1677,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 if ([] !== $itemActions) {
                     $itemActions[] = AuthorizationService::OWN_ACTION;
                 }
-                $availableActions[AvailableResourceClassAction::ITEM_ACTION_TYPE] = $itemActions;
+                $availableActions[AvailableResourceClassAction::ITEM_ACTION_TYPE] = array_values($itemActions);
 
                 $collectionActions = array_map(
                     static fn (AvailableResourceClassAction $action) => $action->getAction(),
@@ -1657,7 +1687,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 if ([] !== $collectionActions) {
                     $collectionActions[] = AuthorizationService::OWN_ACTION;
                 }
-                $availableActions[AvailableResourceClassAction::COLLECTION_ACTION_TYPE] = $collectionActions;
+                $availableActions[AvailableResourceClassAction::COLLECTION_ACTION_TYPE] = array_values($collectionActions);
             }
             $this->availableResourceClassActionsRequestCache[$resourceClass] = $availableActions;
         }

@@ -107,12 +107,12 @@ use Symfony\Component\Serializer\Attribute\Groups;
                                         'description' => 'The identifier of the user (person) type grant holder',
                                         'example' => '811EC3ACC0ADCA70',
                                     ],
-                                    'group' => [
+                                    'userGroup' => [
                                         'type' => 'string',
                                         'description' => 'The identifier of the AuthorizationUserGroup type grant holder',
                                         'example' => '/authorization/groups/0193cf2d-89a8-7a9c-b317-2e5201afdd8d',
                                     ],
-                                    'dynamicGroupIdentifier' => [
+                                    'dynamicUserGroupIdentifier' => [
                                         'type' => 'string',
                                         'description' => 'The identifier of the AuthorizationDynamicGroup type grant holder',
                                         'example' => 'everybody',
