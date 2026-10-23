@@ -78,18 +78,18 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     private const REMOVING_RESOURCE_ACTION_GRANT_FAILED_ERROR_ID = 'authorization:removing-resource-action-grant-failed';
     public const GETTING_RESOURCE_ACTION_GRANT_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-action-grant-item-failed';
     public const ADDING_AUTHORIZATION_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-failed';
-    private const ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID = 'authorization:adding-available-resource-class-actions-failed';
     private const REMOVING_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-failed';
     public const ADDING_RESOURCE_TO_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:adding-resource-to-group-resource-failed';
     private const REMOVING_RESOURCE_FROM_GROUP_RESOURCE_FAILED_ERROR_ID = 'authorization:removing-resource-from-group-resource-failed';
     private const GETTING_RESOURCE_ITEM_FAILED_ERROR_ID = 'authorization:getting-resource-item-failed';
-    public const AUTHORIZATION_RESOURCE_NOT_FOUND_ERROR_ID = 'authorization:resource-not-found';
     public const RESOURCE_ACTION_GRANT_INVALID_ERROR_ID = 'authorization:resource-action-grant-invalid';
-    private const ADDING_ROLE_FAILED_ERROR_ID = 'authorization:adding-role-failed';
     public const GETTING_ROLE_ITEM_FAILED_ERROR_ID = 'authorization:getting-role-item-failed';
     public const GETTING_ROLE_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-role-collection-failed';
     private const GETTING_AVAILABLE_RESOURCE_CLASS_ACTION_COLLECTION_FAILED_ERROR_ID = 'authorization:getting-available-resource-class-action-collection-failed';
 
+    /**
+     * @throws \Throwable
+     */
     public static function getAvailableResourceClassActionStatic(EntityManagerInterface $entityManager,
         ?string $resourceClass, string $action, int $actionType): ?AvailableResourceClassAction
     {
@@ -100,11 +100,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     'resourceClass' => $action === AuthorizationService::OWN_ACTION ? null : $resourceClass,
                     'actionType' => $actionType,
                 ]);
-        } catch (\Exception $exception) {
-            throw new \RuntimeException($exception->getMessage());
+        } catch (\Throwable $throwable) {
+            throw new \RuntimeException('Failed to get available resource class action: '.$throwable->getMessage(), 0, $throwable);
         }
     }
 
+    /**
+     * @throws \Throwable
+     */
     public static function addOrUpdateAvailableResourceClassActionsStatic(EntityManagerInterface $entityManager,
         ?string $resourceClass, array $itemActions, array $collectionActions, ?LoggerInterface $logger = null): array
     {
@@ -146,12 +149,20 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             unset($collectionActionsToRemoveMap[$collectionAction]); // still available
         }
 
-        foreach ($itemActionsToRemoveMap as $availableResourceClassAction) {
-            $entityManager->remove($availableResourceClassAction);
-        }
-
-        foreach ($collectionActionsToRemoveMap as $availableResourceClassAction) {
-            $entityManager->remove($availableResourceClassAction);
+        try {
+            foreach (array_merge($itemActionsToRemoveMap, $collectionActionsToRemoveMap) as $availableResourceClassActionToRemove) {
+                foreach ($availableResourceClassActionToRemove->getNames() as $name) {
+                    $entityManager->remove($name);
+                }
+                $entityManager->remove($availableResourceClassActionToRemove);
+            }
+            $entityManager->flush();
+        } catch (\Throwable $throwable) {
+            $logger?->error('Failed to remove available resource class actions: '.$throwable->getMessage(), [
+                'exception' => $throwable,
+                'resourceClass' => $resourceClass,
+            ]);
+            throw new \RuntimeException('Failed to remove available resource class actions: '.$throwable->getMessage(), 0, $throwable);
         }
 
         return [
@@ -161,7 +172,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     /**
-     * @throws ApiError
+     * @throws \Throwable
      */
     public static function addOrUpdateRoleStatic(EntityManagerInterface $entityManager,
         array $localizedRoleNames, array $roleActions, ?string $identifier = null, ?LoggerInterface $logger = null): Role
@@ -213,15 +224,14 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 'exception' => $throwable,
                 'identifier' => $identifier,
             ]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR, 'Role could not be added!',
-                self::ADDING_ROLE_FAILED_ERROR_ID);
+            throw new \RuntimeException('Role could not be added/updated: '.$throwable->getMessage(), 0, $throwable);
         }
 
         return $role;
     }
 
     /**
-     * @throw ApiError
+     * @throws \Throwable
      */
     public static function addOrUpdateAvailableResourceClassActionStatic(
         EntityManagerInterface $entityManager,
@@ -241,7 +251,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             if (null === $availableResourceClassAction) {
                 if (null !== $resourceClass
                     && str_contains($resourceClass, UserAttributeProvider::SEPARATOR)) {
-                    throw ApiError::withDetails(Response::HTTP_BAD_REQUEST,
+                    throw new \InvalidArgumentException(
                         sprintf("resource class must not contain the reserved character '%s'",
                             UserAttributeProvider::SEPARATOR));
                 }
@@ -280,11 +290,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 }
             }
 
-            // Optional: remove children that are no longer present in $actionNames
-            // (keeps DB clean if you sometimes pass a smaller set of languages)
-            $wantedLangs = array_keys($actionNames);
+            // remove children that are no longer present in $actionNames
+            $requestedLanguageTags = array_keys($actionNames);
             foreach ($availableResourceClassAction->getNames() as $existingName) {
-                if (!in_array($existingName->getLanguageTag(), $wantedLangs, true)) {
+                if (false === in_array($existingName->getLanguageTag(), $requestedLanguageTags, true)) {
                     $entityManager->remove($existingName);
                 }
             }
@@ -296,10 +305,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 'resourceClass' => $resourceClass,
                 'actionType' => $actionType,
             ]);
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                // 'Available resource class actions could not be added!',
-                sprintf('Failed to add/update available resource class %s action %s: %s', $resourceClass, $action, $throwable->getMessage()),
-                self::ADDING_AVAILABLE_RESOURCE_CLASS_ACTIONS_FAILED_ERROR_ID);
+            throw $throwable;
         }
 
         return $availableResourceClassAction;
@@ -329,7 +335,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     }
 
     /**
-     * @throws ApiError
+     * @throws \Throwable
      */
     public function addOrUpdateAvailableResourceClassActions(string $resourceClass,
         array $itemActions, array $collectionActions): array
