@@ -104,7 +104,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private ?array $config = null;
 
     /**
-     * Adds or updates the 'own' actions and the 'owner' role.
+     * Adds or updates builtin actions and roles (owner and user group actions/roles).
+     *
+     * @throws \Throwable
      */
     public static function addOrUpdateActionsAndRoles(EntityManagerInterface $entityManager, ?LoggerInterface $logger = null): void
     {
