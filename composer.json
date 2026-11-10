@@ -11,7 +11,6 @@
         "beberlei/doctrineextensions": "^1.5",
         "dbp/relay-core-bundle": "^0.1.251",
         "doctrine/collections": "^2.2",
-        "doctrine/common": "^3.4.4",
         "doctrine/dbal": "^3.8 || ^4.0",
         "doctrine/doctrine-migrations-bundle": "^3.3",
         "doctrine/migrations": "^3.7",
