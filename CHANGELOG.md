@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- allow resource grouping just on one level
+- don't allow grouping collection resources (nor collection group resources)
+- improve query performance by using just one query, making of use of temporary tables ('WITH' clauses)
 - also remove actions on ResourceActionGrantService::addOrUpdateAvailableResourceClassActions
 - add user group roles, gender user group action names
 - combine resource access and permission checks into single `IfGranted` methods in the AuthorizationService
