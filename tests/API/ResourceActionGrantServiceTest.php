@@ -900,19 +900,19 @@ class ResourceActionGrantServiceTest extends AbstractAuthorizationServiceTestCas
 
         $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            whereIsGrantedAction: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0]);
+            whereGrantingAction: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0]);
 
         $this->assertCount(1, $rags);
         $this->assertContainsResourceActionGrant($rags, $rag1);
 
         $this->assertEmpty($this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
-            whereIsGrantedAction: 'foo'));
+            whereGrantingAction: 'foo'));
 
         $rags = $this->resourceActionGrantService->getResourceActionGrantsForResourceClassAndIdentifier(
             TestResources::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER,
             resourceType: ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE,
-            whereIsGrantedAction: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[1]);
+            whereGrantingAction: array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[1]);
         $this->assertCount(1, $rags);
         $this->assertContainsResourceActionGrant($rags, $rag4);
 

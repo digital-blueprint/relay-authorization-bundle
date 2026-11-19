@@ -208,10 +208,10 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
         ?array $grantedActionsExpected = null): void
     {
         $this->assertCount(1, $this->selectWhere($rags,
-            function (ResourceActionGrant $rag) use ($sourceRag, $effectiveResource, $grantedActionsExpected) {
+            function (ResourceActionGrant $rag) use ($sourceRag, $effectiveResource, $grantedActionsExpected): bool {
                 return $rag->isInherited()
                     && UuidV7::isValid($rag->getIdentifier())
-                    && $rag->getIdentifier() !== $sourceRag->getIdentifier()
+                    && $rag->getIdentifier() === $sourceRag->getIdentifier()
                     && $rag->getResourceClass() === $effectiveResource->getResourceClass()
                     && $rag->getResourceIdentifier() === $effectiveResource->getResourceIdentifier()
                     && $rag->getResourceType() === $effectiveResource->getResourceType()

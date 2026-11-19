@@ -111,8 +111,8 @@ class ResourceActionGrantProviderTest extends AbstractAuthorizationServiceTestCa
         $this->assertEquals($resourceActionGrant->getAction(), $resourceActionGrantItem->getAction());
         $this->assertEquals($resourceActionGrant->getUserIdentifier(), $resourceActionGrantItem->getUserIdentifier());
         $this->assertIsPermutationOf(
-            $resourceActionGrantItem->getGrantedActions(),
-            ['create_grants', 'delete']
+            ['create_grants', 'delete'],
+            $resourceActionGrantItem->getGrantedActions()
         );
     }
 

@@ -766,7 +766,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             $grantedActions->getActions());
 
         // 'where is granted action' filter (delete action) and not excluding the collection resource grants
-        // should contain all resources where the user has delete or manage rights (manage implies delete)
+        // should contain all resources where the user has 'delete' rights or is owner (implies 'delete')
         // NOTE: the collection resource grants should not be included because delete is not available for the collection resource
         $grantedActionsCollection = $this->grantedActionsProviderTester->getCollection(
             filters: [

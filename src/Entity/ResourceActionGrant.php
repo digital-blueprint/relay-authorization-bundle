@@ -20,6 +20,7 @@ use Dbp\Relay\CoreBundle\Serializer\DateTimeUtcNormalizer;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\Ignore;
 
 #[ApiResource(
     shortName: 'AuthorizationResourceActionGrant',
@@ -275,6 +276,7 @@ class ResourceActionGrant
     private ?string $authorizationResourceIdentifier = null;
 
     private bool $isInherited = false;
+    private ?bool $isResourceOwnedByCurrentUser = null;
 
     public function getIdentifier(): ?string
     {
@@ -460,6 +462,7 @@ class ResourceActionGrant
             \DateTimeImmutable::createFromInterface($dateCreated) : null;
     }
 
+    #[Ignore]
     public function isInherited(): bool
     {
         return $this->isInherited;
@@ -468,6 +471,17 @@ class ResourceActionGrant
     public function setIsInherited(bool $isInherited): void
     {
         $this->isInherited = $isInherited;
+    }
+
+    #[Ignore]
+    public function isResourceOwnedByCurrentUser(): ?bool
+    {
+        return $this->isResourceOwnedByCurrentUser;
+    }
+
+    public function setIsResourceOwnedByCurrentUser(bool $isResourceOwnedByCurrentUser): void
+    {
+        $this->isResourceOwnedByCurrentUser = $isResourceOwnedByCurrentUser;
     }
 
     public function __toString(): string

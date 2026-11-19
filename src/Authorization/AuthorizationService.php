@@ -669,19 +669,19 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     public function addResourceToGroupResource(string $resourceClass, string $resourceGroupResourceIdentifier,
-        string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        string $resourceIdentifier): void
     {
         $this->internalResourceActionGrantService->addResourceToResourceGroup(
             $resourceClass, $resourceGroupResourceIdentifier,
-            $resourceIdentifier, $resourceType);
+            $resourceIdentifier);
     }
 
     public function removeResourceFromGroupResource(string $resourceClass, string $resourceGroupResourceIdentifier,
-        string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        string $resourceIdentifier): void
     {
         $this->internalResourceActionGrantService->removeResourceFromGroupResource(
             $resourceClass, $resourceGroupResourceIdentifier,
-            $resourceIdentifier, $resourceType);
+            $resourceIdentifier);
     }
 
     /**
@@ -691,11 +691,13 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
         string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
-        ?string $whereIsGrantedAction = null): array
+        ?string $whereGrantingAction = null): array
     {
-        return $this->internalResourceActionGrantService->getResourceActionGrantsForResource(
-            $resourceClass, $resourceIdentifier, $resourceType,
-            whereIsGrantedAction: $whereIsGrantedAction
+        return $this->internalResourceActionGrantService->getResourceActionGrants(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
+            whereGrantingAction: $whereGrantingAction
         );
     }
 
@@ -707,13 +709,15 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
-        return $this->internalResourceActionGrantService->getGrantedActionsForResource(
-            $resourceClass, $resourceIdentifier, $resourceType,
+        return $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
             userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
             groupIdentifiers: $currentUserIdentifier !== null ? $this->userGroupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
             dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
             maxNumResults: null
-        );
+        )[0] ?? null;
     }
 
     /**
@@ -728,17 +732,9 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
-        if ($whereIsGrantedAction === null) {
-            $whereActionsContainAnyOf = null;
-        } elseif ($whereIsGrantedAction === self::OWN_ACTION) {
-            $whereActionsContainAnyOf = [self::OWN_ACTION];
-        } else {
-            $whereActionsContainAnyOf = [$whereIsGrantedAction, self::OWN_ACTION];
-        }
-
-        return $this->internalResourceActionGrantService->getGrantedActionsForResourcePage(
+        return $this->internalResourceActionGrantService->getGrantedActionsCollection(
             $resourceClass, $resourceIdentifier, $resourceType,
-            whereAuthorizationResourceActionsContainAnyOf: $whereActionsContainAnyOf,
+            whereIsGrantedAction: $whereIsGrantedAction,
             userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
             groupIdentifiers: $currentUserIdentifier !== null ?
                 $this->userGroupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
@@ -812,18 +808,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     /**
-     * @return string[]
-     */
-    public function getResourceClassesCurrentUserIsAuthorizedToRead(
-        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
-    {
-        return $this->getResourceActionGrantsCurrentUserIsAuthorizedToReadInternal(
-            InternalResourceActionGrantService::GET_RESOURCE_CLASSES,
-            firstResultIndex: $firstResultIndex,
-            maxNumResults: $maxNumResults);
-    }
-
-    /**
      * @throws ApiError
      */
     public function getResourceActionGrantByIdentifierIfGranted(string $identifier): ?ResourceActionGrant
@@ -845,16 +829,42 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @param string|null $resourceIdentifier null matches any resource identifier
      *
      * @return ResourceActionGrant[]
+     *
+     * @throws ApiError
      */
     public function getResourceActionGrantsCurrentUserIsAuthorizedToRead(
         ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        return $this->getResourceActionGrantsCurrentUserIsAuthorizedToReadInternal(
-            InternalResourceActionGrantService::GET_RESOURCE_ACTION_GRANTS,
-            $resourceClass, $resourceIdentifier, $resourceType,
-            firstResultIndex: $firstResultIndex,
-            maxNumResults: $maxNumResults);
+        $userIdentifier = $this->getUserIdentifier() !== null ?
+            $this->getUserIdentifier() : InternalResourceActionGrantService::FALSE;
+        $groupIdentifiers = $this->getUserIdentifier() !== null ?
+            $this->userGroupService->getUserGroupsUserIsMemberOf($userIdentifier) : [];
+        $dynamicUserGroupIdentifiers = $this->getDynamicGroupsCurrentUserIsMemberOf();
+
+        try {
+            foreach ($results =
+                         $this->internalResourceActionGrantService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
+                             $resourceClass, $resourceIdentifier, $resourceType,
+                             userIdentifier: $userIdentifier,
+                             groupIdentifiers: $groupIdentifiers,
+                             dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
+                             firstResultIndex: $firstResultIndex,
+                             maxNumResults: $maxNumResults
+                         ) as $resourceActionGrant) {
+                $this->setGrantedActions(
+                    $resourceActionGrant,
+                    $resourceActionGrant->isResourceOwnedByCurrentUser()
+                );
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Failed to get resource action grant collection!',
+                InternalResourceActionGrantService::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID,
+                ['message' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -874,7 +884,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
         $lastResourceClass = null;
         $resourceClassGrantsMap = [];
-        foreach ($this->internalResourceActionGrantService->getResourceActionGrantsForResource(
+        foreach ($this->internalResourceActionGrantService->getResourceActionGrants(
             resourceIdentifier: self::COLLECTION_RESOURCE_IDENTIFIER,
             resourceType: self::RESOURCE_RESOURCE_TYPE) as $resourceActionGrant) {
             $resourceClass = $resourceActionGrant->getResourceClass();
@@ -1026,86 +1036,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         return $this->doesCurrentUserHold($resourceActionGrant)
             || $this->doesCurrentUserHaveAManageGrantForAuthorizationResource(
                 $resourceActionGrant->getResourceClass(), $resourceActionGrant->getResourceIdentifier());
-    }
-
-    /**
-     * @param string|null $resourceIdentifier null matches any resource identifier
-     *
-     * @return ResourceActionGrant[]|AuthorizationResource[]|string[]
-     *
-     * @throws ApiError
-     */
-    private function getResourceActionGrantsCurrentUserIsAuthorizedToReadInternal(
-        string $get = InternalResourceActionGrantService::GET_RESOURCE_ACTION_GRANTS,
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
-        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
-    {
-        $EXPANDED_RESOURCE_ALIAS = InternalResourceActionGrantService::EXPANDED_RESOURCE_ALIAS;
-
-        $userIdentifier = $this->getUserIdentifier() !== null ? $this->getUserIdentifier() : InternalResourceActionGrantService::FALSE;
-        $groupIdentifiers = $this->getUserIdentifier() !== null ? $this->userGroupService->getUserGroupsUserIsMemberOf($userIdentifier) : [];
-        $dynamicUserGroupIdentifiers = $this->getDynamicGroupsCurrentUserIsMemberOf();
-
-        // Get all grants
-        // * that the user is a holder of (personally or by static/dynamic group)
-        // * from all resources that the user owns
-        try {
-            // create a subquery getting the authorization resource IDs that the user owns:
-            $ownedAuthorizationResourceIdentifiersBinary = $this->internalResourceActionGrantService->get(
-                InternalResourceActionGrantService::GET_AUTHORIZATION_RESOURCE_IDENTIFIERS,
-                $resourceClass, $resourceIdentifier, $resourceType,
-                actions: [AuthorizationService::OWN_ACTION],
-                userIdentifier: $userIdentifier,
-                groupIdentifiers: $groupIdentifiers,
-                dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers);
-
-            $options = [
-                InternalResourceActionGrantService::ADDITIONAL_CRITERIA_OPTION => [
-                    "OR $EXPANDED_RESOURCE_ALIAS.effective_authorization_resource_identifier IN (:orAuthorizationResourceIdentifiersIn)",
-                    ['orAuthorizationResourceIdentifiersIn' => $ownedAuthorizationResourceIdentifiersBinary],
-                    ['orAuthorizationResourceIdentifiersIn' => ArrayParameterType::BINARY],
-                ],
-            ];
-
-            foreach ($ownedAuthorizationResourceIdentifiersBinary as $binaryIdentifier) {
-                $ownedAuthorizationResourceIdentifiers[UuidUtils::toStringUuid($binaryIdentifier)] = true;
-            }
-
-            $results = $this->internalResourceActionGrantService->get($get,
-                $resourceClass, $resourceIdentifier, $resourceType,
-                userIdentifier: $userIdentifier,
-                groupIdentifiers: $groupIdentifiers,
-                dynamicUserGroupIdentifiers: $dynamicUserGroupIdentifiers,
-                firstResultIndex: $firstResultIndex,
-                maxNumResults: $maxNumResults,
-                options: $options);
-
-            switch ($get) {
-                case InternalResourceActionGrantService::GET_RESOURCE_ACTION_GRANTS:
-                    /** @var ResourceActionGrant $resourceActionGrant */
-                    foreach ($results as $resourceActionGrant) {
-                        $this->setGrantedActions(
-                            $resourceActionGrant,
-                            isset($ownedAuthorizationResourceIdentifiers[$resourceActionGrant->getAuthorizationResourceIdentifier()])
-                        );
-                    }
-                    break;
-
-                case InternalResourceActionGrantService::GET_RESOURCE_CLASSES:
-                    // nothing to do
-                    break;
-
-                default:
-                    throw new \RuntimeException(sprintf('Unexpected get type "%s"', $get));
-            }
-
-            return $results;
-        } catch (\Exception $e) {
-            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
-                'Failed to get resource action grant collection!',
-                InternalResourceActionGrantService::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID,
-                ['message' => $e->getMessage()]);
-        }
     }
 
     private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
