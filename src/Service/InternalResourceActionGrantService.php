@@ -1047,16 +1047,15 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             $userIdentifier, $groupIdentifiers, $dynamicUserGroupIdentifiers,
             $parameterValues, $parameterTypes);
 
-        $actionCriteria = $this->getActionCriteria(null,
-            $whereActionIn, $parameterValues, $parameterTypes);
-
         $limitAndOffsetStatement = ($maxNumResults !== null ? "LIMIT $maxNumResults" : '').
             ($firstResultIndex > 0 ? " OFFSET $firstResultIndex" : '');
 
-        $grantsWithResourceIdsCriteria = 'true';
+        $grantCriteria = 'true';
 
         switch ($get) {
             case self::GET_GRANTED_ACTIONS:
+                $actionCriteria = $this->getActionCriteria('action_action',
+                    $whereActionIn, $parameterValues, $parameterTypes);
                 // The action's resource class and type must match the resource's resource class and type.
                 // NOTE: needed for roles, where we currently allow to combine actions of different resource classes and types
                 $actionResourceClassAndTypeCriteria = "
@@ -1072,16 +1071,23 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         AND rwg.resource_identifier = '$COLLECTION_RESOURCE_IDENTIFIER'
                     )
                 )";
-                $grantsWithResourceIdsCriteria = "$grantHolderCriteria AND $actionResourceClassAndTypeCriteria";
+                $grantCriteria = "$grantHolderCriteria AND $actionResourceClassAndTypeCriteria";
                 break;
 
             case self::GET_RESOURCE_ACTION_GRANTS_CURRENT_USER_IS_AUTHORIZED_TO_READ:
-                $grantsWithResourceIdsCriteria = $actionCriteria;
+                $actionCriteria = $this->getActionCriteria('arca.action',
+                    $whereActionIn, $parameterValues, $parameterTypes);
+                $grantCriteria = $actionCriteria;
                 break;
 
             case self::GET_RESOURCE_ACTION_GRANTS:
-                $grantsWithResourceIdsCriteria = "$grantHolderCriteria AND $actionCriteria";
+                $actionCriteria = $this->getActionCriteria('arca.action',
+                    $whereActionIn, $parameterValues, $parameterTypes);
+                $grantCriteria = "$grantHolderCriteria AND $actionCriteria";
                 break;
+
+            default:
+                throw new \RuntimeException('Invalid get parameter');
         }
 
         $sql = "
@@ -1126,7 +1132,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                         rag.available_resource_class_action_identifier,
                         ra.available_resource_class_action_identifier
                     )
-                WHERE $grantsWithResourceIdsCriteria
+                WHERE $grantCriteria
             )
           ";
 
@@ -1469,7 +1475,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             )";
     }
 
-    private function getActionCriteria(?string $alias,
+    private function getActionCriteria(string $alias,
         ?array $actions, array &$parameterValues, array &$parameterTypes): string
     {
         $actionCriteria = 'true';
@@ -1477,7 +1483,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
             if ([] === $actions) {
                 $actionCriteria = 'false';
             } else {
-                $actionCriteria = ($alias ? "$alias." : '').'action_action IN (:actions)';
+                $actionCriteria = "$alias IN (:actions)";
                 $parameterValues['actions'] = $actions;
                 $parameterTypes['actions'] = ArrayParameterType::STRING;
             }
