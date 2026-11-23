@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -18,9 +19,6 @@ class AuthorizationResource
     public const RESOURCE_IDENTIFIER_COLUMN = 'resource_identifier';
     public const RESOURCE_TYPE_COLUMN = 'resource_type';
 
-    public const RESOURCE_RESOURCE_TYPE = 0;
-    public const RESOURCE_GROUP_RESOURCE_TYPE = 1;
-
     #[ORM\Id]
     #[ORM\Column(name: self::IDENTIFIER_COLUMN, type: 'relay_authorization_uuid_binary', length: 16, unique: true)]
     private ?string $identifier = null;
@@ -31,8 +29,8 @@ class AuthorizationResource
     #[ORM\Column(name: self::RESOURCE_IDENTIFIER_COLUMN, type: 'string', length: 40, nullable: true)]
     private ?string $resourceIdentifier = null;
 
-    #[ORM\Column(name: self::RESOURCE_TYPE_COLUMN, type: 'smallint', nullable: false, options: ['default' => self::RESOURCE_RESOURCE_TYPE])]
-    private int $resourceType = self::RESOURCE_RESOURCE_TYPE;
+    #[ORM\Column(name: self::RESOURCE_TYPE_COLUMN, type: 'smallint', nullable: false, enumType: ResourceType::class, options: ['default' => ResourceType::RESOURCE])]
+    private ResourceType $resourceType = ResourceType::RESOURCE;
 
     #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'authorizationResource')]
     private Collection $resourceActionGrants;
@@ -82,12 +80,12 @@ class AuthorizationResource
         $this->resourceActionGrants = $resourceActionGrants;
     }
 
-    public function getResourceType(): int
+    public function getResourceType(): ResourceType
     {
         return $this->resourceType;
     }
 
-    public function setResourceType(int $resourceType): void
+    public function setResourceType(ResourceType $resourceType): void
     {
         $this->resourceType = $resourceType;
     }

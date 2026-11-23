@@ -6,8 +6,8 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
-use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
@@ -541,7 +541,7 @@ class ResourceActionGrantProcessorTest extends AbstractAuthorizationServiceTestC
         $authorizationResource = $this->testEntityManager->getAuthorizationResourceByIdentifier($resourceActionGrant->getAuthorizationResource()->getIdentifier());
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_CLASS, $authorizationResource->getResourceClass());
         $this->assertEquals(TestEntityManager::DEFAULT_RESOURCE_IDENTIFIER, $authorizationResource->getResourceIdentifier());
-        $this->assertEquals(AuthorizationResource::RESOURCE_RESOURCE_TYPE, $authorizationResource->getResourceType());
+        $this->assertEquals(ResourceType::RESOURCE, $authorizationResource->getResourceType());
     }
 
     public function testAddResourceActionGrantAddingNewResourceFailedMustBeOwnerGrant(): void

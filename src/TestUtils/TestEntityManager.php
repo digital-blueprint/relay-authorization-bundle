@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\TestUtils;
 
-use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\DbpRelayAuthorizationExtension;
 use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
@@ -13,6 +12,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\ResourceGroupMember;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Helper\AuthorizationUuidBinaryType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\CoreBundle\TestUtils\TestEntityManager as CoreTestEntityManager;
@@ -52,7 +52,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addAuthorizationResourceAndActionGrant(
         string $resourceClass, string $resourceIdentifier,
-        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+        ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $action = null,
         ?string $userIdentifier = null, ?UserGroup $userGroup = null, ?string $dynamicUserGroupIdentifier = null,
         ?string $roleIdentifier = null,
@@ -73,12 +73,12 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function addAuthorizationResource(string $resourceClass = self::DEFAULT_RESOURCE_CLASS,
         string $resourceIdentifier = self::DEFAULT_RESOURCE_IDENTIFIER,
-        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
+        ResourceType $resourceType = ResourceType::RESOURCE): AuthorizationResource
     {
         $authorizationResource = $this->entityManager->getRepository(AuthorizationResource::class)->findOneBy([
             'resourceClass' => $resourceClass,
             'resourceIdentifier' => $resourceIdentifier,
-            'resourceType' => $resourceType,
+            'resourceType' => $resourceType->value,
         ]);
         if (null === $authorizationResource) {
             $authorizationResource = new AuthorizationResource();
@@ -155,7 +155,7 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function getResourceActionGrant(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+        string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $action = null, ?string $roleIdentifier = null,
         ?string $userIdentifier = null, ?string $userGroupIdentifier = null, ?string $dynamicUserGroupIdentifier = null): ?ResourceActionGrant
     {
@@ -171,7 +171,7 @@ class TestEntityManager extends CoreTestEntityManager
                 ->andWhere($queryBuilder->expr()->eq('ar.resourceIdentifier', ':resourceIdentifier'))
                 ->setParameter(':resourceIdentifier', $resourceIdentifier)
                 ->andWhere($queryBuilder->expr()->eq('ar.resourceType', ':resourceType'))
-                ->setParameter(':resourceType', $resourceType);
+                ->setParameter(':resourceType', $resourceType->value);
 
             if ($action !== null) {
                 $queryBuilder
@@ -253,7 +253,7 @@ class TestEntityManager extends CoreTestEntityManager
 
     public function getAuthorizationResourceByResourceClassAndIdentifier(
         string $resourceClass, string $resourceIdentifier,
-        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ?AuthorizationResource
+        ResourceType $resourceType = ResourceType::RESOURCE): ?AuthorizationResource
     {
         $AUTHORIZATION_RESOURCE_ALIAS = 'ar';
         $expressionBuilder = $this->entityManager->getExpressionBuilder();
@@ -267,7 +267,7 @@ class TestEntityManager extends CoreTestEntityManager
                 ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceIdentifier", ':resourceIdentifier'))
                 ->setParameter(':resourceIdentifier', $resourceIdentifier)
                 ->andWhere($expressionBuilder->eq("$AUTHORIZATION_RESOURCE_ALIAS.resourceType", ':resourceType'))
-                ->setParameter(':resourceType', $resourceType);
+                ->setParameter(':resourceType', $resourceType->value);
 
             return $queryBuilder
                 ->getQuery()
@@ -418,13 +418,13 @@ class TestEntityManager extends CoreTestEntityManager
     }
 
     public function addResourceToResourceGroup(string $resourceClass, string $resourceGroupResourceIdentifier,
-        string $resourceIdentifier, int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): ResourceGroupMember
+        string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE): ResourceGroupMember
     {
         $groupAuthorizationResourceMember = new ResourceGroupMember();
         $groupAuthorizationResourceMember->setIdentifier(Uuid::v7()->toRfc4122());
         $groupAuthorizationResourceMember->setGroupAuthorizationResource(
             $this->getAuthorizationResourceByResourceClassAndIdentifier(
-                $resourceClass, $resourceGroupResourceIdentifier, ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE)
+                $resourceClass, $resourceGroupResourceIdentifier, ResourceType::RESOURCE_GROUP)
         );
         $groupAuthorizationResourceMember->setMemberAuthorizationResource(
             $this->getAuthorizationResourceByResourceClassAndIdentifier($resourceClass, $resourceIdentifier, $resourceType)
@@ -445,7 +445,7 @@ class TestEntityManager extends CoreTestEntityManager
     public function isMemberOfResourceGroup(string $resourceClass,
         string $resourceGroupResourceIdentifier,
         string $resourceIdentifier,
-        int $resourceType = ResourceActionGrantService::RESOURCE_RESOURCE_TYPE): bool
+        ResourceType $resourceType = ResourceType::RESOURCE): bool
     {
         try {
             $queryBuilder = $this->entityManager->createQueryBuilder();
@@ -465,7 +465,7 @@ class TestEntityManager extends CoreTestEntityManager
                 ->andWhere($queryBuilder->expr()->eq('mar.resourceIdentifier', ':memberResourceIdentifier'))
                 ->setParameter(':memberResourceIdentifier', $resourceIdentifier)
                 ->andWhere($queryBuilder->expr()->eq('mar.resourceType', ':memberResourceType'))
-                ->setParameter(':memberResourceType', $resourceType)
+                ->setParameter(':memberResourceType', $resourceType->value)
             ;
 
             return (int) $queryBuilder

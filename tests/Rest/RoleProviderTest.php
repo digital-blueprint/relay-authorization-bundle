@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Rest;
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Rest\RoleProvider;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
@@ -86,7 +87,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(0, $rolesReturned);
@@ -95,7 +96,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(0, $rolesReturned);
@@ -111,7 +112,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(1, $rolesReturned);
@@ -136,7 +137,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(0, $rolesReturned);
@@ -152,7 +153,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(1, $rolesReturned);
@@ -207,7 +208,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => ResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(3, $rolesReturned);
@@ -258,7 +259,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(3, $rolesReturned);
@@ -344,7 +345,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(0, $rolesReturned);
@@ -360,7 +361,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(1, $rolesReturned);
@@ -390,7 +391,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(2, $rolesReturned);
@@ -461,7 +462,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(0, $rolesReturned);
@@ -477,7 +478,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(1, $rolesReturned);
@@ -494,7 +495,7 @@ class RoleProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]
         );
         $this->assertCount(2, $rolesReturned);

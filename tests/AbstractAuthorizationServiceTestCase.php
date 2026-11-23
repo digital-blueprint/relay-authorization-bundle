@@ -10,7 +10,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
-use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\TestAuthorizationService;
@@ -118,7 +118,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
     protected function addResource(
         string $resourceClass = self::TEST_RESOURCE_CLASS,
         string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER,
-        int $resourceType = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE): AuthorizationResource
+        ResourceType $resourceType = ResourceType::RESOURCE): AuthorizationResource
     {
         return $this->testEntityManager->addAuthorizationResource(
             $resourceClass, $resourceIdentifier, $resourceType);

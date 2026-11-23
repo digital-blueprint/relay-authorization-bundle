@@ -9,6 +9,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\CoreBundle\Exception\ApiError;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -21,9 +22,6 @@ class ResourceActionGrantService
 
     public const ITEM_ACTION_TYPE = AvailableResourceClassAction::ITEM_ACTION_TYPE;
     public const COLLECTION_ACTION_TYPE = AvailableResourceClassAction::COLLECTION_ACTION_TYPE;
-
-    public const RESOURCE_RESOURCE_TYPE = AuthorizationService::RESOURCE_RESOURCE_TYPE;
-    public const RESOURCE_GROUP_RESOURCE_TYPE = AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE;
 
     public const MAX_NUM_RESULTS_DEFAULT = 30;
     public const MAX_NUM_RESULTS_MAX = 1024;
@@ -83,7 +81,9 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function removeGrantsForResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null,
+        ?string $resourceIdentifier = null,
+        ?ResourceType $resourceType = ResourceType::RESOURCE): void
     {
         $this->authorizationService->removeGrantsForResource($resourceClass, $resourceIdentifier, $resourceType);
     }
@@ -92,7 +92,9 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function removeResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null,
+        ?string $resourceIdentifier = null,
+        ?ResourceType $resourceType = ResourceType::RESOURCE): void
     {
         $this->authorizationService->removeResource($resourceClass, $resourceIdentifier, $resourceType);
     }
@@ -103,7 +105,9 @@ class ResourceActionGrantService
      * @throws ApiError
      */
     public function removeResources(
-        ?string $resourceClass = null, array $resourceIdentifiers = [], ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null,
+        array $resourceIdentifiers = [],
+        ?ResourceType $resourceType = ResourceType::RESOURCE): void
     {
         if (!empty($resourceIdentifiers)) {
             $this->authorizationService->removeResources($resourceClass, $resourceIdentifiers, $resourceType);
@@ -117,7 +121,7 @@ class ResourceActionGrantService
      */
     public function addResourceActionGrant(string $resourceClass,
         string $resourceIdentifier,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $action = null,
         ?string $roleIdentifier = null,
         ?string $userIdentifier = null,
@@ -157,7 +161,7 @@ class ResourceActionGrantService
     public function getResourceActionGrantsForResourceClassAndIdentifier(
         string $resourceClass,
         string $resourceIdentifier,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereGrantingAction = null
     ): array {
         return $this->authorizationService->getResourceActionGrantsForResourceClassAndIdentifier(
@@ -202,7 +206,7 @@ class ResourceActionGrantService
     public function isCurrentUserGranted(string $resourceClass,
         string $resourceIdentifier,
         string $action,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE
+        ?ResourceType $resourceType = ResourceType::RESOURCE
     ): bool {
         return $this->authorizationService->isCurrentUserGranted(
             $resourceClass, $resourceIdentifier, $action, $resourceType);
@@ -216,7 +220,7 @@ class ResourceActionGrantService
      */
     public function getGrantedActionsForCurrentUser(string $resourceClass,
         string $resourceIdentifier,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE
+        ResourceType $resourceType = ResourceType::RESOURCE
     ): ?GrantedActions {
         return $this->authorizationService->getGrantedActionsForCurrentUser(
             $resourceClass, $resourceIdentifier, $resourceType);
@@ -236,7 +240,7 @@ class ResourceActionGrantService
     public function getGrantedActionsCollectionForCurrentUser(
         ?string $resourceClass = null,
         ?string $resourceIdentifier = null,
-        ?int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereIsGrantedAction = null,
         bool $excludeCollectionResource = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT

@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
 use Dbp\Relay\AuthorizationBundle\Tests\AbstractAuthorizationServiceTestCase;
@@ -79,7 +80,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $assert($grantedActionsCollection);
@@ -88,7 +89,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertEmpty($grantedActionsCollection);
@@ -166,7 +167,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
         $resourceGroup = $this->addResource(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_GROUP_IDENTIFIER,
-            AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE
+            ResourceType::RESOURCE_GROUP
         );
 
         $this->testEntityManager->addResourceToResourceGroup(TestResources::TEST_RESOURCE_CLASS,
@@ -211,7 +212,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_GROUP_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertEmpty($grantedActionsCollection);
@@ -239,7 +240,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertCount(0, $grantedActionsCollection);
@@ -248,7 +249,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_GROUP_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertCount(1, $grantedActionsCollection);
@@ -265,7 +266,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_GROUP_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertCount(0, $grantedActionsCollection);
@@ -293,7 +294,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_GROUP_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertCount(0, $grantedActionsCollection);
@@ -312,7 +313,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertCount(0, $grantedActionsCollection);
@@ -331,7 +332,7 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             filters: [
                 Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
                 Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-                Common::RESOURCE_TYPE_QUERY_PARAMETER => AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
             ]);
         $this->internalResourceActionGrantService->reset();
         $this->assertCount(0, $grantedActionsCollection);

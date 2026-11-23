@@ -8,6 +8,7 @@ use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\DependencyInjection\Configuration;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Rest\AvailableResourceClassActionProvider;
 use Dbp\Relay\AuthorizationBundle\Rest\Common;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
@@ -59,7 +60,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $resourceGroup = $this->testEntityManager->addAuthorizationResourceAndActionGrant(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_GROUP_IDENTIFIER,
-            AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+            ResourceType::RESOURCE_GROUP,
             action: TestResources::DELETE_ACTION,
             userIdentifier: self::CURRENT_USER_IDENTIFIER
         );
@@ -74,7 +75,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $collection = $this->availableResourceClassActionsProviderTester->getCollection([
             Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
             Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => 'someItemIdentifier',
-            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
         ]);
         $this->assertCount(0, $collection);
 
@@ -82,7 +83,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $collection = $this->availableResourceClassActionsProviderTester->getCollection([
             Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
             Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER,
-            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
         ]);
         $allTestResourceActionsPlusManage = TestResources::TEST_RESOURCE_ITEM_ACTIONS;
         $allTestResourceActionsPlusManage[AuthorizationService::OWN_ACTION] = [];
@@ -94,7 +95,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $collection = $this->availableResourceClassActionsProviderTester->getCollection([
             Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
             Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER_2,
-            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
         ]);
         $this->assertCount(3, $collection);
         $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
@@ -112,7 +113,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $collection = $this->availableResourceClassActionsProviderTester->getCollection([
             Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
             Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_IDENTIFIER_2,
-            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
         ]);
         $this->assertCount(4, $collection);
         $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
@@ -127,7 +128,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $collection = $this->availableResourceClassActionsProviderTester->getCollection([
             Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER => InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER,
-            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_RESOURCE_TYPE,
+            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE->value,
         ]);
         $this->assertCount(1, $collection);
         $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,
@@ -137,7 +138,7 @@ class AvailableResourceClassActionsProviderAuthorizationServiceTest extends Abst
         $collection = $this->availableResourceClassActionsProviderTester->getCollection([
             Common::RESOURCE_CLASS_QUERY_PARAMETER => TestResources::TEST_RESOURCE_CLASS,
             Common::RESOURCE_IDENTIFIER_QUERY_PARAMETER => self::TEST_RESOURCE_GROUP_IDENTIFIER,
-            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE,
+            Common::RESOURCE_TYPE_QUERY_PARAMETER => ResourceType::RESOURCE_GROUP->value,
         ]);
         $this->assertCount(1, $collection);
         $this->assertContainsActions($collection, TestResources::TEST_RESOURCE_CLASS,

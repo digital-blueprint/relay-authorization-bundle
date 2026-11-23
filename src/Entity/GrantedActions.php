@@ -10,6 +10,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Rest\GrantedActionsProvider;
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\Ignore;
@@ -39,13 +40,14 @@ use Symfony\Component\Serializer\Attribute\Ignore;
                     new Parameter(
                         name: 'resourceType',
                         in: 'query',
-                        description: 'The resource type to get grants for: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
+                        description: 'The resource type to get grants for: 0 = RESOURCE, 1 = RESOURCE_GROUP, 2 = DYNAMIC_RESOURCE_GROUP (default: 0)',
                         required: false,
                         schema: [
                             'type' => 'integer',
                             'enum' => [
-                                AuthorizationService::RESOURCE_RESOURCE_TYPE,
-                                AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                                ResourceType::RESOURCE,
+                                ResourceType::RESOURCE_GROUP,
+                                ResourceType::DYNAMIC_RESOURCE_GROUP,
                             ],
                         ],
                     ),
@@ -70,7 +72,7 @@ class GrantedActions
 
     #[ApiProperty(identifier: true)]
     #[Groups(['AuthorizationGrantedActions:output'])]
-    private ?int $resourceType = null;
+    private ResourceType $resourceType = ResourceType::RESOURCE;
 
     /**
      * @var string[]
@@ -98,12 +100,12 @@ class GrantedActions
         $this->resourceIdentifier = $resourceIdentifier;
     }
 
-    public function getResourceType(): ?int
+    public function getResourceType(): ResourceType
     {
         return $this->resourceType;
     }
 
-    public function setResourceType(?int $resourceType): void
+    public function setResourceType(ResourceType $resourceType): void
     {
         $this->resourceType = $resourceType;
     }

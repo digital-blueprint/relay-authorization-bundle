@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Dbp\Relay\AuthorizationBundle\Tests;
 
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
-use Dbp\Relay\AuthorizationBundle\Entity\AuthorizationResource;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestResourceActionGrantServiceFactory;
 use Dbp\Relay\CoreBundle\TestUtils\ApiTestCase;
@@ -220,7 +220,7 @@ class ApiTest extends ApiTestCase
         $this->assertEquals($manageGrant->getIdentifier(), $manageGrantFromGet['identifier']);
         $this->assertEquals(TestResources::TEST_RESOURCE_CLASS, $manageGrantFromGet['resourceClass']);
         $this->assertEquals(self::TEST_RESOURCE_IDENTIFIER, $manageGrantFromGet['resourceIdentifier']);
-        $this->assertEquals(AuthorizationResource::RESOURCE_RESOURCE_TYPE, $manageGrantFromGet['resourceType']);
+        $this->assertEquals(ResourceType::RESOURCE->value, $manageGrantFromGet['resourceType']);
         $this->assertEquals(null, $manageGrantFromGet['action']);
         $this->assertEquals('/authorization/roles/'.AuthorizationService::OWNER_ROLE_IDENTIFIER, $manageGrantFromGet['role']);
         $this->assertEquals(self::CURRENT_USER_IDENTIFIER, $manageGrantFromGet['userIdentifier']);

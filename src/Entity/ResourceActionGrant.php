@@ -14,6 +14,7 @@ use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProcessor;
 use Dbp\Relay\AuthorizationBundle\Rest\ResourceActionGrantProvider;
 use Dbp\Relay\CoreBundle\Serializer\DateTimeUtcNormalizer;
@@ -54,13 +55,14 @@ use Symfony\Component\Serializer\Attribute\Ignore;
                     new Parameter(
                         name: 'resourceType',
                         in: 'query',
-                        description: 'The resource type to get grants for: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
+                        description: 'The resource type to get grants for: 0 = RESOURCE, 1 = RESOURCE_GROUP, 2 = DYNAMIC_RESOURCE_GROUP (default: 0)',
                         required: false,
                         schema: [
                             'type' => 'integer',
                             'enum' => [
-                                AuthorizationService::RESOURCE_RESOURCE_TYPE,
-                                AuthorizationService::RESOURCE_GROUP_RESOURCE_TYPE,
+                                ResourceType::RESOURCE,
+                                ResourceType::RESOURCE_GROUP,
+                                ResourceType::DYNAMIC_RESOURCE_GROUP,
                             ],
                         ],
                     ),
@@ -90,7 +92,12 @@ use Symfony\Component\Serializer\Attribute\Ignore;
                                     ],
                                     'resourceType' => [
                                         'type' => 'integer',
-                                        'description' => 'The resource type to grant the action on: 0 = RESOURCE_RESOURCE_TYPE, 1 = RESOURCE_GROUP_RESOURCE_TYPE (default: 0)',
+                                        'enum' => [
+                                            ResourceType::RESOURCE,
+                                            ResourceType::RESOURCE_GROUP,
+                                            ResourceType::DYNAMIC_RESOURCE_GROUP,
+                                        ],
+                                        'description' => 'The resource type to grant the action on: 0 = RESOURCE, 1 = RESOURCE_GROUP, 2 = DYNAMIC_RESOURCE_GROUP (default: 0)',
                                         'example' => 0,
                                     ],
                                     'action' => [
@@ -265,7 +272,7 @@ class ResourceActionGrant
     private ?string $resourceIdentifier = null;
 
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
-    private int $resourceType = AuthorizationResource::RESOURCE_RESOURCE_TYPE;
+    private ResourceType $resourceType = ResourceType::RESOURCE;
 
     #[Groups(['AuthorizationResourceActionGrant:input', 'AuthorizationResourceActionGrant:output'])]
     private ?string $action = null;
@@ -401,12 +408,12 @@ class ResourceActionGrant
         $this->resourceIdentifier = $resourceIdentifier;
     }
 
-    public function getResourceType(): int
+    public function getResourceType(): ResourceType
     {
         return $this->authorizationResource?->getResourceType() ?? $this->resourceType;
     }
 
-    public function setResourceType(int $resourceType): void
+    public function setResourceType(ResourceType $resourceType): void
     {
         $this->resourceType = $resourceType;
     }

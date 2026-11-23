@@ -13,6 +13,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroup;
 use Dbp\Relay\AuthorizationBundle\Entity\UserGroupMember;
+use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Helper\UuidUtils;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Service\UserGroupService;
@@ -83,9 +84,6 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public const DYNAMIC_GROUP_IDENTIFIER_EVERYBODY = 'everybody';
     public const RESOURCE_COLLECTION_OWNER_POLICY_PREFIX = '@';
     public const COLLECTION_RESOURCE_IDENTIFIER = InternalResourceActionGrantService::COLLECTION_RESOURCE_IDENTIFIER;
-
-    public const RESOURCE_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_RESOURCE_TYPE;
-    public const RESOURCE_GROUP_RESOURCE_TYPE = InternalResourceActionGrantService::RESOURCE_GROUP_RESOURCE_TYPE;
 
     public const OWNER_ROLE_IDENTIFIER = '019f7e71-f6d3-7589-916c-ead4b141f5ba';
     public const OWN_ITEM_ACTION_UUID = '019ecac3-2eea-7297-ae1a-486de6fca628';
@@ -519,7 +517,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     public function addResourceActionGrantByResourceClassAndIdentifier(
         string $resourceClass,
         string $resourceIdentifier,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $action = null,
         ?string $roleIdentifier = null,
         ?string $userIdentifier = null,
@@ -642,7 +640,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeGrantsForResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?ResourceType $resourceType = ResourceType::RESOURCE): void
     {
         $this->internalResourceActionGrantService->removeGrantsByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $resourceType);
@@ -652,7 +650,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?ResourceType $resourceType = ResourceType::RESOURCE): void
     {
         $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $resourceType);
@@ -662,7 +660,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeResources(
-        ?string $resourceClass, array $resourceIdentifiers, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE): void
+        ?string $resourceClass, array $resourceIdentifiers, ?ResourceType $resourceType = ResourceType::RESOURCE): void
     {
         $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifiers, $resourceType);
@@ -690,7 +688,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereGrantingAction = null): array
     {
         return $this->internalResourceActionGrantService->getResourceActionGrants(
@@ -705,7 +703,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE): ?GrantedActions
+        ResourceType $resourceType = ResourceType::RESOURCE): ?GrantedActions
     {
         $currentUserIdentifier = $this->getUserIdentifier();
 
@@ -726,7 +724,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getGrantedActionsCollectionForCurrentUser(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereIsGrantedAction = null, bool $excludeCollectionResources = true,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
@@ -748,7 +746,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function isCurrentUserGranted(string $resourceClass, string $resourceIdentifier, string $action,
-        int $resourceType = self::RESOURCE_RESOURCE_TYPE): bool
+        ResourceType $resourceType = ResourceType::RESOURCE): bool
     {
         $grantedActions = $this->getGrantedActionsForCurrentUser(
             $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
@@ -766,7 +764,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @return AvailableResourceClassAction[]
      */
     public function getAvailableResourceClassActionsUserMayGrant(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $grantedActions = $this->getGrantedActionsForCurrentUser(
@@ -791,7 +789,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     }
 
     public function getRolesCurrentUserMayGrant(
-        string $resourceClass, string $resourceIdentifier, int $resourceType = self::RESOURCE_RESOURCE_TYPE,
+        string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $grantedActions = $this->getGrantedActionsForCurrentUser(
@@ -833,7 +831,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getResourceActionGrantsCurrentUserIsAuthorizedToRead(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?int $resourceType = null,
+        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?ResourceType $resourceType = null,
         int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
         $userIdentifier = $this->getUserIdentifier() !== null ?
@@ -886,7 +884,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         $resourceClassGrantsMap = [];
         foreach ($this->internalResourceActionGrantService->getResourceActionGrants(
             resourceIdentifier: self::COLLECTION_RESOURCE_IDENTIFIER,
-            resourceType: self::RESOURCE_RESOURCE_TYPE) as $resourceActionGrant) {
+            resourceType: ResourceType::RESOURCE) as $resourceActionGrant) {
             $resourceClass = $resourceActionGrant->getResourceClass();
             if ($lastResourceClass !== $resourceClass) {
                 $lastResourceClass = $resourceClass;
