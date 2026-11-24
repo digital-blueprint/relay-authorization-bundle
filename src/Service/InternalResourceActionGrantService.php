@@ -1755,7 +1755,6 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                     foreach ($resourceIdentifiersPassingFilter as $resourceIdentifierPassingFilter) {
                         foreach ($grantsForDynamicResourceGroups[$rc][$dynamicResourceGroupIdentifier] as $grantForDynamicResourceGroup) {
                             $inheritedGrant = clone $grantForDynamicResourceGroup;
-                            $inheritedGrant->setIdentifier(Uuid::v7()->toRfc4122());
                             $inheritedGrant->setIsInherited(true);
                             $inheritedGrant->setResourceType(ResourceType::RESOURCE);
                             $inheritedGrant->setResourceIdentifier($resourceIdentifierPassingFilter);

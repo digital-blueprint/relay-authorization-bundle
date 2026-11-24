@@ -629,14 +629,15 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             $resourceIds
         );
 
-        $assertContainsInheritedGrants = function (array $rags, array $resourceIds, string $action) {
+        $assertContainsInheritedGrants = function (array $rags, array $resourceIds, ResourceActionGrant $dynamicResourceGroupGrant) {
             foreach ($resourceIds as $resourceId) {
                 $this->assertContainsResourceWhere($rags,
-                    function (ResourceActionGrant $resourceActionGrant) use ($resourceId, $action) {
-                        return Uuid::isValid($resourceActionGrant->getIdentifier())
+                    function (ResourceActionGrant $resourceActionGrant) use ($resourceId, $dynamicResourceGroupGrant) {
+                        return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
+                            && $resourceActionGrant->isInherited()
                             && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
                             && $resourceActionGrant->getResourceIdentifier() === $resourceId
-                            && $resourceActionGrant->getAction() === $action;
+                            && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
                     }
                 );
             }
@@ -647,15 +648,15 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             resourceIdentifier: null,
             resourceType: null
         );
-        $this->assertCount(4, $rags);
-        $assertContainsInheritedGrants($rags, $resourceIds, $action);
+        $this->assertCount(count($resourceIds) + 1, $rags);
+        $assertContainsInheritedGrants($rags, $resourceIds, $dynamicResourceGroupGrant);
         $this->assertContainsResourceWhere($rags,
-            function (ResourceActionGrant $resourceActionGrant) use ($action, $dynamicResourceGroupGrant) {
+            function (ResourceActionGrant $resourceActionGrant) use ($dynamicResourceGroupGrant) {
                 return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
                     && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
                     && $resourceActionGrant->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
                     && $resourceActionGrant->getResourceType() === ResourceType::DYNAMIC_RESOURCE_GROUP
-                    && $resourceActionGrant->getAction() === $action;
+                    && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
             }
         );
 
@@ -664,8 +665,14 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
             resourceIdentifier: null,
             resourceType: ResourceType::RESOURCE
         );
-        $this->assertCount(3, $rags);
-        $assertContainsInheritedGrants($rags, $resourceIds, $action);
+        $this->assertCount(count($resourceIds), $rags);
+        $assertContainsInheritedGrants($rags, $resourceIds, $dynamicResourceGroupGrant);
+
+        $this->assertEmpty($this->internalResourceActionGrantService->getResourceActionGrants(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: ResourceType::RESOURCE_GROUP
+        ));
 
         $rags = $this->internalResourceActionGrantService->getResourceActionGrants(
             self::TEST_RESOURCE_CLASS,
@@ -674,20 +681,14 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         );
         $this->assertCount(1, $rags);
         $this->assertContainsResourceWhere($rags,
-            function (ResourceActionGrant $resourceActionGrant) use ($action, $dynamicResourceGroupGrant) {
+            function (ResourceActionGrant $resourceActionGrant) use ($dynamicResourceGroupGrant) {
                 return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
                     && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
                     && $resourceActionGrant->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
                     && $resourceActionGrant->getResourceType() === ResourceType::DYNAMIC_RESOURCE_GROUP
-                    && $resourceActionGrant->getAction() === $action;
+                    && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
             }
         );
-
-        $this->assertEmpty($this->internalResourceActionGrantService->getResourceActionGrants(
-            self::TEST_RESOURCE_CLASS,
-            resourceIdentifier: null,
-            resourceType: ResourceType::RESOURCE_GROUP
-        ));
 
         foreach ($resourceIds as $resourceId) {
             $rags = $this->internalResourceActionGrantService->getResourceActionGrants(
@@ -695,7 +696,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
                 resourceIdentifier: $resourceId,
                 resourceType: null
             );
-            $assertContainsInheritedGrants($rags, [$resourceId], $action);
+            $assertContainsInheritedGrants($rags, [$resourceId], $dynamicResourceGroupGrant);
 
             $rags = $this->internalResourceActionGrantService->getResourceActionGrants(
                 self::TEST_RESOURCE_CLASS,
@@ -703,7 +704,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
                 resourceType: ResourceType::RESOURCE
             );
             $this->assertCount(1, $rags);
-            $assertContainsInheritedGrants($rags, [$resourceId], $action);
+            $assertContainsInheritedGrants($rags, [$resourceId], $dynamicResourceGroupGrant);
 
             $this->assertEmpty($this->internalResourceActionGrantService->getResourceActionGrants(
                 self::TEST_RESOURCE_CLASS,

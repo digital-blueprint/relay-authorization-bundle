@@ -3180,7 +3180,6 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-
         try {
             $this->authorizationService->getResourceActionGrantByIdentifierIfGranted($ragOwn->getIdentifier());
             $this->fail('Expected exception not thrown');
@@ -3711,12 +3710,14 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
 
     public function testGetResourceActionGrantsUserIsAuthorizedToReadWithDynamicResourceGroups(): void
     {
-        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
-            self::TEST_RESOURCE_CLASS,
-            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
-            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
-            roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER
-        );
+        $dynamicResourceGroupGrant =
+            $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+                self::TEST_RESOURCE_CLASS,
+                self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+                resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+                userIdentifier: self::CURRENT_USER_IDENTIFIER,
+                roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER
+            );
 
         $action = AuthorizationService::OWN_ACTION;
         $resourceIds = [
@@ -3731,25 +3732,64 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             $resourceIds
         );
 
-        $assertContainsInheritedGrants = function (array $rags, array $resourceIds, string $action) {
-            foreach ($resourceIds as $resourceId) {
-                $this->assertContainsResourceWhere($rags,
-                    function (ResourceActionGrant $resourceActionGrant) use ($resourceId, $action) {
-                        return Uuid::isValid($resourceActionGrant->getIdentifier())
-                            && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
-                            && $resourceActionGrant->getResourceIdentifier() === $resourceId
-                            && $resourceActionGrant->getAction() === $action;
-                    }
-                );
+        $assertContainsInheritedGrants =
+            function (array $rags, array $resourceIds, ResourceActionGrant $dynamicResourceGroupGrant) {
+                foreach ($resourceIds as $resourceId) {
+                    $this->assertContainsResourceWhere($rags,
+                        function (ResourceActionGrant $resourceActionGrant) use ($resourceId, $dynamicResourceGroupGrant) {
+                            return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
+                                && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
+                                && $resourceActionGrant->getResourceIdentifier() === $resourceId
+                                && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
+                        }
+                    );
+                }
+            };
+
+        $rags = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: null
+        );
+        $this->assertCount(count($resourceIds) + 1, $rags);
+        $assertContainsInheritedGrants($rags, $resourceIds, $dynamicResourceGroupGrant);
+        $this->assertContainsResourceWhere($rags,
+            function (ResourceActionGrant $resourceActionGrant) use ($dynamicResourceGroupGrant) {
+                return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
+                    && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $resourceActionGrant->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
+                    && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
             }
-        };
+        );
+
+        $rags = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: ResourceType::RESOURCE
+        );
+        $this->assertCount(count($resourceIds), $rags);
+        $assertContainsInheritedGrants($rags, $resourceIds, $dynamicResourceGroupGrant);
+
+        $this->assertEmpty($this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: ResourceType::RESOURCE_GROUP
+        ));
 
         $rags = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
             self::TEST_RESOURCE_CLASS,
             self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
             resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP
         );
-        $assertContainsInheritedGrants($rags, $resourceIds, $action);
+        $this->assertCount(1, $rags);
+        $this->assertContainsResourceWhere($rags,
+            function (ResourceActionGrant $resourceActionGrant) use ($dynamicResourceGroupGrant) {
+                return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
+                    && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $resourceActionGrant->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
+                    && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
+            }
+        );
     }
 
     public function testUpdateManageResourceCollectionPolicyGrantsA(): void
