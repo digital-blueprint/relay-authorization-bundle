@@ -45,9 +45,9 @@ use Symfony\Component\Serializer\Attribute\Ignore;
                         schema: [
                             'type' => 'integer',
                             'enum' => [
-                                ResourceType::RESOURCE,
-                                ResourceType::RESOURCE_GROUP,
-                                ResourceType::DYNAMIC_RESOURCE_GROUP,
+                                ResourceType::RESOURCE->value,
+                                ResourceType::RESOURCE_GROUP->value,
+                                ResourceType::DYNAMIC_RESOURCE_GROUP->value,
                             ],
                         ],
                     ),

@@ -63,11 +63,11 @@ use Symfony\Component\Serializer\Attribute\Groups;
                         schema: [
                             'type' => 'integer',
                             'enum' => [
-                                ResourceType::RESOURCE,
-                                ResourceType::RESOURCE_GROUP,
-                                ResourceType::DYNAMIC_RESOURCE_GROUP,
+                                ResourceType::RESOURCE->value,
+                                ResourceType::RESOURCE_GROUP->value,
+                                ResourceType::DYNAMIC_RESOURCE_GROUP->value,
                             ],
-                            'default' => ResourceType::RESOURCE,
+                            'default' => ResourceType::RESOURCE->value,
                         ],
                     ),
                 ],
