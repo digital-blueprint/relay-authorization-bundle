@@ -46,18 +46,10 @@ class GrantedActionsProvider extends AbstractDataProvider
         $excludeCollectionResources = Common::getExcludeCollectionResourcesFilter($filters);
         $whereIsGrantedAction = Common::getWhereIsGrantedActionFilter($filters);
 
-        if (null !== $resourceClass
-            && null !== $resourceIdentifier
-            && null !== $resourceType
-            && null === $whereIsGrantedAction
-            && (false === $excludeCollectionResources
-                || AuthorizationService::COLLECTION_RESOURCE_IDENTIFIER !== $resourceIdentifier)) {
-            return ($grantedActions = $this->authorizationService->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier, $resourceType)) ?
-                [$grantedActions] :
-                [];
-        }
-
-        return $this->authorizationService->getGrantedActionsCollectionForCurrentUser($resourceClass,
+        return $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
             excludeCollectionResources: $excludeCollectionResources,
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),

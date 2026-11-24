@@ -360,7 +360,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      */
     public function addUserGroupIfGranted(UserGroup $userGroup): UserGroup
     {
-        if (false === $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
+        if (false === $this->isCurrentUserGrantedInternal(self::GROUP_RESOURCE_CLASS,
             self::COLLECTION_RESOURCE_IDENTIFIER, self::CREATE_GROUPS_ACTION)) {
             throw new ApiError(Response::HTTP_FORBIDDEN);
         }
@@ -702,20 +702,18 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
-    public function getGrantedActionsForCurrentUser(string $resourceClass, string $resourceIdentifier,
-        ResourceType $resourceType = ResourceType::RESOURCE): ?GrantedActions
-    {
-        $currentUserIdentifier = $this->getUserIdentifier();
-
-        return $this->internalResourceActionGrantService->getGrantedActionsCollection(
+    public function getGrantedActionsForCurrentUser(
+        string $resourceClass,
+        string $resourceIdentifier,
+        ResourceType $resourceType = ResourceType::RESOURCE,
+        bool $resolveDynamicResourceGroups = true
+    ): ?GrantedActions {
+        return $this->getGrantedActionsForCurrentUserInternal(
             $resourceClass,
             $resourceIdentifier,
             $resourceType,
-            userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
-            groupIdentifiers: $currentUserIdentifier !== null ? $this->userGroupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
-            dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
-            maxNumResults: null
-        )[0] ?? null;
+            resolveDynamicResourceGroups: $resolveDynamicResourceGroups
+        );
     }
 
     /**
@@ -724,40 +722,42 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getGrantedActionsCollectionForCurrentUser(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?ResourceType $resourceType = ResourceType::RESOURCE,
-        ?string $whereIsGrantedAction = null, bool $excludeCollectionResources = true,
-        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
-    {
-        $currentUserIdentifier = $this->getUserIdentifier();
-
-        return $this->internalResourceActionGrantService->getGrantedActionsCollection(
-            $resourceClass, $resourceIdentifier, $resourceType,
+        ?string $resourceClass = null,
+        ?string $resourceIdentifier = null,
+        ?ResourceType $resourceType = ResourceType::RESOURCE,
+        ?string $whereIsGrantedAction = null,
+        bool $excludeCollectionResources = true,
+        bool $resolveDynamicUserGroups = true,
+        int $firstResultIndex = 0,
+        int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT
+    ): array {
+        return $this->getGrantedActionsCollectionForCurrentUserInternal(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
-            userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
-            groupIdentifiers: $currentUserIdentifier !== null ?
-                $this->userGroupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
-            dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
+            excludeCollectionResources: $excludeCollectionResources,
+            resolveDynamicResourceGroups: $resolveDynamicUserGroups,
             firstResultIndex: $firstResultIndex,
-            maxNumResults: $maxNumResults,
-            options: [InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResources]);
+            maxNumResults: $maxNumResults
+        );
     }
 
     /**
      * @throws ApiError
      */
-    public function isCurrentUserGranted(string $resourceClass, string $resourceIdentifier, string $action,
-        ResourceType $resourceType = ResourceType::RESOURCE): bool
-    {
-        $grantedActions = $this->getGrantedActionsForCurrentUser(
-            $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
-
-        return in_array($action, $grantedActions, true)
-            || (in_array(self::OWN_ACTION, $grantedActions, true)
-                && (self::OWN_ACTION === $action
-                    || $this->internalResourceActionGrantService->isAvailableResourceClassAction(
-                        $resourceClass, $action, $resourceIdentifier)
-                )
-            );
+    public function isCurrentUserGranted(
+        string $resourceClass,
+        string $resourceIdentifier,
+        string $action,
+        ResourceType $resourceType = ResourceType::RESOURCE
+    ): bool {
+        return $this->isCurrentUserGrantedInternal(
+            $resourceClass,
+            $resourceIdentifier,
+            $action,
+            $resourceType
+        );
     }
 
     /**
@@ -767,7 +767,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $grantedActions = $this->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->getGrantedActionsForCurrentUserInternal(
             $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
 
         return $this->internalResourceActionGrantService->getAvailableResourceClassActions(
@@ -792,7 +792,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
         int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $grantedActions = $this->getGrantedActionsForCurrentUser(
+        $grantedActions = $this->getGrantedActionsForCurrentUserInternal(
             $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
 
         return $this->internalResourceActionGrantService->getRoles(
@@ -954,6 +954,81 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     /**
      * @throws ApiError
      */
+    private function getGrantedActionsForCurrentUserInternal(
+        string $resourceClass,
+        string $resourceIdentifier,
+        ResourceType $resourceType = ResourceType::RESOURCE,
+        bool $resolveDynamicResourceGroups = true
+    ): ?GrantedActions {
+        return $this->getGrantedActionsCollectionForCurrentUserInternal(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
+            excludeCollectionResources: false,
+            resolveDynamicResourceGroups: $resolveDynamicResourceGroups,
+        )[0] ?? null;
+    }
+
+    /**
+     * @return GrantedActions[]
+     *
+     * @throws ApiError
+     */
+    private function getGrantedActionsCollectionForCurrentUserInternal(
+        ?string $resourceClass = null,
+        ?string $resourceIdentifier = null,
+        ?ResourceType $resourceType = ResourceType::RESOURCE,
+        ?string $whereIsGrantedAction = null,
+        bool $excludeCollectionResources = true,
+        bool $resolveDynamicResourceGroups = true,
+        int $firstResultIndex = 0,
+        int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
+    {
+        $currentUserIdentifier = $this->getUserIdentifier();
+
+        return $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
+            whereIsGrantedAction: $whereIsGrantedAction,
+            userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
+            groupIdentifiers: $currentUserIdentifier !== null ?
+                $this->userGroupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
+            dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
+            firstResultIndex: $firstResultIndex,
+            maxNumResults: $maxNumResults,
+            options: [
+                InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResources,
+                InternalResourceActionGrantService::RESOLVE_DYNAMIC_RESOURCE_GROUPS_OPTION => $resolveDynamicResourceGroups,
+            ]);
+    }
+
+    /**
+     * @throws ApiError
+     */
+    private function isCurrentUserGrantedInternal(
+        string $resourceClass,
+        string $resourceIdentifier,
+        string $action,
+        ResourceType $resourceType = ResourceType::RESOURCE
+    ): bool {
+        $grantedActions = $this->getGrantedActionsForCurrentUserInternal(
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType)?->getActions() ?? [];
+
+        return in_array($action, $grantedActions, true)
+            || (in_array(self::OWN_ACTION, $grantedActions, true)
+                && (self::OWN_ACTION === $action
+                    || $this->internalResourceActionGrantService->isAvailableResourceClassAction(
+                        $resourceClass, $action, $resourceIdentifier)
+                )
+            );
+    }
+
+    /**
+     * @throws ApiError
+     */
     private function isCurrentUserAuthorizedToAddGrant(ResourceActionGrant $resourceActionGrant, bool $isResourceOwner): bool
     {
         if ($isResourceOwner) {
@@ -1025,7 +1100,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
 
     private function isCurrentUserAuthorizedToReadGroup(UserGroup $userGroup): bool
     {
-        return $this->isCurrentUserGranted(self::GROUP_RESOURCE_CLASS,
+        return $this->isCurrentUserGrantedInternal(self::GROUP_RESOURCE_CLASS,
             $userGroup->getIdentifier(), self::READ_GROUP_ACTION);
     }
 
@@ -1045,7 +1120,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         ResourceType $resourceType
     ): bool {
         return in_array(AuthorizationService::OWN_ACTION,
-            $this->getGrantedActionsForCurrentUser(
+            $this->getGrantedActionsForCurrentUserInternal(
                 $resourceClass,
                 $resourceIdentifier,
                 $resourceType
@@ -1083,7 +1158,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
                 InternalResourceActionGrantService::RESOURCE_ACTION_GRANT_INVALID_ERROR_ID);
         }
 
-        return $this->isCurrentUserGranted($resourceClass, $resourceIdentifier, self::OWN_ACTION, $resourceType);
+        return $this->isCurrentUserGrantedInternal($resourceClass, $resourceIdentifier, self::OWN_ACTION, $resourceType);
     }
 
     private function configure(): void
@@ -1119,7 +1194,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     {
         // NOTE: validation is not done here
         if (null !== ($userGroupIdentifier = $userGroup?->getIdentifier())) {
-            $grantedActions = $this->getGrantedActionsForCurrentUser(self::GROUP_RESOURCE_CLASS,
+            $grantedActions = $this->getGrantedActionsForCurrentUserInternal(self::GROUP_RESOURCE_CLASS,
                 $userGroupIdentifier)?->getActions() ?? [];
 
             if (false === in_array($requiredAction, $grantedActions, true)) {

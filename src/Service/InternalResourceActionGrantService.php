@@ -49,11 +49,11 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
     public const IS_NOT_NULL = '@@@ __is_not_null__ @@@';
     public const FALSE = '@@@ __false__ @@@';
 
+    public const RESOLVE_DYNAMIC_RESOURCE_GROUPS_OPTION = 'resolve_dynamic_resource_groups';
     public const EXCLUDE_COLLECTION_RESOURCE_OPTION = 'exclude_collection_resource';
 
     public const RESOURCE_ACTION_GRANT_ALIAS = 'rag';
     public const RESOURCE_ALIAS = 'r';
-    public const EXPANDED_RESOURCE_ALIAS = 'r_rgm';
 
     private const RESOURCE_GROUP_MEMBER_ALIAS = 'rgm';
     private const AVAILABLE_RESOURCE_CLASS_ACTION_ALIAS = 'arca';
@@ -911,12 +911,13 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
         ?string $resourceIdentifier = null,
         ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereIsGrantedAction = null,
-        ?string $userIdentifier = null, ?array $groupIdentifiers = null, ?array $dynamicUserGroupIdentifiers = null,
-        int $firstResultIndex = 0, ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT, array $options = []): array
-    {
-        // measure execution time:
-        // $start = microtime(true);
-
+        ?string $userIdentifier = null,
+        ?array $groupIdentifiers = null,
+        ?array $dynamicUserGroupIdentifiers = null,
+        int $firstResultIndex = 0,
+        ?int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT,
+        array $options = []
+    ): array {
         $whereActionIn = null;
         if ($whereIsGrantedAction !== null) {
             $whereActionIn = $whereIsGrantedAction === AuthorizationService::OWN_ACTION ?
@@ -945,7 +946,7 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 $effectiveResourceType = ResourceType::tryFrom((int) $row['resource_resource_type']) ?? ResourceType::RESOURCE;
                 $action = $row['action_action'];
 
-                if ($whereIsGrantedAction
+                if (null !== $whereIsGrantedAction
                     && false === $this->isAvailableResourceClassAction(
                         $effectiveResourceClass, $whereIsGrantedAction, $effectiveResourceIdentifier)) {
                     // if the action to be granted for the returned resources is not defined for the resource class and type,
@@ -979,12 +980,10 @@ class InternalResourceActionGrantService implements LoggerAwareInterface, ResetI
                 }
             }
         } catch (\Throwable $throwable) {
-            dump($throwable);
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get resource action grant collection!',
                 self::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID, ['message' => $throwable->getMessage()]);
         }
-        // dump("microtime for getGrantedActionsCollection($resourceClass): ".(microtime(true) - $start).' seconds');
 
         return $results;
     }

@@ -206,10 +206,14 @@ class ResourceActionGrantService
     public function isCurrentUserGranted(string $resourceClass,
         string $resourceIdentifier,
         string $action,
-        ?ResourceType $resourceType = ResourceType::RESOURCE
+        ResourceType $resourceType = ResourceType::RESOURCE
     ): bool {
         return $this->authorizationService->isCurrentUserGranted(
-            $resourceClass, $resourceIdentifier, $action, $resourceType);
+            $resourceClass,
+            $resourceIdentifier,
+            $action,
+            $resourceType
+        );
     }
 
     /**
@@ -218,12 +222,18 @@ class ResourceActionGrantService
      *
      * @throws ApiError
      */
-    public function getGrantedActionsForCurrentUser(string $resourceClass,
+    public function getGrantedActionsForCurrentUser(
+        string $resourceClass,
         string $resourceIdentifier,
-        ResourceType $resourceType = ResourceType::RESOURCE
+        ResourceType $resourceType = ResourceType::RESOURCE,
+        bool $resolveDynamicResourceGroups = false
     ): ?GrantedActions {
         return $this->authorizationService->getGrantedActionsForCurrentUser(
-            $resourceClass, $resourceIdentifier, $resourceType);
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
+            resolveDynamicResourceGroups: $resolveDynamicResourceGroups
+        );
     }
 
     /**
@@ -243,12 +253,17 @@ class ResourceActionGrantService
         ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereIsGrantedAction = null,
         bool $excludeCollectionResource = true,
-        int $firstResultIndex = 0, int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT
+        bool $resolveDynamicUserGroups = false,
+        int $firstResultIndex = 0,
+        int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT
     ): array {
         return $this->authorizationService->getGrantedActionsCollectionForCurrentUser(
-            $resourceClass, $resourceIdentifier, $resourceType,
+            $resourceClass,
+            $resourceIdentifier,
+            $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
             excludeCollectionResources: $excludeCollectionResource,
+            resolveDynamicUserGroups: $resolveDynamicUserGroups,
             firstResultIndex: $firstResultIndex,
             maxNumResults: min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }
