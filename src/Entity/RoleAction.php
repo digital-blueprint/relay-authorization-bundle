@@ -4,8 +4,17 @@ declare(strict_types=1);
 
 namespace Dbp\Relay\AuthorizationBundle\Entity;
 
+use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
+#[ApiResource(
+    shortName: 'AuthorizationRoleAction',
+    operations: [],
+    normalizationContext: [
+        'groups' => ['AuthorizationRoleAction:output'],
+    ],
+)]
 #[ORM\Table(name: self::TABLE_NAME)]
 #[ORM\Entity]
 class RoleAction
@@ -29,6 +38,7 @@ class RoleAction
         referencedColumnName: AvailableResourceClassAction::IDENTIFIER_COLUMN,
         onDelete: 'CASCADE')]
     #[ORM\ManyToOne(targetEntity: AvailableResourceClassAction::class, inversedBy: 'roleActions')]
+    #[Groups(['AuthorizationRoleAction:output', 'AuthorizationRole:output'])]
     private ?AvailableResourceClassAction $availableResourceClassAction = null;
 
     public function getRole(): ?Role

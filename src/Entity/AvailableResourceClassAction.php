@@ -83,19 +83,19 @@ class AvailableResourceClassAction
     private ?string $identifier = null;
 
     #[ORM\Column(name: self::RESOURCE_CLASS_COLUMN, type: 'string', length: 40, nullable: true)]
-    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output', 'AuthorizationRole:output'])]
     private ?string $resourceClass = null;
 
     #[ORM\Column(name: self::ACTION_COLUMN, type: 'string', length: 40, nullable: false)]
-    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output', 'AuthorizationRole:output'])]
     private ?string $action = null;
 
     #[ORM\Column(name: self::ACTION_TYPE_COLUMN, type: 'smallint', nullable: true)]
-    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output', 'AuthorizationRole:output'])]
     private ?int $actionType = null;
 
     #[ORM\OneToMany(targetEntity: AvailableResourceClassActionName::class, mappedBy: 'availableResourceClassAction')]
-    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output', 'AuthorizationRole:output'])]
     #[ApiProperty(genId: false)]
     private Collection $names;
 

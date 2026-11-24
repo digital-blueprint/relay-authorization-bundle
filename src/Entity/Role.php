@@ -98,6 +98,7 @@ class Role
     private Collection $roleNames;
 
     #[ORM\OneToMany(targetEntity: RoleAction::class, mappedBy: 'role', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[Groups(['AuthorizationRole:output'])]
     private Collection $roleActions;
 
     #[ORM\OneToMany(targetEntity: ResourceActionGrant::class, mappedBy: 'role', cascade: ['persist', 'remove'], orphanRemoval: true)]

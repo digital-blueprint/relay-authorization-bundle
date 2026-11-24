@@ -28,11 +28,11 @@ class AvailableResourceClassActionName
 
     #[ORM\Id]
     #[ORM\Column(name: self::LANGUAGE_TAG_COLUMN_NAME, type: 'string', length: 2)]
-    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output', 'AuthorizationRole:output'])]
     private ?string $languageTag = null;
 
     #[ORM\Column(name: self::NAME_COLUMN_NAME, type: 'string', length: 64)]
-    #[Groups(['AuthorizationAvailableResourceClassAction:output'])]
+    #[Groups(['AuthorizationAvailableResourceClassAction:output', 'AuthorizationRole:output'])]
     private ?string $name = null;
 
     public function getAvailableResourceClassAction(): ?AvailableResourceClassAction
