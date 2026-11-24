@@ -3164,17 +3164,29 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             $ragReadSharablePersistence->getGrantedActions()
         );
 
-        $this->assertNull(
-            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted(Uuid::v7()->toRfc4122())
-        );
-        $this->assertNull(
-            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted('non-uuid-identifier')
-        );
+        try {
+            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted(Uuid::v7()->toRfc4122());
+            $this->fail('Expected exception not thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
+        }
+
+        try {
+            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted('non-uuid-identifier');
+            $this->fail('Expected exception not thrown');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $apiError->getStatusCode());
+        }
 
         $this->login(self::ANOTHER_USER_IDENTIFIER);
 
-        $ragOwnPersistence = $this->authorizationService->getResourceActionGrantByIdentifierIfGranted($ragOwn->getIdentifier());
-        $this->assertNull($ragOwnPersistence);
+
+        try {
+            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted($ragOwn->getIdentifier());
+            $this->fail('Expected exception not thrown');
+        } catch (ApiError $exception) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $exception->getStatusCode());
+        }
 
         $ragReadPersistence = $this->authorizationService->getResourceActionGrantByIdentifierIfGranted($ragRead->getIdentifier());
         $this->assertIsPermutationOf(
@@ -3188,12 +3200,19 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
             $ragReadSharablePersistence->getGrantedActions()
         );
 
-        $this->assertNull(
-            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted(Uuid::v7()->toRfc4122())
-        );
-        $this->assertNull(
-            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted('non-uuid-identifier')
-        );
+        try {
+            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted(Uuid::v7()->toRfc4122());
+            $this->fail('Expected exception not thrown');
+        } catch (ApiError $exception) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $exception->getStatusCode());
+        }
+
+        try {
+            $this->authorizationService->getResourceActionGrantByIdentifierIfGranted('non-uuid-identifier');
+            $this->fail('Expected exception not thrown');
+        } catch (ApiError $exception) {
+            $this->assertEquals(Response::HTTP_FORBIDDEN, $exception->getStatusCode());
+        }
     }
 
     public function testGetResourceActionsGrantsUserIsAuthorizedToReadWithoutResourceGroups(): void
@@ -3688,6 +3707,49 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
         $this->login(null);
         $resourceActionsGrants = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead();
         $this->assertCount(0, $resourceActionsGrants);
+    }
+
+    public function testGetResourceActionGrantsUserIsAuthorizedToReadWithDynamicResourceGroups(): void
+    {
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER
+        );
+
+        $action = AuthorizationService::OWN_ACTION;
+        $resourceIds = [
+            '1',
+            '2',
+            '3',
+        ];
+
+        $this->testResolvingDynamicResourceGroupRequestedEventSubscriber->setMemberResourceIdentifiers(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            $resourceIds
+        );
+
+        $assertContainsInheritedGrants = function (array $rags, array $resourceIds, string $action) {
+            foreach ($resourceIds as $resourceId) {
+                $this->assertContainsResourceWhere($rags,
+                    function (ResourceActionGrant $resourceActionGrant) use ($resourceId, $action) {
+                        return Uuid::isValid($resourceActionGrant->getIdentifier())
+                            && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
+                            && $resourceActionGrant->getResourceIdentifier() === $resourceId
+                            && $resourceActionGrant->getAction() === $action;
+                    }
+                );
+            }
+        };
+
+        $rags = $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP
+        );
+        $assertContainsInheritedGrants($rags, $resourceIds, $action);
     }
 
     public function testUpdateManageResourceCollectionPolicyGrantsA(): void

@@ -115,7 +115,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         return $this->testEntityManager->getResourceActionGrantByIdentifier($identifier);
     }
 
-    protected function addResource(
+    protected function addResourceToTestDB(
         string $resourceClass = self::TEST_RESOURCE_CLASS,
         string $resourceIdentifier = self::TEST_RESOURCE_IDENTIFIER,
         ResourceType $resourceType = ResourceType::RESOURCE): AuthorizationResource
@@ -137,7 +137,7 @@ abstract class AbstractAuthorizationServiceTestCase extends AbstractInternalReso
         string $action = 'action',
         string $userIdentifier = self::CURRENT_USER_IDENTIFIER): ResourceActionGrant
     {
-        $resource = $this->addResource($resourceClass, $resourceIdentifier);
+        $resource = $this->addResourceToTestDB($resourceClass, $resourceIdentifier);
 
         return $this->testEntityManager->addResourceActionGrant($resource, $action, $userIdentifier);
     }

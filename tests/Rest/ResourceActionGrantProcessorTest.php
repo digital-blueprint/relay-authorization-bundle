@@ -586,6 +586,21 @@ class ResourceActionGrantProcessorTest extends AbstractAuthorizationServiceTestC
         $this->assertNull($this->getResourceActionGrantFromDB($resourceActionGrant->getIdentifier()));
     }
 
+    public function testRemoveResourceActionGrantOfOtherHolderAsOwner(): void
+    {
+        // resource manager is allowed to remove any shares of grants for a resource
+        $manageResourceGrant = $this->addResourceAndOwnerGrantToTestDB();
+        $resourceActionGrant = $this->addResourceActionGrantToTestDB(
+            $manageResourceGrant->getAuthorizationResource(),
+            TestResources::READ_ACTION,
+            self::ANOTHER_USER_IDENTIFIER
+        );
+
+        $this->resourceActionGrantProcessorTester->removeItem(
+            $resourceActionGrant->getIdentifier(), $resourceActionGrant);
+        $this->assertNull($this->getResourceActionGrantFromDB($resourceActionGrant->getIdentifier()));
+    }
+
     public function testRemoveResourceActionGrantShare(): void
     {
         // holders of shareable grants are allowed to remove any shares of their grants

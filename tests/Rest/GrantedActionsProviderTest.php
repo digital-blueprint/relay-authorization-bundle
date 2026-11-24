@@ -160,11 +160,11 @@ class GrantedActionsProviderTest extends AbstractAuthorizationServiceTestCase
             ]
         );
 
-        $resource = $this->addResource(
+        $resource = $this->addResourceToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_IDENTIFIER
         );
-        $resourceGroup = $this->addResource(
+        $resourceGroup = $this->addResourceToTestDB(
             TestResources::TEST_RESOURCE_CLASS,
             self::TEST_RESOURCE_GROUP_IDENTIFIER,
             ResourceType::RESOURCE_GROUP

@@ -93,9 +93,9 @@ use Symfony\Component\Serializer\Attribute\Ignore;
                                     'resourceType' => [
                                         'type' => 'integer',
                                         'enum' => [
-                                            ResourceType::RESOURCE,
-                                            ResourceType::RESOURCE_GROUP,
-                                            ResourceType::DYNAMIC_RESOURCE_GROUP,
+                                            ResourceType::RESOURCE->value,
+                                            ResourceType::RESOURCE_GROUP->value,
+                                            ResourceType::DYNAMIC_RESOURCE_GROUP->value,
                                         ],
                                         'description' => 'The resource type to grant the action on: 0 = RESOURCE, 1 = RESOURCE_GROUP, 2 = DYNAMIC_RESOURCE_GROUP (default: 0)',
                                         'example' => 0,

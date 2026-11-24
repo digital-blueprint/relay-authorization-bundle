@@ -11,6 +11,7 @@ use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Entity\Role;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
+use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestResolvingDynamicResourceGroupRequestedEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\Tests\EventSubscriber\TestResourceActionGrantAddedEventSubscriber;
 use Dbp\Relay\AuthorizationBundle\TestUtils\TestEntityManager;
 use Psr\Log\NullLogger;
@@ -29,12 +30,14 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
 
     protected const TEST_RESOURCE_IDENTIFIER = 'resourceIdentifier';
     protected const TEST_RESOURCE_GROUP_IDENTIFIER = 'resourceGroupIdentifier';
+    protected const TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER = 'dynamicResourceGroupIdentifier';
     protected const TEST_RESOURCE_IDENTIFIER_2 = 'resourceIdentifier_2';
 
     protected ?TestEntityManager $testEntityManager = null;
     protected InternalResourceActionGrantService $internalResourceActionGrantService;
     protected EventDispatcher $eventDispatcher;
     protected ?TestResourceActionGrantAddedEventSubscriber $testResourceActionGrantAddedEventSubscriber = null;
+    protected ?TestResolvingDynamicResourceGroupRequestedEventSubscriber $testResolvingDynamicResourceGroupRequestedEventSubscriber = null;
 
     protected static function getAvailableResourceClassActions(string $resourceClass, string $resourceIdentifier): array
     {
@@ -76,8 +79,13 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
         }
 
         $this->eventDispatcher = new EventDispatcher();
+
         $this->testResourceActionGrantAddedEventSubscriber = new TestResourceActionGrantAddedEventSubscriber();
         $this->eventDispatcher->addSubscriber($this->testResourceActionGrantAddedEventSubscriber);
+
+        $this->testResolvingDynamicResourceGroupRequestedEventSubscriber =
+            new TestResolvingDynamicResourceGroupRequestedEventSubscriber();
+        $this->eventDispatcher->addSubscriber($this->testResolvingDynamicResourceGroupRequestedEventSubscriber);
 
         $this->internalResourceActionGrantService = new InternalResourceActionGrantService(
             $this->testEntityManager->getEntityManager(), $this->eventDispatcher);
@@ -144,17 +152,13 @@ abstract class AbstractInternalResourceActionGrantServiceTestCase extends Kernel
         $this->assertTrue($this->containsResource($resources, $resource), 'resource array does not contain given resource');
     }
 
-    protected function assertContainsResourceWhere(mixed $resource, array $resources, callable $criteria): void
+    protected function assertContainsResourceWhere(array $resources, callable $criteria): void
     {
-        foreach ($resources as $res) {
-            if ($resource->getIdentifier() === $res->getIdentifier()) {
-                $this->assertTrue($criteria($resource), 'resource does not match given criteria');
-
-                return;
-            }
-        }
-
-        $this->fail('resource array does not contain given resource');
+        $this->assertCount(
+            1,
+            $this->selectWhere($resources, $criteria),
+            'resource array does not contain resource matching criteria'
+        );
     }
 
     protected function assertIsPermutationOf(array $array1, array $array2): void

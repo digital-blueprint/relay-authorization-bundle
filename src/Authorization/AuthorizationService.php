@@ -815,7 +815,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             || false === $this->isCurrentUserAuthorizedToReadGrant($resourceActionGrant)) {
             // don't distinguish between not found and not being granted
             // to avoid leaking information about the existence of the grant
-            return null;
+            throw new ApiError(Response::HTTP_FORBIDDEN);
         }
 
         $this->setGrantedActions($resourceActionGrant);
@@ -1032,15 +1032,24 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
     private function isCurrentUserAuthorizedToReadGrant(ResourceActionGrant $resourceActionGrant): bool
     {
         return $this->doesCurrentUserHold($resourceActionGrant)
-            || $this->doesCurrentUserHaveAManageGrantForAuthorizationResource(
-                $resourceActionGrant->getResourceClass(), $resourceActionGrant->getResourceIdentifier());
+            || $this->isCurrentUserOwnerOfAuthorizationResource(
+                $resourceActionGrant->getResourceClass(),
+                $resourceActionGrant->getResourceIdentifier(),
+                $resourceActionGrant->getResourceType()
+            );
     }
 
-    private function doesCurrentUserHaveAManageGrantForAuthorizationResource(
-        string $resourceClass, string $resourceIdentifier): bool
-    {
+    private function isCurrentUserOwnerOfAuthorizationResource(
+        string $resourceClass,
+        string $resourceIdentifier,
+        ResourceType $resourceType
+    ): bool {
         return in_array(AuthorizationService::OWN_ACTION,
-            $this->getGrantedActionsForCurrentUser($resourceClass, $resourceIdentifier)?->getActions() ?? [],
+            $this->getGrantedActionsForCurrentUser(
+                $resourceClass,
+                $resourceIdentifier,
+                $resourceType
+            )?->getActions() ?? [],
             true);
     }
 
