@@ -21,10 +21,9 @@ class TestResolvingDynamicResourceGroupRequestedEventSubscriber implements Event
     public function onResolvingDynamicResourceGroupRequestedEvent(
         ResolvingDynamicResourceGroupRequestedEvent $event
     ): void {
-        foreach ($event->getResourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap() as $resourceClass => $dynamicResourceGroupIdentifiers) {
-            foreach (array_keys($dynamicResourceGroupIdentifiers) as $dynamicResourceGroupIdentifier) {
-                $identifiers = $this->resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap[
-                    $resourceClass][$dynamicResourceGroupIdentifier] ?? null;
+        foreach ($event->getRequestedResourceClasses() as $resourceClass) {
+            foreach ($event->getRequestedDynamicResourceGroupIdentifiers($resourceClass) as $dynamicResourceGroupIdentifier) {
+                $identifiers = $this->resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap[$resourceClass][$dynamicResourceGroupIdentifier] ?? null;
                 if (null !== $identifiers) {
                     $event->setMemberResourceIdentifiers(
                         $resourceClass,

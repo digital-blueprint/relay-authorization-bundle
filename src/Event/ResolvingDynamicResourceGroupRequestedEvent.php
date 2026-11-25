@@ -9,19 +9,31 @@ use Symfony\Contracts\EventDispatcher\Event;
 class ResolvingDynamicResourceGroupRequestedEvent extends Event
 {
     /**
-     * @param array<string, array<string, ?array<int, string>>> $resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap
+     * @var array<string, array<string, ?array<int, string>>>
      */
-    public function __construct(
-        private array $resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap
-    ) {
+    private array $resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap = [];
+
+    public function requestDynamicResourceGroupResolution(string $resourceClass, string $resourceGroupIdentifier): void
+    {
+        $this->resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap[$resourceClass][$resourceGroupIdentifier] = null;
+    }
+
+    public function isResolvingDynamicResourceGroupRequested(): bool
+    {
+        return false === empty($this->resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap);
     }
 
     /**
-     * @return array<string, array<string, ?array<int, string>>>
+     * @return string[]
      */
-    public function getResourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap(): array
+    public function getRequestedResourceClasses(): array
     {
-        return $this->resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap;
+        return array_keys($this->resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap);
+    }
+
+    public function getRequestedDynamicResourceGroupIdentifiers(string $resourceClass): array
+    {
+        return array_keys($this->resourceClassesToResourceGroupIdentifiersToMemberResourceIdentifiersMap[$resourceClass] ?? []);
     }
 
     public function getMemberResourceIdentifiers(string $resourceClass, string $resourceGroupIdentifier): ?array

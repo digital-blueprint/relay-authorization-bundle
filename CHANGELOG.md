@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- add ResourceType::DYNAMIC_RESOURCE_GROUP to allow runtime evaluation of resource group membership, potentially avoiding the
+  use of WHERE IN (...) queries with many resource identifiers and instead allowing to translate dynamic resource groups
+  to filters for efficient database queries in bundles using the authz bundle
 - allow resource grouping just on one level
 - don't allow grouping collection resources (nor collection group resources)
 - improve query performance by using just one query, making of use of temporary tables ('WITH' clauses)

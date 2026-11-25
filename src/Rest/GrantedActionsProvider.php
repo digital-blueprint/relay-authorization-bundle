@@ -52,6 +52,7 @@ class GrantedActionsProvider extends AbstractDataProvider
             $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
             excludeCollectionResources: $excludeCollectionResources,
+            resolveDynamicResourceGroups: true,
             firstResultIndex: Pagination::getFirstItemIndex($currentPageNumber, $maxNumItemsPerPage),
             maxNumResults: $maxNumItemsPerPage
         );

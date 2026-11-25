@@ -640,8 +640,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeGrantsForResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?ResourceType $resourceType = ResourceType::RESOURCE): void
-    {
+        ?string $resourceClass = null,
+        ?string $resourceIdentifier = null,
+        ?ResourceType $resourceType = ResourceType::RESOURCE
+    ): void {
         $this->internalResourceActionGrantService->removeGrantsByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $resourceType);
     }
@@ -650,8 +652,10 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeResource(
-        ?string $resourceClass = null, ?string $resourceIdentifier = null, ?ResourceType $resourceType = ResourceType::RESOURCE): void
-    {
+        ?string $resourceClass = null,
+        ?string $resourceIdentifier = null,
+        ?ResourceType $resourceType = ResourceType::RESOURCE
+    ): void {
         $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifier, $resourceType);
     }
@@ -660,23 +664,29 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function removeResources(
-        ?string $resourceClass, array $resourceIdentifiers, ?ResourceType $resourceType = ResourceType::RESOURCE): void
-    {
+        ?string $resourceClass,
+        array $resourceIdentifiers,
+        ?ResourceType $resourceType = ResourceType::RESOURCE
+    ): void {
         $this->internalResourceActionGrantService->removeAuthorizationResourcesByResourceClassAndIdentifier(
             $resourceClass, $resourceIdentifiers, $resourceType);
     }
 
-    public function addResourceToGroupResource(string $resourceClass, string $resourceGroupResourceIdentifier,
-        string $resourceIdentifier): void
-    {
+    public function addResourceToGroupResource(
+        string $resourceClass,
+        string $resourceGroupResourceIdentifier,
+        string $resourceIdentifier
+    ): void {
         $this->internalResourceActionGrantService->addResourceToResourceGroup(
             $resourceClass, $resourceGroupResourceIdentifier,
             $resourceIdentifier);
     }
 
-    public function removeResourceFromGroupResource(string $resourceClass, string $resourceGroupResourceIdentifier,
-        string $resourceIdentifier): void
-    {
+    public function removeResourceFromGroupResource(
+        string $resourceClass,
+        string $resourceGroupResourceIdentifier,
+        string $resourceIdentifier
+    ): void {
         $this->internalResourceActionGrantService->removeResourceFromGroupResource(
             $resourceClass, $resourceGroupResourceIdentifier,
             $resourceIdentifier);
@@ -688,15 +698,29 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @throws ApiError
      */
     public function getResourceActionGrantsForResourceClassAndIdentifier(
-        string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
-        ?string $whereGrantingAction = null): array
-    {
-        return $this->internalResourceActionGrantService->getResourceActionGrants(
-            $resourceClass,
-            $resourceIdentifier,
-            $resourceType,
-            whereGrantingAction: $whereGrantingAction
-        );
+        string $resourceClass,
+        string $resourceIdentifier,
+        ResourceType $resourceType = ResourceType::RESOURCE,
+        ?string $whereGrantingAction = null
+    ): array {
+        try {
+            return $this->internalResourceActionGrantService->getResourceActionGrants(
+                $resourceClass,
+                $resourceIdentifier,
+                $resourceType,
+                whereGrantingAction: $whereGrantingAction
+            );
+        } catch (\Throwable $throwable) {
+            $this->logger->error('Failed to get resource action grants by resource class and identifier: '.
+                $throwable->getMessage(), [
+                    'exception' => $throwable,
+                    'resourceIdentifier' => $resourceIdentifier,
+                    'resourceClass' => $resourceClass,
+                ]);
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'failed to get resource action grants',
+                InternalResourceActionGrantService::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID);
+        }
     }
 
     /**
@@ -706,13 +730,13 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         string $resourceClass,
         string $resourceIdentifier,
         ResourceType $resourceType = ResourceType::RESOURCE,
-        bool $resolveDynamicResourceGroups = true
     ): ?GrantedActions {
         return $this->getGrantedActionsForCurrentUserInternal(
             $resourceClass,
             $resourceIdentifier,
             $resourceType,
-            resolveDynamicResourceGroups: $resolveDynamicResourceGroups
+            // since we return a single GrantedActions object, we need to resolve dynamic resource groups
+            resolveDynamicResourceGroups: true
         );
     }
 
@@ -727,7 +751,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereIsGrantedAction = null,
         bool $excludeCollectionResources = true,
-        bool $resolveDynamicUserGroups = true,
+        bool $resolveDynamicResourceGroups = true,
         int $firstResultIndex = 0,
         int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT
     ): array {
@@ -737,7 +761,7 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
             excludeCollectionResources: $excludeCollectionResources,
-            resolveDynamicResourceGroups: $resolveDynamicUserGroups,
+            resolveDynamicResourceGroups: $resolveDynamicResourceGroups,
             firstResultIndex: $firstResultIndex,
             maxNumResults: $maxNumResults
         );
@@ -764,9 +788,12 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
      * @return AvailableResourceClassAction[]
      */
     public function getAvailableResourceClassActionsUserMayGrant(
-        string $resourceClass, string $resourceIdentifier, ResourceType $resourceType = ResourceType::RESOURCE,
-        int $firstItemIndex = 0, int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT): array
-    {
+        string $resourceClass,
+        string $resourceIdentifier,
+        ResourceType $resourceType = ResourceType::RESOURCE,
+        int $firstItemIndex = 0,
+        int $maxNumItemsPerPage = self::MAX_NUM_RESULTS_DEFAULT
+    ): array {
         $grantedActions = $this->getGrantedActionsForCurrentUserInternal(
             $resourceClass, $resourceIdentifier, $resourceType)?->getActions() ?? [];
 
@@ -857,11 +884,11 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
             }
 
             return $results;
-        } catch (\Exception $e) {
+        } catch (\Throwable $throwable) {
             throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
                 'Failed to get resource action grant collection!',
                 InternalResourceActionGrantService::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID,
-                ['message' => $e->getMessage()]);
+                ['message' => $throwable->getMessage()]);
         }
     }
 
@@ -984,23 +1011,30 @@ class AuthorizationService extends AbstractAuthorizationService implements Logge
         int $firstResultIndex = 0,
         int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT): array
     {
-        $currentUserIdentifier = $this->getUserIdentifier();
+        try {
+            $currentUserIdentifier = $this->getUserIdentifier();
 
-        return $this->internalResourceActionGrantService->getGrantedActionsCollection(
-            $resourceClass,
-            $resourceIdentifier,
-            $resourceType,
-            whereIsGrantedAction: $whereIsGrantedAction,
-            userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
-            groupIdentifiers: $currentUserIdentifier !== null ?
-                $this->userGroupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
-            dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
-            firstResultIndex: $firstResultIndex,
-            maxNumResults: $maxNumResults,
-            options: [
-                InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResources,
-                InternalResourceActionGrantService::RESOLVE_DYNAMIC_RESOURCE_GROUPS_OPTION => $resolveDynamicResourceGroups,
-            ]);
+            return $this->internalResourceActionGrantService->getGrantedActionsCollection(
+                $resourceClass,
+                $resourceIdentifier,
+                $resourceType,
+                whereIsGrantedAction: $whereIsGrantedAction,
+                userIdentifier: $currentUserIdentifier ?: InternalResourceActionGrantService::FALSE,
+                groupIdentifiers: $currentUserIdentifier !== null ?
+                    $this->userGroupService->getUserGroupsUserIsMemberOf($currentUserIdentifier) : [],
+                dynamicUserGroupIdentifiers: $this->getDynamicGroupsCurrentUserIsMemberOf(),
+                firstResultIndex: $firstResultIndex,
+                maxNumResults: $maxNumResults,
+                options: [
+                    InternalResourceActionGrantService::EXCLUDE_COLLECTION_RESOURCE_OPTION => $excludeCollectionResources,
+                    InternalResourceActionGrantService::RESOLVE_DYNAMIC_RESOURCE_GROUPS_OPTION => $resolveDynamicResourceGroups,
+                ]);
+        } catch (\Throwable $throwable) {
+            throw ApiError::withDetails(Response::HTTP_INTERNAL_SERVER_ERROR,
+                'Failed to get resource action grant collection!',
+                InternalResourceActionGrantService::GETTING_RESOURCE_ACTION_GRANT_COLLECTION_FAILED_ERROR_ID,
+                ['message' => $throwable->getMessage()]);
+        }
     }
 
     /**

@@ -3740,6 +3740,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                             return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
                                 && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
                                 && $resourceActionGrant->getResourceIdentifier() === $resourceId
+                                && $resourceActionGrant->getResourceType() === ResourceType::RESOURCE
                                 && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
                         }
                     );
@@ -3758,6 +3759,7 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                 return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
                     && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
                     && $resourceActionGrant->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
+                    && $resourceActionGrant->getResourceType() === ResourceType::DYNAMIC_RESOURCE_GROUP
                     && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
             }
         );
@@ -3787,9 +3789,30 @@ class AuthorizationServiceTest extends AbstractAuthorizationServiceTestCase
                 return $resourceActionGrant->getIdentifier() === $dynamicResourceGroupGrant->getIdentifier()
                     && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
                     && $resourceActionGrant->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
+                    && $resourceActionGrant->getResourceType() === ResourceType::DYNAMIC_RESOURCE_GROUP
                     && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
             }
         );
+    }
+
+    public function testGetResourceActionGrantsUserIsAuthorizedToReadWithDynamicResourceGroupsErrorNoSubsriber(): void
+    {
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER
+        );
+
+        try {
+            $this->authorizationService->getResourceActionGrantsCurrentUserIsAuthorizedToRead(
+                self::TEST_RESOURCE_CLASS
+            );
+            $this->fail('exception not thrown as expected');
+        } catch (ApiError $apiError) {
+            $this->assertEquals(Response::HTTP_INTERNAL_SERVER_ERROR, $apiError->getStatusCode());
+        }
     }
 
     public function testUpdateManageResourceCollectionPolicyGrantsA(): void

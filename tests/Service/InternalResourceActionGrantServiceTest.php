@@ -7,6 +7,7 @@ namespace Dbp\Relay\AuthorizationBundle\Tests\Service;
 use Dbp\Relay\AuthorizationBundle\API\ResourceActionGrantService;
 use Dbp\Relay\AuthorizationBundle\Authorization\AuthorizationService;
 use Dbp\Relay\AuthorizationBundle\Entity\AvailableResourceClassAction;
+use Dbp\Relay\AuthorizationBundle\Entity\GrantedActions;
 use Dbp\Relay\AuthorizationBundle\Entity\ResourceActionGrant;
 use Dbp\Relay\AuthorizationBundle\Enums\ResourceType;
 use Dbp\Relay\AuthorizationBundle\Service\InternalResourceActionGrantService;
@@ -637,11 +638,18 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
                             && $resourceActionGrant->isInherited()
                             && $resourceActionGrant->getResourceClass() === self::TEST_RESOURCE_CLASS
                             && $resourceActionGrant->getResourceIdentifier() === $resourceId
+                            && $resourceActionGrant->getResourceType() === ResourceType::RESOURCE
                             && $resourceActionGrant->getAction() === $dynamicResourceGroupGrant->getAction();
                     }
                 );
             }
         };
+
+        $this->assertEmpty($this->internalResourceActionGrantService->getResourceActionGrants(
+            self::TEST_RESOURCE_CLASS_2,
+            resourceIdentifier: null,
+            resourceType: null,
+        ));
 
         $rags = $this->internalResourceActionGrantService->getResourceActionGrants(
             self::TEST_RESOURCE_CLASS,
@@ -737,7 +745,339 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         ));
     }
 
-    public function testGetResourceActionGrantsForResourceClassAndIdentifierUserGrantsOnly(): void
+    public function testGetResourceActionGrantsWithDynamicResourceGroupsErrorNoSubscriber(): void
+    {
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER
+        );
+
+        $this->expectException(\LogicException::class);
+        $this->internalResourceActionGrantService->getResourceActionGrants(
+            self::TEST_RESOURCE_CLASS
+        );
+    }
+
+    public function testGetGrantedActionsCollectionWithDynamicResourceGroups(): void
+    {
+        $action = array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0];
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            action: $action
+        );
+
+        $resourceIds = [
+            '1',
+            '2',
+            '3',
+        ];
+        $options = [
+            InternalResourceActionGrantService::RESOLVE_DYNAMIC_RESOURCE_GROUPS_OPTION => true,
+        ];
+
+        $this->testResolvingDynamicResourceGroupRequestedEventSubscriber->setMemberResourceIdentifiers(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            $resourceIds
+        );
+
+        $assertContainsInheritedGrants =
+            function (array $grantedActionsCollection, array $resourceIds, array $actions) {
+                foreach ($resourceIds as $resourceId) {
+                    $this->assertContainsResourceWhere($grantedActionsCollection,
+                        function (GrantedActions $grantedActions) use ($resourceId, $actions) {
+                            return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                                && $grantedActions->getResourceIdentifier() === $resourceId
+                                && $grantedActions->getResourceType() === ResourceType::RESOURCE
+                                && $this->isPermutationOf($actions, $grantedActions->getActions());
+                        }
+                    );
+                }
+            };
+
+        $this->assertEmpty($this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS_2,
+            resourceIdentifier: null,
+            resourceType: null,
+            options: $options
+        ));
+
+        $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: null,
+            options: $options
+        );
+        $this->assertCount(4, $grantedActionsCollection);
+        $this->assertContainsResourceWhere($grantedActionsCollection,
+            function (GrantedActions $grantedActions) use ($action) {
+                return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $grantedActions->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
+                    && $grantedActions->getResourceType() === ResourceType::DYNAMIC_RESOURCE_GROUP
+                    && $this->isPermutationOf([$action], $grantedActions->getActions());
+            }
+        );
+        $assertContainsInheritedGrants($grantedActionsCollection, $resourceIds, [$action]);
+
+        $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: ResourceType::RESOURCE,
+            options: $options
+        );
+        $this->assertCount(3, $grantedActionsCollection);
+        $assertContainsInheritedGrants($grantedActionsCollection, $resourceIds, [$action]);
+
+        $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            options: $options
+        );
+        $this->assertCount(1, $grantedActionsCollection);
+        $this->assertContainsResourceWhere($grantedActionsCollection,
+            function (GrantedActions $grantedActions) use ($action) {
+                return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $grantedActions->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
+                    && $grantedActions->getResourceType() === ResourceType::DYNAMIC_RESOURCE_GROUP
+                    && $this->isPermutationOf([$action], $grantedActions->getActions());
+            }
+        );
+
+        $this->assertEmpty($this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: ResourceType::RESOURCE_GROUP,
+            options: $options
+        ));
+
+        foreach ($resourceIds as $resourceId) {
+            $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+                self::TEST_RESOURCE_CLASS,
+                resourceIdentifier: $resourceId,
+                resourceType: null,
+                options: $options
+            );
+            $this->assertCount(1, $grantedActionsCollection);
+            $assertContainsInheritedGrants($grantedActionsCollection, [$resourceId], [$action]);
+
+            $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+                self::TEST_RESOURCE_CLASS,
+                resourceIdentifier: $resourceId,
+                resourceType: ResourceType::RESOURCE,
+                options: $options
+            );
+            $this->assertCount(1, $grantedActionsCollection);
+            $assertContainsInheritedGrants($grantedActionsCollection, [$resourceId], [$action]);
+
+            $this->assertEmpty($this->internalResourceActionGrantService->getGrantedActionsCollection(
+                self::TEST_RESOURCE_CLASS,
+                resourceIdentifier: $resourceId,
+                resourceType: ResourceType::RESOURCE_GROUP,
+                options: $options
+            ));
+            $this->assertEmpty($this->internalResourceActionGrantService->getGrantedActionsCollection(
+                self::TEST_RESOURCE_CLASS,
+                resourceIdentifier: $resourceId,
+                resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+                options: $options
+            ));
+        }
+
+        $this->assertEmpty($this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::RESOURCE,
+            options: $options
+        ));
+
+        $this->assertEmpty($this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::RESOURCE_GROUP,
+            options: $options
+        ));
+
+        $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            options: $options
+        );
+        $this->assertCount(1, $grantedActionsCollection);
+        $this->assertContainsResourceWhere($grantedActionsCollection,
+            function (GrantedActions $grantedActions) use ($action) {
+                return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                    && $grantedActions->getResourceIdentifier() === self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER
+                    && $grantedActions->getResourceType() === ResourceType::DYNAMIC_RESOURCE_GROUP
+                    && $this->isPermutationOf([$action], $grantedActions->getActions());
+            }
+        );
+
+        $this->assertEmpty($this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: '404',
+            resourceType: null,
+            options: $options
+        ));
+    }
+
+    public function testGetGrantedActionsCollectionWithDynamicResourceGroupsMixed(): void
+    {
+        $resourceIds1 = [
+            'r1',
+            'r2',
+            'r3',
+        ];
+        $resourceIds2 = [
+            'r3',
+            'r4',
+        ];
+
+        $options = [
+            InternalResourceActionGrantService::RESOLVE_DYNAMIC_RESOURCE_GROUPS_OPTION => true,
+        ];
+        $action1 = array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[0];
+        $action2 = array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[1];
+        $action3 = array_keys(TestResources::TEST_RESOURCE_ITEM_ACTIONS)[2];
+
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            action: $action1
+        );
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER.'_2',
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            action: $action3
+        );
+
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            $resourceIds1[0],
+            resourceType: ResourceType::RESOURCE,
+            action: $action1 // check de-duplication
+        );
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            $resourceIds1[1],
+            resourceType: ResourceType::RESOURCE,
+            action: $action3
+        );
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            $resourceIds1[2],
+            resourceType: ResourceType::RESOURCE,
+            action: $action2
+        );
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_RESOURCE_IDENTIFIER,
+            resourceType: ResourceType::RESOURCE,
+            action: $action2
+        );
+
+        $this->testResolvingDynamicResourceGroupRequestedEventSubscriber->setMemberResourceIdentifiers(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            $resourceIds1
+        );
+        $this->testResolvingDynamicResourceGroupRequestedEventSubscriber->setMemberResourceIdentifiers(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER.'_2',
+            $resourceIds2
+        );
+
+        $assertContainsGrants =
+            function (array $grantedActionsCollection, array $resourceIdsToActions) {
+                foreach ($resourceIdsToActions as $resourceId => [$actions, $resourceType]) {
+                    $this->assertContainsResourceWhere($grantedActionsCollection,
+                        function (GrantedActions $grantedActions) use ($resourceId, $resourceType, $actions) {
+                            return $grantedActions->getResourceClass() === self::TEST_RESOURCE_CLASS
+                                && $grantedActions->getResourceIdentifier() === $resourceId
+                                && $grantedActions->getResourceType() === $resourceType
+                                && $this->isPermutationOf($actions, $grantedActions->getActions());
+                        }
+                    );
+                }
+            };
+
+        $expectedResourceIdsToAttributes = [
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER => [[$action1], ResourceType::DYNAMIC_RESOURCE_GROUP],
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER.'_2' => [[$action3], ResourceType::DYNAMIC_RESOURCE_GROUP],
+            self::TEST_RESOURCE_IDENTIFIER => [[$action2], ResourceType::RESOURCE],
+            $resourceIds1[0] => [[$action1], ResourceType::RESOURCE],
+            $resourceIds1[1] => [[$action1, $action3], ResourceType::RESOURCE],
+            $resourceIds1[2] => [[$action1, $action2, $action3], ResourceType::RESOURCE],
+            $resourceIds2[1] => [[$action3], ResourceType::RESOURCE],
+        ];
+
+        $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            resourceIdentifier: null,
+            resourceType: null,
+            options: $options
+        );
+        $this->assertCount(count($expectedResourceIdsToAttributes), $grantedActionsCollection);
+        $assertContainsGrants($grantedActionsCollection, $expectedResourceIdsToAttributes);
+
+        foreach ($expectedResourceIdsToAttributes as $resourceId => [$actions, $resourceType]) {
+            $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+                self::TEST_RESOURCE_CLASS,
+                resourceIdentifier: $resourceId,
+                resourceType: null,
+                options: $options
+            );
+            $this->assertCount(1, $grantedActionsCollection);
+            $assertContainsGrants($grantedActionsCollection, [$resourceId => [$actions, $resourceType]]);
+        }
+
+        foreach ($expectedResourceIdsToAttributes as $resourceId => [$actions, $resourceType]) {
+            foreach (ResourceType::cases() as $currentResourceType) {
+                $grantedActionsCollection = $this->internalResourceActionGrantService->getGrantedActionsCollection(
+                    self::TEST_RESOURCE_CLASS,
+                    resourceIdentifier: $resourceId,
+                    resourceType: $currentResourceType,
+                    options: $options
+                );
+                $expectedCount = ($currentResourceType === $resourceType ? 1 : 0);
+                $this->assertCount($expectedCount, $grantedActionsCollection);
+                if ($expectedCount > 0) {
+                    $assertContainsGrants($grantedActionsCollection, [$resourceId => [$actions, $resourceType]]);
+                }
+            }
+        }
+    }
+
+    public function testGetGrantedActionsCollectionWithDynamicResourceGroupsErrorNoSubscriber(): void
+    {
+        $this->testEntityManager->addAuthorizationResourceAndActionGrant(
+            self::TEST_RESOURCE_CLASS,
+            self::TEST_DYNAMIC_RESOURCE_GROUP_IDENTIFIER,
+            resourceType: ResourceType::DYNAMIC_RESOURCE_GROUP,
+            userIdentifier: self::CURRENT_USER_IDENTIFIER,
+            roleIdentifier: AuthorizationService::OWNER_ROLE_IDENTIFIER
+        );
+
+        $options = [
+            InternalResourceActionGrantService::RESOLVE_DYNAMIC_RESOURCE_GROUPS_OPTION => true,
+        ];
+
+        $this->expectException(\LogicException::class);
+        $this->internalResourceActionGrantService->getGrantedActionsCollection(
+            self::TEST_RESOURCE_CLASS,
+            options: $options
+        );
+    }
+
+    public function testGetResourceActionGrantsUserGrantsOnly(): void
     {
         $resource1 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS, self::TEST_RESOURCE_IDENTIFIER);
@@ -859,7 +1199,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertContainsResourceActionGrant($resourceActionGrants, $resourceActionGrantCollection1_1);
     }
 
-    public function testGetResourceActionGrantsForResourceClassAndIdentifierWithGroupResources(): void
+    public function testGetResourceActionGrantsWithGroupResources(): void
     {
         $resource1 = $this->testEntityManager->addAuthorizationResource(
             self::TEST_RESOURCE_CLASS,
@@ -1005,7 +1345,7 @@ class InternalResourceActionGrantServiceTest extends AbstractInternalResourceAct
         $this->assertContainsInheritedResourceActionGrant($resourceActionGrants, $resGroup_delete, $resource1);
     }
 
-    public function testGetResourceActionGrantsForResourceClassAndIdentifierWithUserGroupGrants(): void
+    public function testGetResourceActionGrantsWithUserGroupGrants(): void
     {
         $userGroup = $this->testEntityManager->addUserGroup();
 

@@ -226,22 +226,26 @@ class ResourceActionGrantService
         string $resourceClass,
         string $resourceIdentifier,
         ResourceType $resourceType = ResourceType::RESOURCE,
-        bool $resolveDynamicResourceGroups = false
     ): ?GrantedActions {
         return $this->authorizationService->getGrantedActionsForCurrentUser(
             $resourceClass,
             $resourceIdentifier,
             $resourceType,
-            resolveDynamicResourceGroups: $resolveDynamicResourceGroups
         );
     }
 
     /**
      * Only includes resources where the current user is granted at least one action.
      *
-     * @param string|null $whereIsGrantedAction      If set, only those resources are returned where the current user
-     *                                               is granted the given action
-     * @param bool        $excludeCollectionResource If true, collection resources are excluded from the result
+     * @param string|null $whereIsGrantedAction         If non-null, only those resources are returned where the current user
+     *                                                  is granted the given action.
+     *                                                  If the action does not exist for the resource class of a resource
+     *                                                  that the current user owns, that resource is not included in the result.
+     * @param bool        $excludeCollectionResource    If true, collection resources are excluded from the result
+     * @param bool        $resolveDynamicResourceGroups If true, dynamic resource groups are resolved to their underlying resources,
+     *                                                  otherwise the dynamic resource groups themselves are returned. The latter can be
+     *                                                  used to translate dynamic resource groups to filters for efficient database queries
+     *                                                  instead of using WHERE IN (...) with potentially many resource identifiers.
      *
      * @return GrantedActions[]
      *
@@ -253,7 +257,7 @@ class ResourceActionGrantService
         ?ResourceType $resourceType = ResourceType::RESOURCE,
         ?string $whereIsGrantedAction = null,
         bool $excludeCollectionResource = true,
-        bool $resolveDynamicUserGroups = false,
+        bool $resolveDynamicResourceGroups = true,
         int $firstResultIndex = 0,
         int $maxNumResults = self::MAX_NUM_RESULTS_DEFAULT
     ): array {
@@ -263,7 +267,7 @@ class ResourceActionGrantService
             $resourceType,
             whereIsGrantedAction: $whereIsGrantedAction,
             excludeCollectionResources: $excludeCollectionResource,
-            resolveDynamicUserGroups: $resolveDynamicUserGroups,
+            resolveDynamicResourceGroups: $resolveDynamicResourceGroups,
             firstResultIndex: $firstResultIndex,
             maxNumResults: min($maxNumResults, self::MAX_NUM_RESULTS_MAX));
     }
